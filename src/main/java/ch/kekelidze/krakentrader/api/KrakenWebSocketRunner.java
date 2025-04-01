@@ -5,8 +5,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-@Configuration
-public class WebSocketRunner {
+//@Configuration
+public class KrakenWebSocketRunner {
 
   @Bean
   public CommandLineRunner startWebSocketClient(KrakenWebSocketService service) {
