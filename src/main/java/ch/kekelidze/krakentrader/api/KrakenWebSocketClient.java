@@ -32,7 +32,18 @@ public class KrakenWebSocketClient {
   @OnOpen
   public void onOpen(Session session) {
     log.info("Connected to Kraken WebSocket");
-    String subscribeMsg = "{\"event\":\"subscribe\", \"pair\":[\"XRP/USD\"], \"subscription\":{\"name\":\"ohlc\"}}";
+    String subscribeMsg = """
+        {
+            "method": "subscribe",
+            "params": {
+                "channel": "ohlc",
+                "symbol": [
+                    "XRP/USD"
+                ],
+                "interval": 1
+            }
+        }
+        """;
     session.getAsyncRemote().sendText(subscribeMsg);
   }
 

@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class KrakenWebSocketService {
 
-  private static final String WS_URL = "wss://ws.kraken.com";
+  private static final String WS_URL = "wss://ws.kraken.com/v2";
 
   private final TradeStrategyService tradeStrategyService;
   private final ResponseConverterUtils responseConverterUtils;
