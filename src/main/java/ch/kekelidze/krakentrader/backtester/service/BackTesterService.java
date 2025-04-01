@@ -1,6 +1,10 @@
 package ch.kekelidze.krakentrader.backtester.service;
 
+import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
 import ch.kekelidze.krakentrader.indicator.service.IndicatorService;
+import ch.kekelidze.krakentrader.indicator.service.strategy.StrategyParameters;
+import ch.kekelidze.krakentrader.trade.service.TradeStrategyService;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,29 +17,149 @@ import org.ta4j.core.Bar;
 public class BackTesterService {
 
   private final IndicatorService indicatorService;
+  private final TradeStrategyService tradeStrategyService;
 
-  public void backtest(String coin, List<Bar> priceBars) {
-    boolean inTrade = false;
-    double entryPrice = 0;
+  public void backtest(List<Bar> priceBars, StrategyParameters params) {
+    tradeStrategyService.executeStrategy(priceBars, params);
+  }
+
+  public BacktestResult runSimulation(List<Bar> data, StrategyParameters params,
+      double initialCapital) {
+    // Simulate trades using parameters
+    boolean inPosition = false;
+    double currentCapital = initialCapital;
     double totalProfit = 0;
+    int wins = 0;
+    int trades = 0;
+    double entryPrice = 0;
+    double positionSize = 0;
 
-    for (int i = 21; i < priceBars.size(); i++) { // Start after MA21 is available
-      List<Bar> sublist = priceBars.subList(i - 21, i);
-      double ma9 = indicatorService.calculateMovingAverage(coin, sublist, 9);
-      double ma21 = indicatorService.calculateMovingAverage(coin, sublist, 21);
+    // For drawdown calculation
+    List<Double> equityCurve = new ArrayList<>();
+    equityCurve.add(currentCapital);
 
-      if (!inTrade && ma9 > ma21) {
-        inTrade = true;
-        entryPrice = priceBars.get(i).getClosePrice().doubleValue();
-        log.info("BUY at: {}", entryPrice);
-      } else if (inTrade && ma9 < ma21) {
-        inTrade = false;
-        double exitPrice = priceBars.get(i).getClosePrice().doubleValue();
-        double profit = (exitPrice - entryPrice) / entryPrice * 100;
+    // Store all trade profits for volatility calculation
+    List<Double> tradeReturns = new ArrayList<>();
+
+    for (int i = params.movingAverageLongPeriod(); i < data.size(); i++) {
+      // Calculate indicators
+      List<Bar> sublist = data.subList(i - params.movingAverageLongPeriod(), i);
+      double maShort = indicatorService.calculateMovingAverage(sublist,
+          params.movingAverageShortPeriod());
+      double maLong = indicatorService.calculateMovingAverage(sublist,
+          params.movingAverageLongPeriod());
+      double rsi = indicatorService.calculateRSI(sublist, params.rsiPeriod());
+
+      // Current price for equity calculation
+      double currentPrice = data.get(i).getClosePrice().doubleValue();
+
+      // Execute strategy logic
+      if (!inPosition && maShort > maLong && rsi < params.rsiBuyThreshold()) {
+        trades++;
+        entryPrice = currentPrice;
+        inPosition = true;
+        // For simplicity, assume we use 100% of capital
+        positionSize = currentCapital / entryPrice;
+        log.debug("BUY at: {}", entryPrice);
+      } else if (inPosition && (maShort < maLong || rsi > params.rsiSellThreshold())) {
+        trades++;
+        double profit = (currentPrice - entryPrice) / entryPrice * 100;
+        if (profit > 0) {
+          wins++;
+        }
+
+        // Add profit to list of returns
+        tradeReturns.add(profit);
+
+        // Update capital
+        currentCapital = positionSize * currentPrice;
+        inPosition = false;
         totalProfit += profit;
-        log.info("SELL at: {} | Profit: {}%", exitPrice, profit);
+
+        log.debug("SELL at: {} | Profit: {}%", currentPrice, profit);
+      }
+
+      // Update equity curve for each bar (whether in position or not)
+      if (inPosition) {
+        // If in position, equity is affected by current market price
+        double currentEquity = positionSize * currentPrice;
+        equityCurve.add(currentEquity);
+      } else {
+        // If not in position, equity remains the same as current capital
+        equityCurve.add(currentCapital);
+      }
+
+    }
+
+    // Calculate volatility as standard deviation
+    double volatility = calculateStandardDeviation(tradeReturns);
+
+    // Calculate maximum drawdown from equity curve
+    double maxDrawdown = calculateMaxDrawdown(equityCurve);
+
+    // Calculate metrics
+    return BacktestResult.builder()
+        .totalProfit(totalProfit)
+        .sharpeRatio(calculateSharpe(totalProfit, volatility, tradeReturns.size()))
+        .winRate(trades > 0 ? wins / (double) trades : 0)
+        .maxDrawdown(maxDrawdown)
+        .build();
+  }
+
+  private double calculateStandardDeviation(List<Double> returns) {
+    if (returns.isEmpty()) {
+      return 0;
+    }
+
+    // Calculate mean
+    double mean = returns.stream().mapToDouble(Double::doubleValue).average().orElse(0);
+
+    // Calculate sum of squared differences
+    double sumSquaredDiff = returns.stream()
+        .mapToDouble(r -> Math.pow(r - mean, 2))
+        .sum();
+
+    // Calculate standard deviation
+    return Math.sqrt(sumSquaredDiff / returns.size());
+  }
+
+
+  private double calculateSharpe(double totalProfit, double volatility, int numTrades) {
+    if (volatility == 0 || numTrades == 0) {
+      return 0;
+    }
+
+    // Calculate average return per trade
+    double averageReturn = totalProfit / numTrades;
+
+    // Risk-free rate (could be parameterized)
+    double riskFreeRate = 2.0; // Assuming 0% for simplicity, but can be set to a value like 2.0 for 2%
+
+    // Calculate Sharpe ratio
+    return (averageReturn - riskFreeRate) / volatility;
+  }
+
+  private double calculateMaxDrawdown(List<Double> equityCurve) {
+    if (equityCurve.isEmpty()) {
+      return 0;
+    }
+
+    double maxDrawdown = 0;
+    double peak = equityCurve.getFirst();
+
+    for (double value : equityCurve) {
+      if (value > peak) {
+        peak = value; // New peak
+      } else {
+        // Calculate current drawdown
+        double currentDrawdown = (peak - value) / peak * 100;
+        if (currentDrawdown > maxDrawdown) {
+          maxDrawdown = currentDrawdown;
+        }
       }
     }
-    log.info("Total Profit: {}%", totalProfit);
+
+    return maxDrawdown;
   }
+
 }

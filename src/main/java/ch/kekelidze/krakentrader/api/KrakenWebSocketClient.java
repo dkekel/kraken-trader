@@ -66,7 +66,7 @@ public class KrakenWebSocketClient {
     closes.add(bar);
 
     if (closes.size() >= 21) { // Wait for enough data
-      tradeStrategyService.executeStrategy("XRP", closes, bar.getClosePrice().doubleValue());
+      tradeStrategyService.executeStrategy(closes, null); //TODO pass parameters
     }
   }
 }
