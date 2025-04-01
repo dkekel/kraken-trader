@@ -1,20 +1,29 @@
 package ch.kekelidze.krakentrader.api.service;
 
+import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.ta4j.core.Bar;
+import org.ta4j.core.BaseBar;
+import org.ta4j.core.num.DecimalNum;
 
 /**
  * The KrakenApiService class provides methods for evaluating trading conditions based on moving
@@ -22,6 +31,7 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class KrakenApiService {
 
   // Constant values for moving average periods and trading amount
@@ -35,6 +45,8 @@ public class KrakenApiService {
   private String apiKey;
   @Value("${kraken.api.secret}")
   private String apiSecret;
+
+  private final ResponseConverterUtils responseConverterUtils;
 
 //  private void placeLimitOrder(String coin, double amount) {
 //    try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
@@ -115,7 +127,7 @@ public class KrakenApiService {
    * @param period period duration, e.g. 60 for 1-hour candles
    * @return list of closing prices per period
    */
-  public List<Double> queryHistoricalData(String coin, int period) {
+  public List<Bar> queryHistoricalData(String coin, int period) {
     String url = "https://api.kraken.com/0/public/OHLC?pair=" + coin + "&interval=" + period;
 
     try (HttpClient client = HttpClient.newHttpClient()) {
@@ -130,18 +142,14 @@ public class KrakenApiService {
           .orElse(new JSONArray());
 
       // Extract closing prices (index 4 in Kraken's OHLC array)
-      double[] closes = new double[ohlcData.length()];
+      var dataBars = new ArrayList<Bar>();
       for (int i = 0; i < ohlcData.length(); i++) {
-        closes[i] = ohlcData.getJSONArray(i).getDouble(4);
+        var ohlcCandle = ohlcData.getJSONArray(i);
+        var bar = responseConverterUtils.getPriceBar(ohlcCandle, period);
+        dataBars.add(bar);
       }
 
-      log.info("Latest 9 closes:");
-      List<Double> historicalData = new ArrayList<>();
-      for (double close : closes) {
-        log.info("{}", close);
-        historicalData.add(close);
-      }
-      return historicalData;
+      return dataBars;
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException("Failed to fetch and parse historical data: " + e.getMessage(), e);
     }

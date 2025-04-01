@@ -6,6 +6,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.ta4j.core.Bar;
 
 @Slf4j
 @Service
@@ -19,7 +20,7 @@ public class TradeStrategyService {
   private final IndicatorService indicatorService;
   private final RiskManagementService riskManagementService;
 
-  public void executeStrategy(String coin, List<Double> closes, double currentPrice) {
+  public void executeStrategy(String coin, List<Bar> closes, double currentPrice) {
     double ma9 = indicatorService.calculateMovingAverage(coin, closes.subList(closes.size() - 9, closes.size()), 9);
     double ma21 = indicatorService.calculateMovingAverage(coin, closes.subList(closes.size() - 21, closes.size()), 21);
     double rsi = indicatorService.calculateRSI(coin, closes.subList(closes.size() - 14, closes.size()), 14);
@@ -48,7 +49,7 @@ public class TradeStrategyService {
    */
   public void checkTradingConditionsAndExecute(String coin, int period) {
     // Example stub for querying historical data
-    List<Double> prices = krakenApiService.queryHistoricalData(coin, period);
+    List<Bar> prices = krakenApiService.queryHistoricalData(coin, period);
 
     double ma9 = indicatorService.calculateMovingAverage(coin, prices, 9);
     double ma21 = indicatorService.calculateMovingAverage(coin, prices, 21);

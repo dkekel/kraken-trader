@@ -17,7 +17,7 @@ public class KrakenTraderApplication {
 
   private static void test(KrakenApiService krakenApiService, BackTesterService backTesterService) {
     var coin = "XRPUSD";
-    var historicalData = krakenApiService.queryHistoricalData(coin, 1);
+    var historicalData = krakenApiService.queryHistoricalData(coin, 60);
     backTesterService.backtest(coin, historicalData);
   }
 }
