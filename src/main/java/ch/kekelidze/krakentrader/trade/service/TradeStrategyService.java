@@ -21,15 +21,18 @@ public class TradeStrategyService {
   private final RiskManagementService riskManagementService;
 
   public void executeStrategy(String coin, List<Bar> closes, double currentPrice) {
-    double ma9 = indicatorService.calculateMovingAverage(coin, closes.subList(closes.size() - 9, closes.size()), 9);
-    double ma21 = indicatorService.calculateMovingAverage(coin, closes.subList(closes.size() - 21, closes.size()), 21);
-    double rsi = indicatorService.calculateRSI(coin, closes.subList(closes.size() - 14, closes.size()), 14);
+    double ma9 = indicatorService.calculateMovingAverage(coin,
+        closes.subList(closes.size() - 9, closes.size()), 9);
+    double ma21 = indicatorService.calculateMovingAverage(coin,
+        closes.subList(closes.size() - 21, closes.size()), 21);
+    double rsi = indicatorService.calculateRSI(coin,
+        closes.subList(closes.size() - 14, closes.size()), 14);
 
     // Buy Signal: MA9 > MA21 + RSI < 30
     if (!inTrade && maCrossesAbove(ma9, ma21) && rsi < 30) {
       inTrade = true;
       entryPrice = currentPrice;
-      System.out.println("BUY at: " + entryPrice);
+      log.info("BUY at: {}", entryPrice);
       // KrakenTradeAPI.buyXRP(entryPrice); // Uncomment to execute live trades
     }
     // Sell Signal: MA9 < MA21 + RSI > 70 + Stop-Loss/Take-Profit
@@ -38,7 +41,7 @@ public class TradeStrategyService {
         riskManagementService.shouldTakeProfit(entryPrice, currentPrice, 10))) {
       inTrade = false;
       double profit = (currentPrice - entryPrice) / entryPrice * 100;
-      System.out.println("SELL at: " + currentPrice + " | Profit: " + profit + "%");
+      log.info("SELL at: {} | Profit: {}%", currentPrice, profit);
     }
   }
 

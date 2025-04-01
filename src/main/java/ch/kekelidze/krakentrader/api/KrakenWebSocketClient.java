@@ -1,4 +1,4 @@
-package ch.kekelidze.krakentrader.api.service;
+package ch.kekelidze.krakentrader.api;
 
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import ch.kekelidze.krakentrader.trade.service.TradeStrategyService;
@@ -8,36 +8,47 @@ import jakarta.websocket.OnOpen;
 import jakarta.websocket.Session;
 import java.util.ArrayList;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.springframework.stereotype.Service;
 import org.ta4j.core.Bar;
 
-@Service
+@Slf4j
 @ClientEndpoint
-@RequiredArgsConstructor
 public class KrakenWebSocketClient {
 
   private static final List<Bar> closes = new ArrayList<>();
 
-  private final TradeStrategyService tradeStrategyService;
-  private final ResponseConverterUtils responseConverterUtils;
+  private static TradeStrategyService tradeStrategyService;
+  private static ResponseConverterUtils responseConverterUtils;
+
+  // Method to set dependencies from Spring context
+  public static void initialize(TradeStrategyService strategyService,
+      ResponseConverterUtils converterUtils) {
+    tradeStrategyService = strategyService;
+    responseConverterUtils = converterUtils;
+  }
 
   @OnOpen
   public void onOpen(Session session) {
-    System.out.println("Connected to Kraken WebSocket");
+    log.info("Connected to Kraken WebSocket");
     String subscribeMsg = "{\"event\":\"subscribe\", \"pair\":[\"XRP/USD\"], \"subscription\":{\"name\":\"ohlc\"}}";
     session.getAsyncRemote().sendText(subscribeMsg);
   }
 
   @OnMessage
   public void onMessage(String message) {
+    // Check if dependencies are set
+    if (responseConverterUtils == null || tradeStrategyService == null) {
+      throw new RuntimeException("Dependencies not set. Please call initialize() first.");
+    }
+
     JSONObject json = new JSONObject(message);
     if (json.has("event")) {
       return; // Ignore heartbeat/status messages
     }
 
+    log.info("Received message: {}", message);
     // Parse OHLC data (format: ["channelID", ["time", "open", "high", "low", "close", ...], ...])
     JSONArray data = json.getJSONArray(json.keys().next());
     var bar = responseConverterUtils.getPriceBar(data.getJSONArray(1), 60);

@@ -1,17 +1,18 @@
 package ch.kekelidze.krakentrader.api;
 
-import ch.kekelidze.krakentrader.api.service.KrakenWebSocketClient;
-import jakarta.websocket.ContainerProvider;
-import jakarta.websocket.WebSocketContainer;
-import java.net.URI;
+import ch.kekelidze.krakentrader.api.service.KrakenWebSocketService;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
+@Configuration
 public class WebSocketRunner {
 
-  private static final String WS_URL = "wss://ws.kraken.com";
-
-  public static void main(String[] args) throws Exception {
-    WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-    container.connectToServer(KrakenWebSocketClient.class, URI.create(WS_URL));
-    Thread.sleep(Long.MAX_VALUE); // Keep running
+  @Bean
+  public CommandLineRunner startWebSocketClient(KrakenWebSocketService service) {
+    return args -> {
+      service.startWebSocketClient();
+      Thread.currentThread().join();
+    };
   }
 }
