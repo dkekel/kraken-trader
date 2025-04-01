@@ -126,7 +126,8 @@ public class KrakenApiService {
       HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
       JSONObject json = new JSONObject(response.body());
       JSONObject result = json.getJSONObject("result");
-      JSONArray ohlcData = result.getJSONArray(coin);
+      JSONArray ohlcData = result.keySet().stream().findFirst().map(result::getJSONArray)
+          .orElse(new JSONArray());
 
       // Extract closing prices (index 4 in Kraken's OHLC array)
       double[] closes = new double[ohlcData.length()];
