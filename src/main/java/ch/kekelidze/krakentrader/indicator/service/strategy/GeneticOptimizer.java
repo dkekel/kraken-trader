@@ -4,6 +4,7 @@ import static io.jenetics.engine.Limits.bySteadyFitness;
 
 import ch.kekelidze.krakentrader.backtester.service.BackTesterService;
 import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
+import ch.kekelidze.krakentrader.indicator.service.strategy.configuration.StrategyParameters;
 import io.jenetics.Genotype;
 import io.jenetics.IntegerChromosome;
 import io.jenetics.IntegerGene;
@@ -22,7 +23,7 @@ import org.ta4j.core.Bar;
 
 @Slf4j
 @Component
-public class GeneticOptimizer {
+public class GeneticOptimizer implements Optimizer {
 
   private static List<Bar> historicalData;
   private static final double initialBalance = 10000;
@@ -33,7 +34,8 @@ public class GeneticOptimizer {
     GeneticOptimizer.backTesterService = backTesterService;
   }
 
-  public StrategyParameters optimize(List<Bar> data) {
+  @Override
+  public StrategyParameters optimizeParameters(List<Bar> data) {
     historicalData = new ArrayList<>(data);
 
     Engine<IntegerGene, Double> engine = Engine.builder(

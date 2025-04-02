@@ -65,8 +65,10 @@ public class KrakenWebSocketClient {
     var bar = responseConverterUtils.getPriceBar(data.getJSONArray(1), 60);
     closes.add(bar);
 
-    if (closes.size() >= 21) { // Wait for enough data
-      tradeStrategyService.executeStrategy(closes, null); //TODO pass parameters
+    // Wait for enough data
+    if (closes.size() >= 21) {
+      //TODO pass model and parameters
+      tradeStrategyService.executeStrategy(closes, null, null);
     }
   }
 }

@@ -2,8 +2,7 @@ package ch.kekelidze.krakentrader.backtester.service;
 
 import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
 import ch.kekelidze.krakentrader.indicator.service.IndicatorService;
-import ch.kekelidze.krakentrader.indicator.service.strategy.StrategyParameters;
-import ch.kekelidze.krakentrader.trade.service.TradeStrategyService;
+import ch.kekelidze.krakentrader.indicator.service.strategy.configuration.StrategyParameters;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -17,11 +16,6 @@ import org.ta4j.core.Bar;
 public class BackTesterService {
 
   private final IndicatorService indicatorService;
-  private final TradeStrategyService tradeStrategyService;
-
-  public void backtest(List<Bar> priceBars, StrategyParameters params) {
-    tradeStrategyService.executeStrategy(priceBars, params);
-  }
 
   public BacktestResult runSimulation(List<Bar> data, StrategyParameters params,
       double initialCapital) {
