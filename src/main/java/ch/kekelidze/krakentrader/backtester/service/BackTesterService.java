@@ -2,7 +2,7 @@ package ch.kekelidze.krakentrader.backtester.service;
 
 import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
 import ch.kekelidze.krakentrader.indicator.service.IndicatorService;
-import ch.kekelidze.krakentrader.indicator.service.strategy.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;

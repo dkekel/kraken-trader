@@ -1,7 +1,7 @@
-package ch.kekelidze.krakentrader.indicator.service.strategy;
+package ch.kekelidze.krakentrader.indicator.optimize;
 
-import ch.kekelidze.krakentrader.indicator.service.strategy.configuration.StrategyParameters;
-import ch.kekelidze.krakentrader.indicator.service.strategy.model.LSTMModel;
+import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.optimize.model.LSTMModel;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;

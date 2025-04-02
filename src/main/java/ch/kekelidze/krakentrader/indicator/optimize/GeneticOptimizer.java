@@ -1,10 +1,10 @@
-package ch.kekelidze.krakentrader.indicator.service.strategy;
+package ch.kekelidze.krakentrader.indicator.optimize;
 
 import static io.jenetics.engine.Limits.bySteadyFitness;
 
 import ch.kekelidze.krakentrader.backtester.service.BackTesterService;
 import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
-import ch.kekelidze.krakentrader.indicator.service.strategy.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
 import io.jenetics.Genotype;
 import io.jenetics.IntegerChromosome;
 import io.jenetics.IntegerGene;

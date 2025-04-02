@@ -1,7 +1,7 @@
 package ch.kekelidze.krakentrader.api;
 
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
-import ch.kekelidze.krakentrader.trade.service.TradeStrategyService;
+import ch.kekelidze.krakentrader.trade.service.TradeService;
 import jakarta.websocket.ClientEndpoint;
 import jakarta.websocket.OnMessage;
 import jakarta.websocket.OnOpen;
@@ -19,13 +19,13 @@ public class KrakenWebSocketClient {
 
   private static final List<Bar> closes = new ArrayList<>();
 
-  private static TradeStrategyService tradeStrategyService;
+  private static TradeService tradeService;
   private static ResponseConverterUtils responseConverterUtils;
 
   // Method to set dependencies from Spring context
-  public static void initialize(TradeStrategyService strategyService,
+  public static void initialize(TradeService strategyService,
       ResponseConverterUtils converterUtils) {
-    tradeStrategyService = strategyService;
+    tradeService = strategyService;
     responseConverterUtils = converterUtils;
   }
 
@@ -50,7 +50,7 @@ public class KrakenWebSocketClient {
   @OnMessage
   public void onMessage(String message) {
     // Check if dependencies are set
-    if (responseConverterUtils == null || tradeStrategyService == null) {
+    if (responseConverterUtils == null || tradeService == null) {
       throw new RuntimeException("Dependencies not set. Please call initialize() first.");
     }
 
@@ -68,7 +68,7 @@ public class KrakenWebSocketClient {
     // Wait for enough data
     if (closes.size() >= 21) {
       //TODO pass model and parameters
-      tradeStrategyService.executeStrategy(closes, null, null);
+      tradeService.executeStrategy(closes, null);
     }
   }
 }

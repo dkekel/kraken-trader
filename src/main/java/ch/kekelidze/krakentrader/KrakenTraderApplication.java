@@ -1,8 +1,8 @@
 package ch.kekelidze.krakentrader;
 
 import ch.kekelidze.krakentrader.api.service.KrakenApiService;
-import ch.kekelidze.krakentrader.indicator.service.strategy.Optimizer;
-import ch.kekelidze.krakentrader.trade.service.TradeStrategyService;
+import ch.kekelidze.krakentrader.indicator.optimize.Optimizer;
+import ch.kekelidze.krakentrader.trade.service.TradeService;
 import java.io.File;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
@@ -17,15 +17,15 @@ public class KrakenTraderApplication {
   public static void main(String[] args) throws IOException {
     var application = SpringApplication.run(KrakenTraderApplication.class, args);
     var krakenApi = application.getBean(KrakenApiService.class);
-    var tradeService = application.getBean(TradeStrategyService.class);
+    var tradeService = application.getBean(TradeService.class);
     var optimizer = application.getBean("walkForwardOptimizer", Optimizer.class);
     optimizeAndTrade(krakenApi, tradeService, optimizer);
   }
 
   private static void optimizeAndTrade(KrakenApiService krakenApiService,
-      TradeStrategyService tradeStrategyService, Optimizer optimizer) throws IOException {
+      TradeService tradeService, Optimizer optimizer) throws IOException {
     var coin = "XRPUSD";
-    var historicalData = krakenApiService.queryHistoricalData(coin, 60);
+    var historicalData = krakenApiService.queryHistoricalData(coin, 5);
     var optimisedStrategy = optimizer.optimizeParameters(historicalData);
     log.info("Optimised strategy: {}", optimisedStrategy);
 
@@ -39,6 +39,6 @@ public class KrakenTraderApplication {
     int trainingSize = (int) (historicalData.size() * 0.7); // 30% validation
     var validationData = historicalData.subList(trainingSize, historicalData.size());
 
-    tradeStrategyService.executeStrategy(validationData, model, optimisedStrategy);
+    tradeService.executeStrategy(validationData, optimisedStrategy);
   }
 }

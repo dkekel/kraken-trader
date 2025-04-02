@@ -1,4 +1,4 @@
-package ch.kekelidze.krakentrader.indicator.service.strategy.configuration;
+package ch.kekelidze.krakentrader.indicator.optimize.configuration;
 
 /**
  * A record that encapsulates the parameters used for a trading strategy. This class is designed to

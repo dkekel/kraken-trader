@@ -1,6 +1,6 @@
-package ch.kekelidze.krakentrader.indicator.service.strategy;
+package ch.kekelidze.krakentrader.indicator.optimize;
 
-import ch.kekelidze.krakentrader.indicator.service.strategy.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
 import java.util.List;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.ta4j.core.Bar;
