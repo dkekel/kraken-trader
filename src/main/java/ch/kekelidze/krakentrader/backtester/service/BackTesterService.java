@@ -45,14 +45,14 @@ public class BackTesterService {
       double currentPrice = data.get(i).getClosePrice().doubleValue();
 
       // Execute strategy logic
-      if (!inPosition && indicatorAgreementStrategy.shouldBuy(sublist, params)) {
+      if (!inPosition && weightedAgreementStrategy.shouldBuy(sublist, params)) {
         trades++;
         entryPrice = currentPrice;
         inPosition = true;
         // For simplicity, assume we use 100% of capital
         positionSize = currentCapital / entryPrice;
         log.debug("BUY at: {}", entryPrice);
-      } else if (inPosition && indicatorAgreementStrategy.shouldSell(sublist, entryPrice, params)) {
+      } else if (inPosition && weightedAgreementStrategy.shouldSell(sublist, entryPrice, params)) {
         trades++;
         double profit = (currentPrice - entryPrice) / entryPrice * 100;
         if (profit > 0) {
@@ -124,7 +124,8 @@ public class BackTesterService {
     double averageReturn = totalProfit / numTrades;
 
     // Risk-free rate (could be parameterized)
-    double riskFreeRate = 2.0; // Assuming 0% for simplicity, but can be set to a value like 2.0 for 2%
+    // Assuming 0% for simplicity, but can be set to a value like 2.0 for 2%
+    double riskFreeRate = 2.0;
 
     // Calculate Sharpe ratio
     return (averageReturn - riskFreeRate) / volatility;

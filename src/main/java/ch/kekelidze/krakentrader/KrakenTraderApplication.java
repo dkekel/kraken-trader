@@ -25,8 +25,7 @@ public class KrakenTraderApplication {
   private static void optimizeAndTrade(KrakenApiService krakenApiService,
       TradeService tradeService, Optimizer optimizer) throws IOException {
     var coin = "XRPUSD";
-    var startTime = (System.currentTimeMillis() / 1000L - (180L * 24 * 60 * 60));
-    var historicalData = krakenApiService.queryHistoricalData(coin, 5, startTime);
+    var historicalData = krakenApiService.queryHistoricalData(coin, 5);
 
     var modelFile = new File("model_v3.h5");
     if (!modelFile.exists()) {
