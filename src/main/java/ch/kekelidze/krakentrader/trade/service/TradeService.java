@@ -1,8 +1,9 @@
 package ch.kekelidze.krakentrader.trade.service;
 
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
-import ch.kekelidze.krakentrader.indicator.strategy.PricePredictionStrategy;
-import ch.kekelidze.krakentrader.indicator.strategy.Strategy;
+import ch.kekelidze.krakentrader.strategy.IndicatorAgreementStrategy;
+import ch.kekelidze.krakentrader.strategy.Strategy;
+import ch.kekelidze.krakentrader.strategy.WeightedAgreementStrategy;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,9 +15,15 @@ import org.ta4j.core.Bar;
 @RequiredArgsConstructor
 public class TradeService {
 
-  private final List<Strategy> strategies;
+  private final IndicatorAgreementStrategy indicatorAgreementStrategy;
+  private final WeightedAgreementStrategy weightedAgreementStrategy;
 
   public void executeStrategy(List<Bar> data, StrategyParameters params) {
+    executeSelectedStrategy(data, params, indicatorAgreementStrategy);
+  }
+
+  private void executeSelectedStrategy(List<Bar> data, StrategyParameters params,
+      Strategy strategy) {
     boolean inTrade = false;
     double[] entryPrice = new double[1];
     double totalProfit = 0;
@@ -26,12 +33,11 @@ public class TradeService {
       List<Bar> sublist = data.subList(i - params.movingAverageLongPeriod(), i);
       var currentPrice = data.get(i).getClosePrice().doubleValue();
 
-      if (!inTrade && strategies.stream().allMatch(s -> s.isBuyTrigger(sublist, params))) {
+      if (!inTrade && strategy.shouldBuy(sublist, params)) {
         inTrade = true;
         entryPrice[0] = currentPrice;
         log.info("BUY at: {}", entryPrice);
-      } else if (inTrade
-          && strategies.stream().anyMatch(s -> s.isSellTrigger(sublist, entryPrice[0], params))) {
+      } else if (inTrade && strategy.shouldSell(sublist, entryPrice[0], params)) {
         inTrade = false;
         double profit = (currentPrice - entryPrice[0]) / entryPrice[0] * 100;
         totalProfit += profit;

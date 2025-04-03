@@ -1,4 +1,4 @@
-package ch.kekelidze.krakentrader.indicator.strategy;
+package ch.kekelidze.krakentrader.indicator;
 
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
 import java.io.File;
@@ -12,12 +12,12 @@ import org.ta4j.core.Bar;
 import org.ta4j.core.num.Num;
 
 @Component
-public class PricePredictionStrategy implements Strategy {
+public class PricePredictionIndicator implements Indicator {
 
   private final MultiLayerNetwork model;
   
-  public PricePredictionStrategy() throws IOException {
-    var modelFile = new File("model.h5");
+  public PricePredictionIndicator() throws IOException {
+    var modelFile = new File("model_v3.h5");
     if (!modelFile.exists()) {
       throw new RuntimeException("Model file does not exist!");
     }
@@ -26,19 +26,19 @@ public class PricePredictionStrategy implements Strategy {
   }
 
   @Override
-  public boolean isBuyTrigger(List<Bar> data, StrategyParameters params) {
+  public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
     var prediction = calculatePrediction(data);
-    var previousPrice = data.get(data.size() - 2).getClosePrice().doubleValue();
+    var previousPrice = data.getLast().getClosePrice().doubleValue();
     return prediction > previousPrice;
   }
 
   @Override
-  public boolean isSellTrigger(List<Bar> data, double entryPrice, StrategyParameters params) {
+  public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
     var prediction = calculatePrediction(data);
-    var previousPrice = data.get(data.size() - 2).getClosePrice().doubleValue();
+    var previousPrice = data.getLast().getClosePrice().doubleValue();
     return prediction < previousPrice;
   }
-  
+
   private double calculatePrediction(List<Bar> data) {
     // Prepare input sequence (last 10 prices)
     var inputSequence = data.subList(data.size() - 10, data.size()).stream()

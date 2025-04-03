@@ -25,20 +25,21 @@ public class KrakenTraderApplication {
   private static void optimizeAndTrade(KrakenApiService krakenApiService,
       TradeService tradeService, Optimizer optimizer) throws IOException {
     var coin = "XRPUSD";
-    var historicalData = krakenApiService.queryHistoricalData(coin, 5);
-    var optimisedStrategy = optimizer.optimizeParameters(historicalData);
-    log.info("Optimised strategy: {}", optimisedStrategy);
+    var startTime = (System.currentTimeMillis() / 1000L - (180L * 24 * 60 * 60));
+    var historicalData = krakenApiService.queryHistoricalData(coin, 5, startTime);
 
-    var modelFile = new File("model.h5");
-    var model = modelFile.exists() ? MultiLayerNetwork.load(modelFile, true)
-        : optimizer.trainModel(historicalData);
+    var modelFile = new File("model_v3.h5");
     if (!modelFile.exists()) {
+      var model = optimizer.trainModel(historicalData);
       model.save(modelFile);
     }
+
+    var optimizeParameters = optimizer.optimizeParameters(historicalData);
+    log.info("Optimised strategy: {}", optimizeParameters);
 
     int trainingSize = (int) (historicalData.size() * 0.7); // 30% validation
     var validationData = historicalData.subList(trainingSize, historicalData.size());
 
-    tradeService.executeStrategy(validationData, optimisedStrategy);
+    tradeService.executeStrategy(validationData, optimizeParameters);
   }
 }

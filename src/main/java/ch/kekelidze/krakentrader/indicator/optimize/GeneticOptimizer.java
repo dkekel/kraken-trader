@@ -45,7 +45,12 @@ public class GeneticOptimizer implements Optimizer {
                     IntegerChromosome.of(5, 15),    // movingAverageShortPeriod
                     IntegerChromosome.of(20, 50),   // movingAverageLongPeriod
                     IntegerChromosome.of(10, 20),   // rsiPeriod
-                    IntegerChromosome.of(25, 35)    // rsiBuyThreshold
+                    IntegerChromosome.of(25, 35),   // rsiBuyThreshold
+                    IntegerChromosome.of(10, 20),   // shortBarCount MA divergence
+                    IntegerChromosome.of(20, 30),   // longBarCount MA divergence
+                    IntegerChromosome.of(5, 10),    // MA divergence bar count
+                    IntegerChromosome.of(10, 20),   // average volume threshold
+                    IntegerChromosome.of(50, 80)    // weighted agreement threshold
                 ),
                 gt -> gt
             ))
@@ -63,28 +68,33 @@ public class GeneticOptimizer implements Optimizer {
 
     Genotype<IntegerGene> genotype = best.genotype();
     log.info("Best fitness: {}", best.fitness());
-    return new StrategyParameters(
-        genotype.get(0).get(0).intValue(),  // maShort
-        genotype.get(1).get(0).intValue(),  // maLong
-        genotype.get(2).get(0).intValue(),  // rsiPeriod
-        genotype.get(3).get(0).intValue(),  // rsiBuy
-        70                                  // rsiSell (fixed)
-    );
+    return getStrategyParameters(genotype);
   }
 
   // Fitness function (Sharpe Ratio)
   private static Double fitness(Genotype<IntegerGene> genotype) {
-    StrategyParameters params = new StrategyParameters(
-        genotype.get(0).get(0).intValue(),
-        genotype.get(1).get(0).intValue(),
-        genotype.get(2).get(0).intValue(),
-        genotype.get(3).get(0).intValue(),
-        70
-    );
+    StrategyParameters params = getStrategyParameters(genotype);
     BacktestResult result = backTesterService.runSimulation(historicalData, params, initialBalance);
     // Example combined fitness function
     return result.sharpeRatio() * 0.6 +
         (1 - result.maxDrawdown()) * 0.3 +
         result.winRate() * 0.1;
+  }
+
+  private static StrategyParameters getStrategyParameters(Genotype<IntegerGene> genotype) {
+    return StrategyParameters.builder()
+        .movingAverageShortPeriod(genotype.get(0).get(0).intValue())
+        .movingAverageLongPeriod(genotype.get(1).get(0).intValue())
+        .rsiPeriod(genotype.get(2).get(0).intValue())
+        .rsiBuyThreshold(genotype.get(3).get(0).intValue())
+        .shortBarCount(genotype.get(4).get(0).intValue())
+        .longBarCount(genotype.get(5).get(0).intValue())
+        .macdBarCount(genotype.get(6).get(0).intValue())
+        .aboveAverageThreshold(genotype.get(7).get(0).intValue())
+        .weightedAgreementThreshold(genotype.get(8).get(0).intValue())
+        .rsiSellThreshold(70)
+        .lossPercent(5)
+        .profitPercent(10)
+        .build();
   }
 }

@@ -1,8 +1,9 @@
 package ch.kekelidze.krakentrader.backtester.service;
 
 import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
-import ch.kekelidze.krakentrader.indicator.service.IndicatorService;
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.strategy.IndicatorAgreementStrategy;
+import ch.kekelidze.krakentrader.strategy.WeightedAgreementStrategy;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +16,8 @@ import org.ta4j.core.Bar;
 @RequiredArgsConstructor
 public class BackTesterService {
 
-  private final IndicatorService indicatorService;
+  private final IndicatorAgreementStrategy indicatorAgreementStrategy;
+  private final WeightedAgreementStrategy weightedAgreementStrategy;
 
   public BacktestResult runSimulation(List<Bar> data, StrategyParameters params,
       double initialCapital) {
@@ -38,24 +40,19 @@ public class BackTesterService {
     for (int i = params.movingAverageLongPeriod(); i < data.size(); i++) {
       // Calculate indicators
       List<Bar> sublist = data.subList(i - params.movingAverageLongPeriod(), i);
-      double maShort = indicatorService.calculateMovingAverage(sublist,
-          params.movingAverageShortPeriod());
-      double maLong = indicatorService.calculateMovingAverage(sublist,
-          params.movingAverageLongPeriod());
-      double rsi = indicatorService.calculateRSI(sublist, params.rsiPeriod());
 
       // Current price for equity calculation
       double currentPrice = data.get(i).getClosePrice().doubleValue();
 
       // Execute strategy logic
-      if (!inPosition && maShort > maLong && rsi < params.rsiBuyThreshold()) {
+      if (!inPosition && indicatorAgreementStrategy.shouldBuy(sublist, params)) {
         trades++;
         entryPrice = currentPrice;
         inPosition = true;
         // For simplicity, assume we use 100% of capital
         positionSize = currentCapital / entryPrice;
         log.debug("BUY at: {}", entryPrice);
-      } else if (inPosition && (maShort < maLong || rsi > params.rsiSellThreshold())) {
+      } else if (inPosition && indicatorAgreementStrategy.shouldSell(sublist, entryPrice, params)) {
         trades++;
         double profit = (currentPrice - entryPrice) / entryPrice * 100;
         if (profit > 0) {

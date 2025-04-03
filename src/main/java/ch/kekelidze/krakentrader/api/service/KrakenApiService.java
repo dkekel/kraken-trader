@@ -127,8 +127,10 @@ public class KrakenApiService {
    * @param period period duration, e.g. 60 for 1-hour candles
    * @return list of closing prices per period
    */
-  public List<Bar> queryHistoricalData(String coin, int period) {
-    String url = "https://api.kraken.com/0/public/OHLC?pair=" + coin + "&interval=" + period;
+  public List<Bar> queryHistoricalData(String coin, int period, double startTime) {
+    String url =
+        "https://api.kraken.com/0/public/OHLC?pair=" + coin + "&interval=" + period + "&since="
+            + startTime;
 
     try (HttpClient client = HttpClient.newHttpClient()) {
       HttpRequest request = HttpRequest.newBuilder()
