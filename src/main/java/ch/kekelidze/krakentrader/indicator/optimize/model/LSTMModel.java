@@ -2,7 +2,6 @@ package ch.kekelidze.krakentrader.indicator.optimize.model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import org.deeplearning4j.datasets.iterator.utilty.ListDataSetIterator;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
@@ -15,6 +14,8 @@ import org.nd4j.linalg.activations.Activation;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.dataset.DataSet;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
+import org.nd4j.linalg.dataset.api.preprocessor.DataNormalization;
+import org.nd4j.linalg.dataset.api.preprocessor.NormalizerStandardize;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.learning.config.Adam;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
@@ -24,30 +25,6 @@ import org.ta4j.core.num.Num;
 
 @Component
 public class LSTMModel {
-    
-    private MultiLayerNetwork buildModel(int inputSize, int outputSize) {
-        MultiLayerConfiguration config = new NeuralNetConfiguration.Builder()
-            .seed(123)
-            .updater(new Adam(0.001))
-            .weightInit(WeightInit.XAVIER)
-            .list()
-            .layer(new LSTM.Builder()
-                .nIn(inputSize)
-                .nOut(64)
-                .activation(Activation.TANH)
-                .build())
-            .layer(new RnnOutputLayer.Builder()
-                .nIn(64)
-                .nOut(outputSize)
-                .activation(Activation.IDENTITY)
-                .lossFunction(LossFunctions.LossFunction.MSE)
-                .build())
-            .build();
-
-        MultiLayerNetwork model = new MultiLayerNetwork(config);
-        model.init();
-        return model;
-    }
 
     public MultiLayerNetwork trainModel(List<Bar> historicalPrices) {
         // Convert prices to sequences (e.g., 10 time steps → predict next 1)
@@ -75,9 +52,9 @@ public class LSTMModel {
         // Use a smaller batch size to avoid memory issues
         int batchSize = 32;
         DataSetIterator iterator = new ListDataSetIterator<>(trainingData, batchSize);
+        normalizeDataSets(iterator);
 
         MultiLayerNetwork model = buildModel(1, 1);
-
         // Add early stopping to avoid overfitting
         for (int epoch = 0; epoch < 100; epoch++) {
             iterator.reset();
@@ -85,5 +62,40 @@ public class LSTMModel {
         }
 
         return model;
+    }
+
+    private MultiLayerNetwork buildModel(int inputSize, int outputSize) {
+        MultiLayerConfiguration config = new NeuralNetConfiguration.Builder()
+            .seed(123)
+            .updater(new Adam(0.001))
+            .weightInit(WeightInit.XAVIER)
+            .list()
+            .layer(new LSTM.Builder()
+                .nIn(inputSize)
+                .nOut(64)
+                .activation(Activation.TANH)
+                .build())
+            .layer(new RnnOutputLayer.Builder()
+                .nIn(64)
+                .nOut(outputSize)
+                .activation(Activation.IDENTITY)
+                .lossFunction(LossFunctions.LossFunction.MSE)
+                .build())
+            .build();
+
+        MultiLayerNetwork model = new MultiLayerNetwork(config);
+        model.init();
+        return model;
+    }
+
+    private void normalizeDataSets(DataSetIterator iterator) {
+        DataNormalization normalizer = new NormalizerStandardize();
+        normalizer.fit(iterator);
+        iterator.reset();
+        // Apply normalization to each dataset
+        while (iterator.hasNext()) {
+            DataSet next = iterator.next();
+            normalizer.transform(next);
+        }
     }
 }
