@@ -45,14 +45,14 @@ public class BackTesterService {
       double currentPrice = data.get(i).getClosePrice().doubleValue();
 
       // Execute strategy logic
-      if (!inPosition && weightedAgreementStrategy.shouldBuy(sublist, params)) {
+      if (!inPosition && indicatorAgreementStrategy.shouldBuy(sublist, params)) {
         trades++;
         entryPrice = currentPrice;
         inPosition = true;
         // For simplicity, assume we use 100% of capital
         positionSize = currentCapital / entryPrice;
         log.debug("BUY at: {}", entryPrice);
-      } else if (inPosition && weightedAgreementStrategy.shouldSell(sublist, entryPrice, params)) {
+      } else if (inPosition && indicatorAgreementStrategy.shouldSell(sublist, entryPrice, params)) {
         trades++;
         double profit = (currentPrice - entryPrice) / entryPrice * 100;
         if (profit > 0) {
