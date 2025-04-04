@@ -3,6 +3,7 @@ package ch.kekelidze.krakentrader.indicator.optimize.model;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.deeplearning4j.datasets.iterator.utilty.ListDataSetIterator;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 import org.ta4j.core.num.Num;
 
+@Slf4j
 @Component
 public class LSTMModel {
 
@@ -55,11 +57,18 @@ public class LSTMModel {
         normalizeDataSets(iterator);
 
         MultiLayerNetwork model = buildModel(1, 1);
+        // Log start of training
+        log.info("Training started. Total epochs: 100");
+
         // Add early stopping to avoid overfitting
         for (int epoch = 0; epoch < 100; epoch++) {
             iterator.reset();
             model.fit(iterator);
+            log.info("Epoch {}/100 completed ({}% done).", epoch + 1, (epoch + 1) * 100 / 100);
         }
+
+        // Log end of training
+        log.info("Training completed.");
 
         return model;
     }
