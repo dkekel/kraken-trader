@@ -1,5 +1,6 @@
 package ch.kekelidze.krakentrader.strategy;
 
+import ch.kekelidze.krakentrader.indicator.AdxIndicator;
 import ch.kekelidze.krakentrader.indicator.Indicator;
 import ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceIndicator;
 import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
@@ -24,6 +25,7 @@ public class IndicatorAgreementStrategy implements Strategy {
   private final PricePredictionIndicator pricePredictionIndicator;
   private final MovingAverageDivergenceIndicator movingAverageDivergenceIndicator;
   private final RiskManagementIndicator riskManagementIndicator;
+  private final AdxIndicator adxIndicator;
 
   /**
    * MA Crossover (e.g., MA9 > MA21) AND
@@ -36,7 +38,8 @@ public class IndicatorAgreementStrategy implements Strategy {
    */
   @Override
   public boolean shouldBuy(List<Bar> data, StrategyParameters params) {
-    return Stream.of(movingAverageIndicator, rsiIndicator, pricePredictionIndicator,
+    return adxIndicator.isBuySignal(data, params) &&
+        Stream.of(movingAverageIndicator, rsiIndicator, pricePredictionIndicator,
             movingAverageDivergenceIndicator)
         .allMatch(indicator -> indicator.isBuySignal(data, params));
   }
@@ -53,7 +56,8 @@ public class IndicatorAgreementStrategy implements Strategy {
    */
   @Override
   public boolean shouldSell(List<Bar> data, double entryPrice, StrategyParameters params) {
-    return Stream.of(movingAverageIndicator, rsiIndicator, pricePredictionIndicator,
+    return adxIndicator.isSellSignal(data, entryPrice, params) &&
+        Stream.of(movingAverageIndicator, rsiIndicator, pricePredictionIndicator,
             riskManagementIndicator)
         .anyMatch(indicator -> indicator.isSellSignal(data, entryPrice, params));
   }
