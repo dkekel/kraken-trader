@@ -32,8 +32,7 @@ public class MovingAverageIndicator implements Indicator {
     if (pricePeriods.isEmpty()) {
       throw new IllegalArgumentException("No data available for the given coin and period.");
     }
-    BarSeries series = new BaseBarSeriesBuilder().build();
-    pricePeriods.forEach(series::addBar);
+    BarSeries series = new BaseBarSeriesBuilder().withBars(pricePeriods).build();
     ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
     SMAIndicator ma = new SMAIndicator(closePrice, periods);
     var latestMa = ma.getValue(series.getEndIndex()).doubleValue();

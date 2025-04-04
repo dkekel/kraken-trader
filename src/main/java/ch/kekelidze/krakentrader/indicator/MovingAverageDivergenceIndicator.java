@@ -31,9 +31,7 @@ public class MovingAverageDivergenceIndicator implements Indicator {
 
   private double calculateMovingAverageDivergence(List<Bar> pricePeriods,
       StrategyParameters params) {
-    BarSeries series = new BaseBarSeriesBuilder().build();
-    pricePeriods.forEach(series::addBar);
-
+    BarSeries series = new BaseBarSeriesBuilder().withBars(pricePeriods).build();
     ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
     MACDIndicator macd = new MACDIndicator(closePrice, params.shortBarCount(),
         params.longBarCount());
@@ -43,8 +41,7 @@ public class MovingAverageDivergenceIndicator implements Indicator {
   }
 
   private double calculateMacdSignal(List<Bar> pricePeriods, StrategyParameters params) {
-    BarSeries series = new BaseBarSeriesBuilder().build();
-    pricePeriods.forEach(series::addBar);
+    BarSeries series = new BaseBarSeriesBuilder().withBars(pricePeriods).build();
     ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
     return new EMAIndicator(closePrice, params.macdBarCount()).getValue(series.getEndIndex())
         .doubleValue();

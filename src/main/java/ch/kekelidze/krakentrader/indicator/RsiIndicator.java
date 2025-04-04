@@ -30,8 +30,7 @@ public class RsiIndicator implements Indicator {
     if (pricePeriods.isEmpty()) {
       throw new IllegalArgumentException("No data available for the given coin and period.");
     }
-    BarSeries series = new BaseBarSeriesBuilder().build();
-    pricePeriods.forEach(series::addBar);
+    BarSeries series = new BaseBarSeriesBuilder().withBars(pricePeriods).build();
     ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
     RSIIndicator rsi = new RSIIndicator(closePrice, periods);
     var latestRsi = rsi.getValue(series.getEndIndex()).doubleValue();
