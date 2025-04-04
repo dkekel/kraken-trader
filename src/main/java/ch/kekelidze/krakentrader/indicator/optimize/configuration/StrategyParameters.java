@@ -20,6 +20,7 @@ public record StrategyParameters(int movingAverageShortPeriod, int movingAverage
                                  int shortBarCount, int longBarCount, int macdBarCount,
                                  double aboveAverageThreshold,
                                  double lossPercent, double profitPercent,
-                                 double weightedAgreementThreshold) {
+                                 double weightedAgreementThreshold,
+                                 int dataPeriod) {
 
 }

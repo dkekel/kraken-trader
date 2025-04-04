@@ -95,6 +95,7 @@ public class GeneticOptimizer implements Optimizer {
         .rsiSellThreshold(70)
         .lossPercent(5)
         .profitPercent(10)
+        .dataPeriod(60)
         .build();
   }
 }
