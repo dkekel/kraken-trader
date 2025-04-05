@@ -17,7 +17,7 @@ public class PricePredictionIndicator implements Indicator {
   private final MultiLayerNetwork model;
   
   public PricePredictionIndicator() throws IOException {
-    var modelFile = new File("model_v3.h5");
+    var modelFile = new File("model_v4.h5");
     if (!modelFile.exists()) {
       throw new RuntimeException("Model file does not exist!");
     }
