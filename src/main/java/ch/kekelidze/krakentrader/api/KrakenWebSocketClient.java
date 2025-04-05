@@ -98,10 +98,10 @@ public class KrakenWebSocketClient {
         }
       }
 
-      // Wait for enough data
-      if (priceQueue.size() >= 21) {
+      var strategyParameters = getStrategyParameters();
+      if (priceQueue.size() >= strategyParameters.movingAverageLongPeriod()) {
         log.info("Enough data received. Executing strategy...");
-        tradeService.executeStrategy(new ArrayList<>(priceQueue), getStrategyParameters());
+        tradeService.executeStrategy(new ArrayList<>(priceQueue), strategyParameters);
       }
     }
   }
