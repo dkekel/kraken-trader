@@ -24,7 +24,7 @@ public class KrakenTraderApplication {
     var application = SpringApplication.run(KrakenTraderApplication.class, args);
 //    optimizeMLModel(application);
 //    optimizeAndValidate(application);
-//    recentDataTrade(application);
+    validateWithRecentData(application);
   }
 
   private static void optimizeMLModel(ApplicationContext application) throws IOException {
