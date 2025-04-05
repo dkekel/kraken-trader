@@ -94,6 +94,7 @@ public class BackTesterService {
         .sharpeRatio(calculateSharpe(totalProfit, volatility, tradeReturns.size()))
         .winRate(trades > 0 ? wins / (double) trades : 0)
         .maxDrawdown(maxDrawdown)
+        .capital(currentCapital)
         .build();
   }
 

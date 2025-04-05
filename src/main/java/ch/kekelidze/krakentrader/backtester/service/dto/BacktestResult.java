@@ -4,6 +4,6 @@ import lombok.Builder;
 
 @Builder
 public record BacktestResult(double totalProfit, double sharpeRatio, double maxDrawdown,
-                             double winRate) {
+                             double winRate, double capital) {
 
 }
