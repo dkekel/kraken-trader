@@ -15,6 +15,8 @@ import io.jenetics.SinglePointCrossover;
 import io.jenetics.engine.Codec;
 import io.jenetics.engine.Engine;
 import io.jenetics.engine.EvolutionResult;
+import io.jenetics.engine.EvolutionStatistics;
+import io.jenetics.stat.DoubleMomentStatistics;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -61,9 +63,14 @@ public class GeneticOptimizer implements Optimizer {
             new SinglePointCrossover<>(0.5) // Include crossover for better exploration
         )
         .build();
-
+    final EvolutionStatistics<Double, DoubleMomentStatistics> statistics =
+        EvolutionStatistics.ofNumber();
     Phenotype<IntegerGene, Double> best = engine.stream()
-        .limit(bySteadyFitness(100)) // Terminate when fitness stabilizes over generations
+        .limit(bySteadyFitness(100))
+        .peek(evolutionResult -> {
+          statistics.accept(evolutionResult);
+          log.info("Statistics: {}", statistics);
+        })
         .collect(EvolutionResult.toBestPhenotype());
 
     Genotype<IntegerGene> genotype = best.genotype();
