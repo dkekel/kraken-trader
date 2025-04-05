@@ -23,9 +23,8 @@ public class KrakenCsvService {
    * Kraken’s OHLC Format: Each candle is an array [time, open, high, low, close, volume, count].
    * @return parsed historical data file
    */
-  public List<Bar> readCsvFile() {
+  public List<Bar> readCsvFile(String filePath) {
     List<Bar> bars = new ArrayList<>();
-    String filePath = "data/XRPUSD_60.csv";
 
     try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
       String line;
