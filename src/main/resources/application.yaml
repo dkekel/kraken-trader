@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: "kraken-trader"
+kraken:
+  api:
+    key: ABC
+    secret: ABC
+logging:
+  level:
+    ch.kekelidze.krakentrader.indicator.RsiIndicator: DEBUG
+#    ch.kekelidze.krakentrader.strategy.WeightedAgreementStrategy: DEBUG
