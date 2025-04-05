@@ -39,7 +39,7 @@ public class WeightedAgreementStrategy implements Strategy {
     var volumeScore = volumeIndicator.isBuySignal(data, params) ? 1 : 0;
     double score = calculateTotalScore(mlScore, maScore, divergenceScore, volumeScore);
     log.debug("Buy score: {}", score);
-    return score >= params.weightedAgreementThreshold();
+    return score >= params.weightedAgreementThreshold() / 100;
   }
 
   /**
@@ -61,7 +61,7 @@ public class WeightedAgreementStrategy implements Strategy {
     var volumeScore = volumeIndicator.isSellSignal(data, entryPrice, params) ? 1 : 0;
     double score = calculateTotalScore(mlScore, maScore, divergenceScore, volumeScore);
     log.debug("Sell score: {}", score);
-    return score >= params.weightedAgreementThreshold();
+    return score >= params.weightedAgreementThreshold() / 100;
   }
 
   private double calculateTotalScore(double mlScore, double maScore, double divergenceScore,
