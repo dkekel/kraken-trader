@@ -7,5 +7,16 @@ kraken:
     secret: ABC
 logging:
   level:
-    ch.kekelidze.krakentrader.indicator.RsiIndicator: DEBUG
-#    ch.kekelidze.krakentrader.strategy.WeightedAgreementStrategy: DEBUG
+    ch.kekelidze.krakentrader.indicator.AdxIndicator: INFO
+    ch.kekelidze.krakentrader.indicator.MovingAverageIndicator: INFO
+    ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceIndicator: INFO
+    ch.kekelidze.krakentrader.indicator.PricePredictionIndicator: INFO
+    ch.kekelidze.krakentrader.indicator.VolumeIndicator: INFO
+    ch.kekelidze.krakentrader.indicator.RsiIndicator: INFO
+    ch.kekelidze.krakentrader.indicator.RiskManagementIndicator: INFO
+
+    ch.kekelidze.krakentrader.strategy.IndicatorAgreementStrategy: INFO
+    ch.kekelidze.krakentrader.strategy.WeightedAgreementStrategy: INFO
+    ch.kekelidze.krakentrader.strategy.PricePredictionStrategy: INFO
+
+    ch.kekelidze.krakentrader.backtester.service.BackTesterService: INFO
