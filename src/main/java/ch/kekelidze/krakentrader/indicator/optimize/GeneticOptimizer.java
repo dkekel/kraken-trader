@@ -8,10 +8,8 @@ import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParame
 import io.jenetics.Genotype;
 import io.jenetics.IntegerChromosome;
 import io.jenetics.IntegerGene;
-import io.jenetics.Mutator;
 import io.jenetics.Optimize;
 import io.jenetics.Phenotype;
-import io.jenetics.SinglePointCrossover;
 import io.jenetics.engine.Codec;
 import io.jenetics.engine.Engine;
 import io.jenetics.engine.EvolutionResult;
@@ -45,23 +43,24 @@ public class GeneticOptimizer implements Optimizer {
             Codec.of(
                 Genotype.of(
                     IntegerChromosome.of(5, 15),    // movingAverageShortPeriod
-                    IntegerChromosome.of(20, 50),   // movingAverageLongPeriod
+                    IntegerChromosome.of(20, 30),   // movingAverageLongPeriod
                     IntegerChromosome.of(10, 20),   // rsiPeriod
                     IntegerChromosome.of(25, 35),   // rsiBuyThreshold
                     IntegerChromosome.of(10, 20),   // macdShortBarCount MA divergence
                     IntegerChromosome.of(20, 30),   // macdLongBarCount MA divergence
-                    IntegerChromosome.of(5, 10),    // MA divergence bar count
-                    IntegerChromosome.of(10, 20),   // average volume threshold
-                    IntegerChromosome.of(50, 80)    // weighted agreement threshold
+                    IntegerChromosome.of(15, 25),   // adx bullish threshold
+                    IntegerChromosome.of(30, 35),   // adx bearish threshold
+                    IntegerChromosome.of(10, 20)   // average volume threshold
+//                    IntegerChromosome.of(50, 80)    // weighted agreement threshold
                 ),
                 gt -> gt
             ))
         .populationSize(50) // Increase population size
         .optimize(Optimize.MAXIMUM)
-        .alterers(
-            new Mutator<>(0.3), // Add Mutator for genetic diversity
-            new SinglePointCrossover<>(0.5) // Include crossover for better exploration
-        )
+//        .alterers(
+//            new Mutator<>(0.3), // Add Mutator for genetic diversity
+//            new SinglePointCrossover<>(0.5) // Include crossover for better exploration
+//        )
         .build();
     final EvolutionStatistics<Double, DoubleMomentStatistics> statistics =
         EvolutionStatistics.ofNumber();
@@ -82,10 +81,11 @@ public class GeneticOptimizer implements Optimizer {
   private static Double fitness(Genotype<IntegerGene> genotype) {
     StrategyParameters params = getStrategyParameters(genotype);
     BacktestResult result = backTesterService.runSimulation(historicalData, params, initialBalance);
+    return result.sharpeRatio();
     // Example combined fitness function
-    return result.sharpeRatio() * 0.6 +
-        (1 - result.maxDrawdown()) * 0.3 +
-        result.winRate() * 0.1;
+//    return result.sharpeRatio() * 0.6 +
+//        (1 - result.maxDrawdown()) * 0.3 +
+//        result.winRate() * 0.1;
   }
 
   private static StrategyParameters getStrategyParameters(Genotype<IntegerGene> genotype) {
@@ -96,13 +96,16 @@ public class GeneticOptimizer implements Optimizer {
         .rsiBuyThreshold(genotype.get(3).get(0).intValue())
         .macdShortBarCount(genotype.get(4).get(0).intValue())
         .macdLongBarCount(genotype.get(5).get(0).intValue())
-        .macdBarCount(genotype.get(6).get(0).intValue())
-        .aboveAverageThreshold(genotype.get(7).get(0).intValue())
-        .weightedAgreementThreshold(genotype.get(8).get(0).intValue())
+        .adxBullishThreshold(genotype.get(6).get(0).intValue())
+        .adxBearishThreshold(genotype.get(7).get(0).intValue())
+        .aboveAverageThreshold(genotype.get(8).get(0).intValue())
+//        .weightedAgreementThreshold(genotype.get(9).get(0).intValue())
         .rsiSellThreshold(70)
         .lossPercent(5)
         .profitPercent(10)
+        .macdBarCount(9)
         .adxPeriod(14)
+        .volumePeriod(20)
         .build();
   }
 }
