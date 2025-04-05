@@ -1,13 +1,16 @@
 package ch.kekelidze.krakentrader.indicator;
 
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.log.GrafanaLogService;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 import org.ta4j.core.num.Num;
@@ -17,14 +20,17 @@ import org.ta4j.core.num.Num;
 public class PricePredictionIndicator implements Indicator {
 
   private final MultiLayerNetwork model;
-  
-  public PricePredictionIndicator() throws IOException {
+  private final GrafanaLogService grafanaLogService;
+
+  @Autowired
+  public PricePredictionIndicator(GrafanaLogService grafanaLogService) throws IOException {
     var modelFile = new File("model_v4.h5");
     if (!modelFile.exists()) {
       throw new RuntimeException("Model file does not exist!");
     }
     
     this.model = MultiLayerNetwork.load(modelFile, true);
+    this.grafanaLogService = grafanaLogService;
   }
 
   @Override
@@ -32,6 +38,7 @@ public class PricePredictionIndicator implements Indicator {
     var prediction = calculatePrediction(data);
     var previousPrice = data.getLast().getClosePrice().doubleValue();
     log.debug("Prediction: {}, Previous Price: {}", prediction, previousPrice);
+    grafanaLogService.log("Prediction: " + prediction + ", Previous Price: " + previousPrice);
     return prediction > previousPrice;
   }
 
@@ -40,6 +47,7 @@ public class PricePredictionIndicator implements Indicator {
     var prediction = calculatePrediction(data);
     var previousPrice = data.getLast().getClosePrice().doubleValue();
     log.debug("Prediction: {}, Previous Price: {}", prediction, previousPrice);
+    grafanaLogService.log("Prediction: " + prediction + ", Previous Price: " + previousPrice);
     return prediction < previousPrice;
   }
 

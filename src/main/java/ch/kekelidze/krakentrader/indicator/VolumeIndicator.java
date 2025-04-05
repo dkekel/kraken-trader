@@ -1,14 +1,19 @@
 package ch.kekelidze.krakentrader.indicator;
 
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.log.GrafanaLogService;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class VolumeIndicator implements Indicator {
+
+  private final GrafanaLogService grafanaLogService;
 
   /**
    * Only if volume is above 20-period average during the signal.
@@ -41,6 +46,8 @@ public class VolumeIndicator implements Indicator {
     double currentVolume = data.getLast().getVolume().doubleValue();
     log.debug("Average volume: {}, Current volume: {}, Above average threshold: {}", avgVolume,
         currentVolume, params.aboveAverageThreshold());
+    grafanaLogService.log("Average volume: " + avgVolume + ", Current volume: " + currentVolume
+        + ", Above average threshold: " + params.aboveAverageThreshold());
     return currentVolume > avgVolume * (1 + params.aboveAverageThreshold() / 100);
   }
 

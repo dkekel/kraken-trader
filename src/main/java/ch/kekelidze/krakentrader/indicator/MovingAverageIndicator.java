@@ -1,7 +1,9 @@
 package ch.kekelidze.krakentrader.indicator;
 
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.log.GrafanaLogService;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
@@ -12,13 +14,17 @@ import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class MovingAverageIndicator implements Indicator {
+
+  private final GrafanaLogService grafanaLogService;
 
   @Override
   public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
     double maShort = calculateMovingAverage(data, params.movingAverageShortPeriod());
     double maLong = calculateMovingAverage(data, params.movingAverageLongPeriod());
     log.debug("MA short: {}, MA long: {}", maShort, maLong);
+    grafanaLogService.log("MA short: " + maShort + ", MA long: " + maLong);
     return maCrossesAbove(maShort, maLong);
   }
 
@@ -27,6 +33,7 @@ public class MovingAverageIndicator implements Indicator {
     double maShort = calculateMovingAverage(data, params.movingAverageShortPeriod());
     double maLong = calculateMovingAverage(data, params.movingAverageLongPeriod());
     log.debug("MA short: {}, MA long: {}", maShort, maLong);
+    grafanaLogService.log("MA short: " + maShort + ", MA long: " + maLong);
     return maCrossesAbove(maLong, maShort);
   }
 

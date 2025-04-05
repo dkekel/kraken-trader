@@ -1,7 +1,9 @@
 package ch.kekelidze.krakentrader.indicator;
 
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.log.GrafanaLogService;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
@@ -11,7 +13,10 @@ import org.ta4j.core.indicators.adx.ADXIndicator;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class AdxIndicator implements Indicator {
+
+  private final GrafanaLogService grafanaLogService;
 
   /**
    * Buy only if ADX > 25 (strong trend).
@@ -24,6 +29,7 @@ public class AdxIndicator implements Indicator {
     BarSeries series = new BaseBarSeriesBuilder().withBars(data).build();
     double adx = calculateADX(series, params.adxPeriod());
     log.debug("ADX: {}, Buy threshold: {}", adx, params.adxBullishThreshold());
+    grafanaLogService.log("ADX: " + adx + ", Buy threshold: " + params.adxBullishThreshold());
     return adx > params.adxBullishThreshold();
   }
 
@@ -39,6 +45,7 @@ public class AdxIndicator implements Indicator {
     BarSeries series = new BaseBarSeriesBuilder().withBars(data).build();
     double adx = calculateADX(series, params.adxPeriod());
     log.debug("ADX: {}, Sell threshold: {}", adx, params.adxBearishThreshold());
+    grafanaLogService.log("ADX: " + adx + ", Sell threshold: " + params.adxBearishThreshold());
     return adx < params.adxBearishThreshold();
   }
 
