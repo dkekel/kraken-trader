@@ -1,13 +1,18 @@
 package ch.kekelidze.krakentrader.api;
 
+import static ch.kekelidze.krakentrader.api.service.KrakenWebSocketService.getStrategyParameters;
+
+import ch.kekelidze.krakentrader.api.service.KrakenApiService;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import ch.kekelidze.krakentrader.trade.service.TradeService;
 import jakarta.websocket.ClientEndpoint;
+import jakarta.websocket.OnError;
 import jakarta.websocket.OnMessage;
 import jakarta.websocket.OnOpen;
 import jakarta.websocket.Session;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Deque;
+import java.util.LinkedList;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -17,16 +22,32 @@ import org.ta4j.core.Bar;
 @ClientEndpoint
 public class KrakenWebSocketClient {
 
-  private static final List<Bar> closes = new ArrayList<>();
+  private static final String CHANNEL = "channel";
+  private static final String STATUS = "status";
+  private static final String OHLC = "ohlc";
+  private static final String SYMBOL = "XRP/USD";
+
+  private static final Deque<Bar> priceQueue = new LinkedList<>();
 
   private static TradeService tradeService;
   private static ResponseConverterUtils responseConverterUtils;
 
   // Method to set dependencies from Spring context
-  public static void initialize(TradeService strategyService,
-      ResponseConverterUtils converterUtils) {
+  public static void initialize(TradeService strategyService, ResponseConverterUtils converterUtils,
+      KrakenApiService krakenApiService) {
     tradeService = strategyService;
     responseConverterUtils = converterUtils;
+    initializePriceQueue(krakenApiService);
+  }
+
+  private static void initializePriceQueue(KrakenApiService krakenApiService) {
+    var historicalData = krakenApiService.queryHistoricalData(SYMBOL, 5);
+    for (Bar bar : historicalData) {
+      if (priceQueue.size() >= 30) {
+        priceQueue.pollFirst();
+      }
+      priceQueue.addLast(bar);
+    }
   }
 
   @OnOpen
@@ -38,12 +59,12 @@ public class KrakenWebSocketClient {
             "params": {
                 "channel": "ohlc",
                 "symbol": [
-                    "XRP/USD"
+                    "%s"
                 ],
-                "interval": 1
+                "interval": 5
             }
         }
-        """;
+        """.formatted(SYMBOL);
     session.getAsyncRemote().sendText(subscribeMsg);
   }
 
@@ -55,20 +76,40 @@ public class KrakenWebSocketClient {
     }
 
     JSONObject json = new JSONObject(message);
-    if (json.has("event")) {
-      return; // Ignore heartbeat/status messages
+    var channel = getChannel(json);
+    if (STATUS.equals(channel)) {
+      log.debug("Ignore heartbeat/status messages");
+      return;
     }
 
-    log.info("Received message: {}", message);
-    // Parse OHLC data (format: ["channelID", ["time", "open", "high", "low", "close", ...], ...])
-    JSONArray data = json.getJSONArray(json.keys().next());
-    var bar = responseConverterUtils.getPriceBar(data.getJSONArray(1), 60);
-    closes.add(bar);
+    if (OHLC.equals(channel)) {
+      log.info("Received message: {}", message);
 
-    // Wait for enough data
-    if (closes.size() >= 21) {
-      //TODO pass model and parameters
-      tradeService.executeStrategy(closes, null);
+      JSONArray data = json.getJSONArray("data");
+      for (int i = 0; i < data.length(); i++) {
+        JSONObject ohlcObject = data.getJSONObject(i);
+        var ohlcEntry = responseConverterUtils.convertJsonToOhlcEntry(ohlcObject);
+        var bar = responseConverterUtils.getPriceBarFromOhlcEntry(ohlcEntry);
+        if (priceQueue.size() >= 30) {
+          priceQueue.pollFirst();
+        }
+        priceQueue.addLast(bar);
+      }
+
+      // Wait for enough data
+      if (priceQueue.size() >= 21) {
+        log.info("Enough data received. Executing strategy...");
+        tradeService.executeStrategy(new ArrayList<>(priceQueue), getStrategyParameters());
+      }
     }
+  }
+
+  @OnError
+  public void onError(Session session, Throwable throwable) {
+    log.error("WebSocket error: {}", throwable.getMessage(), throwable);
+  }
+
+  private String getChannel(JSONObject json) {
+    return json.has(CHANNEL) ? String.valueOf(json.get(CHANNEL)) : "";
   }
 }
