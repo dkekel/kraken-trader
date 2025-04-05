@@ -35,6 +35,7 @@ public class TradeService {
     if (!inTrade && strategy.shouldBuy(data, params)) {
       tradeState.setInTrade(true);
       tradeState.setEntryPrice(currentPrice);
+      tradeState.setPositionSize(tradeState.getCapital() / currentPrice);
       log.info("BUY at: {}", tradeState.getEntryPrice());
     } else if (inTrade && strategy.shouldSell(data, tradeState.getEntryPrice(), params)) {
       tradeState.setInTrade(false);
@@ -42,8 +43,10 @@ public class TradeService {
       double profit = (currentPrice - entryPrice) / entryPrice * 100;
       var totalProfit = tradeState.getTotalProfit();
       tradeState.setTotalProfit(totalProfit + profit);
+      tradeState.setCapital(tradeState.getPositionSize() * currentPrice);
       log.info("SELL at: {} | Profit: {}%", currentPrice, profit);
     }
     log.info("Total Profit: {}%", tradeState.getTotalProfit());
+    log.info("Capital: {}", tradeState.getCapital());
   }
 }
