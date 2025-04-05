@@ -1,10 +1,11 @@
 package ch.kekelidze.krakentrader;
 
+import static ch.kekelidze.krakentrader.api.service.KrakenWebSocketService.getStrategyParameters;
+
 import ch.kekelidze.krakentrader.api.service.KrakenApiService;
 import ch.kekelidze.krakentrader.api.service.KrakenCsvService;
 import ch.kekelidze.krakentrader.backtester.service.BackTesterService;
 import ch.kekelidze.krakentrader.indicator.optimize.Optimizer;
-import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.trade.service.TradeService;
 import java.io.File;
 import java.io.IOException;
@@ -17,11 +18,13 @@ import org.springframework.context.ApplicationContext;
 @SpringBootApplication
 public class KrakenTraderApplication {
 
+  private static final double INITIAL_CAPITAL = 10000;
+
   public static void main(String[] args) throws IOException {
     var application = SpringApplication.run(KrakenTraderApplication.class, args);
 //    optimizeMLModel(application);
 //    optimizeAndValidate(application);
-    recentDataTrade(application);
+//    recentDataTrade(application);
   }
 
   private static void optimizeMLModel(ApplicationContext application) throws IOException {
@@ -38,7 +41,7 @@ public class KrakenTraderApplication {
   private static void optimizeAndValidate(ApplicationContext application) throws IOException {
     var krakenCsvService = application.getBean(KrakenCsvService.class);
     var optimizer = application.getBean("walkForwardOptimizer", Optimizer.class);
-    var tradeService = application.getBean(TradeService.class);
+    var backtestService = application.getBean(BackTesterService.class);
     var historicalData = krakenCsvService.readCsvFile("data/XRPUSD_60_Q4_2024.csv");
     var optimizeParameters = optimizer.optimizeParameters(historicalData);
     log.info("Optimised strategy: {}", optimizeParameters);
@@ -47,30 +50,20 @@ public class KrakenTraderApplication {
     int trainingSize = (int) (historicalData.size() * 0.7);
     var validationData = historicalData.subList(trainingSize, historicalData.size());
 
-    tradeService.executeStrategy(validationData, optimizeParameters);
+    var result = backtestService.runSimulation(validationData, getStrategyParameters(),
+        INITIAL_CAPITAL);
+    log.info("Trade result: {}", result);
   }
 
-  private static void recentDataTrade(ApplicationContext application)
+  private static void validateWithRecentData(ApplicationContext application)
       throws IOException {
-    var coin = "XRPUSD";
+    var coin = "XRP/USD";
     var krakenApiService = application.getBean(KrakenApiService.class);
     var tradeService = application.getBean(TradeService.class);
     var backtestService = application.getBean(BackTesterService.class);
     var historicalData = krakenApiService.queryHistoricalData(coin, 5);
-//    tradeService.executeStrategy(historicalData, getStrategyParameters());
-    var result = backtestService.runSimulation(historicalData, getStrategyParameters(), 10000);
+    var result = backtestService.runSimulation(historicalData, getStrategyParameters(),
+        INITIAL_CAPITAL);
     log.info("Trade result: {}", result);
-  }
-
-  private static StrategyParameters getStrategyParameters() {
-    return StrategyParameters.builder()
-        .movingAverageShortPeriod(9).movingAverageLongPeriod(21)
-        .rsiBuyThreshold(30).rsiSellThreshold(70).rsiPeriod(14)
-        .macdShortBarCount(12).macdLongBarCount(26).macdBarCount(9)
-        .adxPeriod(14).adxBullishThreshold(25).adxBearishThreshold(30)
-        .lossPercent(5).profitPercent(10)
-        .volumePeriod(20)
-        .weightedAgreementThreshold(55)
-        .build();
   }
 }
