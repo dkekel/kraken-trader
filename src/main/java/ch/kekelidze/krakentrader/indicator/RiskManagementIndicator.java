@@ -18,8 +18,10 @@ public class RiskManagementIndicator implements Indicator {
   @Override
   public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
     var currentPrice = data.getLast().getClosePrice().doubleValue();
-    return shouldStopLoss(entryPrice, currentPrice, params.lossPercent())
+    var stopLossTakeProfit = shouldStopLoss(entryPrice, currentPrice, params.lossPercent())
         || shouldTakeProfit(entryPrice, currentPrice, params.profitPercent());
+    log.debug("Shot stop loss/take profit: {}", stopLossTakeProfit);
+    return stopLossTakeProfit;
   }
 
   private boolean shouldStopLoss(double entryPrice, double currentPrice, double lossPercent) {

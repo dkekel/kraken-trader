@@ -18,6 +18,7 @@ public class MovingAverageIndicator implements Indicator {
   public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
     double maShort = calculateMovingAverage(data, params.movingAverageShortPeriod());
     double maLong = calculateMovingAverage(data, params.movingAverageLongPeriod());
+    log.debug("MA short: {}, MA long: {}", maShort, maLong);
     return maCrossesAbove(maShort, maLong);
   }
 
@@ -25,6 +26,7 @@ public class MovingAverageIndicator implements Indicator {
   public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
     double maShort = calculateMovingAverage(data, params.movingAverageShortPeriod());
     double maLong = calculateMovingAverage(data, params.movingAverageLongPeriod());
+    log.debug("MA short: {}, MA long: {}", maShort, maLong);
     return maCrossesAbove(maLong, maShort);
   }
 
@@ -35,9 +37,7 @@ public class MovingAverageIndicator implements Indicator {
     BarSeries series = new BaseBarSeriesBuilder().withBars(pricePeriods).build();
     ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
     EMAIndicator ma = new EMAIndicator(closePrice, periods);
-    var latestMa = ma.getValue(series.getEndIndex()).doubleValue();
-    log.debug("Latest MA{}: {}", periods, latestMa);
-    return latestMa;
+    return ma.getValue(series.getEndIndex()).doubleValue();
   }
 
   /**

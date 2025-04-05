@@ -4,6 +4,7 @@ import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParame
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 import org.ta4j.core.num.Num;
 
+@Slf4j
 @Component
 public class PricePredictionIndicator implements Indicator {
 
@@ -29,6 +31,7 @@ public class PricePredictionIndicator implements Indicator {
   public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
     var prediction = calculatePrediction(data);
     var previousPrice = data.getLast().getClosePrice().doubleValue();
+    log.debug("Prediction: {}, Previous Price: {}", prediction, previousPrice);
     return prediction > previousPrice;
   }
 
@@ -36,6 +39,7 @@ public class PricePredictionIndicator implements Indicator {
   public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
     var prediction = calculatePrediction(data);
     var previousPrice = data.getLast().getClosePrice().doubleValue();
+    log.debug("Prediction: {}, Previous Price: {}", prediction, previousPrice);
     return prediction < previousPrice;
   }
 

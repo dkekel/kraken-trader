@@ -19,6 +19,7 @@ public class MovingAverageDivergenceIndicator implements Indicator {
   public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
     double macd = calculateMovingAverageDivergence(data, params);
     var macdSignal = calculateMacdSignal(data, params);
+    log.debug("MACD: {}, Signal: {}", macd, macdSignal);
     return macdSignal > macd;
   }
 
@@ -26,6 +27,7 @@ public class MovingAverageDivergenceIndicator implements Indicator {
   public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
     double macd = calculateMovingAverageDivergence(data, params);
     var macdSignal = calculateMacdSignal(data, params);
+    log.debug("MACD: {}, Signal: {}", macd, macdSignal);
     return macdSignal < macd;
   }
 
@@ -35,9 +37,7 @@ public class MovingAverageDivergenceIndicator implements Indicator {
     ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
     MACDIndicator macd = new MACDIndicator(closePrice, params.macdShortBarCount(),
         params.macdLongBarCount());
-    var latestMacd = macd.getValue(series.getEndIndex()).doubleValue();
-    log.debug("Latest MACD: {}", latestMacd);
-    return latestMacd;
+    return macd.getValue(series.getEndIndex()).doubleValue();
   }
 
   private double calculateMacdSignal(List<Bar> pricePeriods, StrategyParameters params) {

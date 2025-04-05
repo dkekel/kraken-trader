@@ -39,6 +39,8 @@ public class VolumeIndicator implements Indicator {
     List<Bar> volumePeriods = data.subList(Math.max(0, dataSize - params.volumePeriod()), dataSize);
     double avgVolume = calculateAverage(volumePeriods);
     double currentVolume = data.getLast().getVolume().doubleValue();
+    log.debug("Average volume: {}, Current volume: {}, Above average threshold: {}", avgVolume,
+        currentVolume, params.aboveAverageThreshold());
     return currentVolume > avgVolume * (1 + params.aboveAverageThreshold() / 100);
   }
 

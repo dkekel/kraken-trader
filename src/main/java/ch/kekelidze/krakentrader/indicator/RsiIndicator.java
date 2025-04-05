@@ -17,12 +17,14 @@ public class RsiIndicator implements Indicator {
   @Override
   public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
     double rsi = calculateRSI(data, params.rsiPeriod());
+    log.debug("RSI: {}, Buy threshold: {}", rsi, params.rsiBuyThreshold());
     return rsi < params.rsiBuyThreshold();
   }
 
   @Override
   public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
     double rsi = calculateRSI(data, params.rsiPeriod());
+    log.debug("RSI: {}, Sell threshold: {}", rsi, params.rsiSellThreshold());
     return rsi > params.rsiSellThreshold();
   }
 
@@ -33,8 +35,6 @@ public class RsiIndicator implements Indicator {
     BarSeries series = new BaseBarSeriesBuilder().withBars(pricePeriods).build();
     ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
     RSIIndicator rsi = new RSIIndicator(closePrice, periods);
-    var latestRsi = rsi.getValue(series.getEndIndex()).doubleValue();
-    log.debug("Latest RSI{}: {}", periods, latestRsi);
-    return latestRsi;
+    return rsi.getValue(series.getEndIndex()).doubleValue();
   }
 }

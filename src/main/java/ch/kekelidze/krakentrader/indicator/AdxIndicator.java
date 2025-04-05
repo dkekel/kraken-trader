@@ -2,12 +2,14 @@ package ch.kekelidze.krakentrader.indicator;
 
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseBarSeriesBuilder;
 import org.ta4j.core.indicators.adx.ADXIndicator;
 
+@Slf4j
 @Component
 public class AdxIndicator implements Indicator {
 
@@ -21,6 +23,7 @@ public class AdxIndicator implements Indicator {
   public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
     BarSeries series = new BaseBarSeriesBuilder().withBars(data).build();
     double adx = calculateADX(series, params.adxPeriod());
+    log.debug("ADX: {}, Buy threshold: {}", adx, params.adxBullishThreshold());
     return adx > params.adxBullishThreshold();
   }
 
@@ -35,6 +38,7 @@ public class AdxIndicator implements Indicator {
   public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
     BarSeries series = new BaseBarSeriesBuilder().withBars(data).build();
     double adx = calculateADX(series, params.adxPeriod());
+    log.debug("ADX: {}, Sell threshold: {}", adx, params.adxBearishThreshold());
     return adx < params.adxBearishThreshold();
   }
 
