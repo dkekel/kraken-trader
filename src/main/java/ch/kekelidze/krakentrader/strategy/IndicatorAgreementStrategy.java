@@ -1,7 +1,6 @@
 package ch.kekelidze.krakentrader.strategy;
 
 import ch.kekelidze.krakentrader.indicator.AdxIndicator;
-import ch.kekelidze.krakentrader.indicator.Indicator;
 import ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceIndicator;
 import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
 import ch.kekelidze.krakentrader.indicator.PricePredictionIndicator;
@@ -39,9 +38,9 @@ public class IndicatorAgreementStrategy implements Strategy {
   @Override
   public boolean shouldBuy(List<Bar> data, StrategyParameters params) {
     return adxIndicator.isBuySignal(data, params) &&
-        Stream.of(movingAverageIndicator, rsiIndicator, pricePredictionIndicator,
-            movingAverageDivergenceIndicator)
-        .allMatch(indicator -> indicator.isBuySignal(data, params));
+        (pricePredictionIndicator.isBuySignal(data, params) ||
+        Stream.of(movingAverageIndicator, movingAverageDivergenceIndicator)
+        .allMatch(indicator -> indicator.isBuySignal(data, params)));
   }
 
   /**
