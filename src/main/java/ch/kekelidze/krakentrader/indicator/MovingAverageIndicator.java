@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseBarSeriesBuilder;
-import org.ta4j.core.indicators.SMAIndicator;
+import org.ta4j.core.indicators.EMAIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 
 @Slf4j
@@ -34,7 +34,7 @@ public class MovingAverageIndicator implements Indicator {
     }
     BarSeries series = new BaseBarSeriesBuilder().withBars(pricePeriods).build();
     ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
-    SMAIndicator ma = new SMAIndicator(closePrice, periods);
+    EMAIndicator ma = new EMAIndicator(closePrice, periods);
     var latestMa = ma.getValue(series.getEndIndex()).doubleValue();
     log.debug("Latest MA{}: {}", periods, latestMa);
     return latestMa;
