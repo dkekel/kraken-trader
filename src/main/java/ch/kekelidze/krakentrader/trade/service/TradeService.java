@@ -2,6 +2,7 @@ package ch.kekelidze.krakentrader.trade.service;
 
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.IndicatorAgreementStrategy;
+import ch.kekelidze.krakentrader.strategy.PricePredictionStrategy;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.strategy.WeightedAgreementStrategy;
 import java.util.List;
@@ -17,6 +18,7 @@ public class TradeService {
 
   private final IndicatorAgreementStrategy indicatorAgreementStrategy;
   private final WeightedAgreementStrategy weightedAgreementStrategy;
+  private final PricePredictionStrategy pricePredictionStrategy;
 
   public void executeStrategy(List<Bar> data, StrategyParameters params) {
     executeSelectedStrategy(data, params, indicatorAgreementStrategy);
