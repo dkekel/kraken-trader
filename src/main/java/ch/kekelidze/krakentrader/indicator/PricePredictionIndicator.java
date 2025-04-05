@@ -5,7 +5,6 @@ import ch.kekelidze.krakentrader.log.GrafanaLogService;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.nd4j.linalg.api.ndarray.INDArray;
