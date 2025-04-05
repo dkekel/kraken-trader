@@ -90,10 +90,12 @@ public class KrakenWebSocketClient {
         JSONObject ohlcObject = data.getJSONObject(i);
         var ohlcEntry = responseConverterUtils.convertJsonToOhlcEntry(ohlcObject);
         var bar = responseConverterUtils.getPriceBarFromOhlcEntry(ohlcEntry);
-        if (priceQueue.size() >= 30) {
-          priceQueue.pollFirst();
+        if (isUpdatedCandle(bar)) {
+          var lastBar = priceQueue.peekLast();
+          lastBar.addPrice(bar.getClosePrice());
+        } else {
+          enqueueNewBar(bar);
         }
-        priceQueue.addLast(bar);
       }
 
       // Wait for enough data
@@ -104,12 +106,24 @@ public class KrakenWebSocketClient {
     }
   }
 
+  private String getChannel(JSONObject json) {
+    return json.has(CHANNEL) ? String.valueOf(json.get(CHANNEL)) : "";
+  }
+
+  private boolean isUpdatedCandle(Bar bar) {
+    var lastBar = priceQueue.peekLast();
+    return lastBar != null && lastBar.getEndTime().isEqual(bar.getEndTime());
+  }
+
+  private void enqueueNewBar(Bar bar) {
+    if (priceQueue.size() >= 30) {
+      priceQueue.pollFirst();
+    }
+    priceQueue.addLast(bar);
+  }
+
   @OnError
   public void onError(Session session, Throwable throwable) {
     log.error("WebSocket error: {}", throwable.getMessage(), throwable);
-  }
-
-  private String getChannel(JSONObject json) {
-    return json.has(CHANNEL) ? String.valueOf(json.get(CHANNEL)) : "";
   }
 }
