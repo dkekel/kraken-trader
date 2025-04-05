@@ -17,10 +17,11 @@ import lombok.Builder;
 @Builder
 public record StrategyParameters(int movingAverageShortPeriod, int movingAverageLongPeriod,
                                  int rsiPeriod, double rsiBuyThreshold, double rsiSellThreshold,
-                                 int shortBarCount, int longBarCount, int macdBarCount,
+                                 int macdShortBarCount, int macdLongBarCount, int macdBarCount,
                                  double aboveAverageThreshold,
                                  double lossPercent, double profitPercent,
                                  double weightedAgreementThreshold,
-                                 int dataPeriod) {
+                                 int adxPeriod, int adxBullishThreshold, int adxBearishThreshold,
+                                 int volumePeriod) {
 
 }

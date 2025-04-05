@@ -36,8 +36,8 @@ public class VolumeIndicator implements Indicator {
 
   private boolean isVolumeAboveAverage(List<Bar> data, StrategyParameters params) {
     int dataSize = data.size();
-    List<Bar> last20Bars = data.subList(Math.max(0, dataSize - 20), dataSize);
-    double avgVolume = calculateAverage(last20Bars);
+    List<Bar> volumePeriods = data.subList(Math.max(0, dataSize - params.volumePeriod()), dataSize);
+    double avgVolume = calculateAverage(volumePeriods);
     double currentVolume = data.getLast().getVolume().doubleValue();
     return currentVolume > avgVolume * (1 + params.aboveAverageThreshold() / 100);
   }

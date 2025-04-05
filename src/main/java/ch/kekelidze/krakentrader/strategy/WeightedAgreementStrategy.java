@@ -38,14 +38,15 @@ public class WeightedAgreementStrategy implements Strategy {
     var divergenceScore = movingAverageDivergenceIndicator.isBuySignal(data, params) ? 1 : 0;
     var volumeScore = volumeIndicator.isBuySignal(data, params) ? 1 : 0;
     double score = calculateTotalScore(mlScore, maScore, divergenceScore, volumeScore);
-    return score > params.weightedAgreementThreshold();
+    log.debug("Buy score: {}", score);
+    return score >= params.weightedAgreementThreshold();
   }
 
   /**
    * Assign weights to indicators based on backtested reliability:
    * <p>
    * * ML Prediction	35%	Predictive power * MA Crossover	30%	Trend alignment * RSI +
-   * Divergence	25%	Momentum + reversal * Volume	10%	Confirmation Buy
+   * Divergence	25%	Momentum + reversal * Volume	10%	Confirmation Sell
    *
    * @param data   price data
    * @param params trade params
@@ -59,7 +60,8 @@ public class WeightedAgreementStrategy implements Strategy {
         movingAverageDivergenceIndicator.isSellSignal(data, entryPrice, params) ? 1 : 0;
     var volumeScore = volumeIndicator.isSellSignal(data, entryPrice, params) ? 1 : 0;
     double score = calculateTotalScore(mlScore, maScore, divergenceScore, volumeScore);
-    return score > params.weightedAgreementThreshold();
+    log.debug("Sell score: {}", score);
+    return score >= params.weightedAgreementThreshold();
   }
 
   private double calculateTotalScore(double mlScore, double maScore, double divergenceScore,

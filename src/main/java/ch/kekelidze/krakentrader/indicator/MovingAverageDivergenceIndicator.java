@@ -33,8 +33,8 @@ public class MovingAverageDivergenceIndicator implements Indicator {
       StrategyParameters params) {
     BarSeries series = new BaseBarSeriesBuilder().withBars(pricePeriods).build();
     ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
-    MACDIndicator macd = new MACDIndicator(closePrice, params.shortBarCount(),
-        params.longBarCount());
+    MACDIndicator macd = new MACDIndicator(closePrice, params.macdShortBarCount(),
+        params.macdLongBarCount());
     var latestMacd = macd.getValue(series.getEndIndex()).doubleValue();
     log.debug("Latest MACD: {}", latestMacd);
     return latestMacd;

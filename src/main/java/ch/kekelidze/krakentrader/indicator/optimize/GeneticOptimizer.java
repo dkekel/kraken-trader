@@ -46,8 +46,8 @@ public class GeneticOptimizer implements Optimizer {
                     IntegerChromosome.of(20, 50),   // movingAverageLongPeriod
                     IntegerChromosome.of(10, 20),   // rsiPeriod
                     IntegerChromosome.of(25, 35),   // rsiBuyThreshold
-                    IntegerChromosome.of(10, 20),   // shortBarCount MA divergence
-                    IntegerChromosome.of(20, 30),   // longBarCount MA divergence
+                    IntegerChromosome.of(10, 20),   // macdShortBarCount MA divergence
+                    IntegerChromosome.of(20, 30),   // macdLongBarCount MA divergence
                     IntegerChromosome.of(5, 10),    // MA divergence bar count
                     IntegerChromosome.of(10, 20),   // average volume threshold
                     IntegerChromosome.of(50, 80)    // weighted agreement threshold
@@ -87,15 +87,15 @@ public class GeneticOptimizer implements Optimizer {
         .movingAverageLongPeriod(genotype.get(1).get(0).intValue())
         .rsiPeriod(genotype.get(2).get(0).intValue())
         .rsiBuyThreshold(genotype.get(3).get(0).intValue())
-        .shortBarCount(genotype.get(4).get(0).intValue())
-        .longBarCount(genotype.get(5).get(0).intValue())
+        .macdShortBarCount(genotype.get(4).get(0).intValue())
+        .macdLongBarCount(genotype.get(5).get(0).intValue())
         .macdBarCount(genotype.get(6).get(0).intValue())
         .aboveAverageThreshold(genotype.get(7).get(0).intValue())
         .weightedAgreementThreshold(genotype.get(8).get(0).intValue())
         .rsiSellThreshold(70)
         .lossPercent(5)
         .profitPercent(10)
-        .dataPeriod(60)
+        .adxPeriod(14)
         .build();
   }
 }

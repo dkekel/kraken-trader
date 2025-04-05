@@ -20,8 +20,8 @@ public class AdxIndicator implements Indicator {
   @Override
   public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
     BarSeries series = new BaseBarSeriesBuilder().withBars(data).build();
-    double adx = calculateADX(series, params.dataPeriod());
-    return adx > 25;
+    double adx = calculateADX(series, params.adxPeriod());
+    return adx > params.adxBullishThreshold();
   }
 
   /**
@@ -34,8 +34,8 @@ public class AdxIndicator implements Indicator {
   @Override
   public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
     BarSeries series = new BaseBarSeriesBuilder().withBars(data).build();
-    double adx = calculateADX(series, params.dataPeriod());
-    return adx < 30;
+    double adx = calculateADX(series, params.adxPeriod());
+    return adx < params.adxBearishThreshold();
   }
 
   public double calculateADX(BarSeries series, int period) {
