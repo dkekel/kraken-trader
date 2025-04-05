@@ -48,7 +48,7 @@ public class VolumeIndicator implements Indicator {
         currentVolume, params.aboveAverageThreshold());
     grafanaLogService.log("Average volume: " + avgVolume + ", Current volume: " + currentVolume
         + ", Above average threshold: " + params.aboveAverageThreshold());
-    return currentVolume > avgVolume * (1 + params.aboveAverageThreshold() / 100);
+    return currentVolume > avgVolume * (100 + params.aboveAverageThreshold() / 100);
   }
 
   private double calculateAverage(List<Bar> bars) {
