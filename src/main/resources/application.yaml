@@ -7,16 +7,17 @@ kraken:
     secret: ABC
 logging:
   level:
-    ch.kekelidze.krakentrader.indicator.AdxIndicator: INFO
-    ch.kekelidze.krakentrader.indicator.MovingAverageIndicator: INFO
-    ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceIndicator: INFO
-    ch.kekelidze.krakentrader.indicator.PricePredictionIndicator: INFO
-    ch.kekelidze.krakentrader.indicator.VolumeIndicator: INFO
-    ch.kekelidze.krakentrader.indicator.RsiIndicator: INFO
-    ch.kekelidze.krakentrader.indicator.RiskManagementIndicator: INFO
+    ch.kekelidze.krakentrader.indicator.AdxIndicator: DEBUG
+    ch.kekelidze.krakentrader.indicator.MovingAverageIndicator: DEBUG
+    ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceIndicator: DEBUG
+    ch.kekelidze.krakentrader.indicator.PricePredictionIndicator: DEBUG
+    ch.kekelidze.krakentrader.indicator.VolumeIndicator: DEBUG
+    ch.kekelidze.krakentrader.indicator.ch.kekelidze.krakentrader.indicator.RSIIndicator: DEBUG
+    ch.kekelidze.krakentrader.indicator.RiskManagementIndicator: DEBUG
 
     ch.kekelidze.krakentrader.strategy.IndicatorAgreementStrategy: INFO
-    ch.kekelidze.krakentrader.strategy.WeightedAgreementStrategy: INFO
+    ch.kekelidze.krakentrader.strategy.WeightedAgreementStrategy: DEBUG
     ch.kekelidze.krakentrader.strategy.PricePredictionStrategy: INFO
+    ch.kekelidze.krakentrader.strategy.MovingAverageScalper: DEBUG
 
     ch.kekelidze.krakentrader.backtester.service.BackTesterService: INFO
