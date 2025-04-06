@@ -87,7 +87,7 @@ public class KrakenWebSocketClient {
       return;
     }
 
-    if (OHLC.equals(channel)) {
+    if (OHLC.equals(channel) && isUpdateMessage(json)) {
       log.info("Received message: {}", message);
 
       JSONArray data = json.getJSONArray("data");
@@ -117,6 +117,10 @@ public class KrakenWebSocketClient {
 
   private String getChannel(JSONObject json) {
     return json.has(CHANNEL) ? String.valueOf(json.get(CHANNEL)) : "";
+  }
+
+  private boolean isUpdateMessage(JSONObject json) {
+    return json.has("type") && "update".equals(json.get("type"));
   }
 
   private boolean isUpdatedCandle(String symbol, Bar bar) {
