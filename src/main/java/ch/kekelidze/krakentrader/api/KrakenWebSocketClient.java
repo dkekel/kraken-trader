@@ -104,6 +104,11 @@ public class KrakenWebSocketClient {
           enqueueNewBar(bar, candleQueue);
         }
 
+        if (candleQueue.size() < MAX_QUEUE_SIZE) {
+          log.debug("Candle queue size is too small for {}: {}", symbol, candleQueue.size());
+          continue;
+        }
+
         new Thread(
             () -> tradeService.executeStrategy(symbol, new ArrayList<>(candleQueue))).start();
       }
