@@ -82,4 +82,12 @@ public class MovingAverageScalper implements Strategy {
     var endIndex = movingAverage.endIndex();
     return ma100.getValue(endIndex).isGreaterThan(ma200.getValue(endIndex));
   }
+
+  @Override
+  public StrategyParameters getStrategyParameters() {
+    return StrategyParameters.builder()
+        .movingAverageShortPeriod(9).movingAverageLongPeriod(50)
+        .lossPercent(5).profitPercent(15)
+        .build();
+  }
 }

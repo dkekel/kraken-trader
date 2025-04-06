@@ -3,6 +3,8 @@ package ch.kekelidze.krakentrader.backtester.service;
 import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.IndicatorAgreementStrategy;
+import ch.kekelidze.krakentrader.strategy.MovingAverageScalper;
+import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.strategy.WeightedAgreementStrategy;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,8 +20,19 @@ public class BackTesterService {
 
   private final IndicatorAgreementStrategy indicatorAgreementStrategy;
   private final WeightedAgreementStrategy weightedAgreementStrategy;
+  private final MovingAverageScalper movingAverageScalper;
 
-  public BacktestResult runSimulation(List<Bar> data, StrategyParameters params,
+  public BacktestResult runSimulation(List<Bar> data, double initialCapital) {
+    return runSimulation(data, movingAverageScalper, movingAverageScalper.getStrategyParameters(),
+        initialCapital);
+  }
+
+  public BacktestResult runSimulation(List<Bar> data, StrategyParameters strategyParameters,
+      double initialCapital) {
+    return runSimulation(data, movingAverageScalper, strategyParameters, initialCapital);
+  }
+
+  private BacktestResult runSimulation(List<Bar> data, Strategy strategy, StrategyParameters params,
       double initialCapital) {
     // Simulate trades using parameters
     boolean inPosition = false;
@@ -45,14 +58,14 @@ public class BackTesterService {
       double currentPrice = data.get(i).getClosePrice().doubleValue();
 
       // Execute strategy logic
-      if (!inPosition && indicatorAgreementStrategy.shouldBuy(sublist, params)) {
+      if (!inPosition && strategy.shouldBuy(sublist, params)) {
         trades++;
         entryPrice = currentPrice;
         inPosition = true;
         // For simplicity, assume we use 100% of capital
         positionSize = currentCapital / entryPrice;
         log.debug("BUY at: {}", entryPrice);
-      } else if (inPosition && indicatorAgreementStrategy.shouldSell(sublist, entryPrice, params)) {
+      } else if (inPosition && strategy.shouldSell(sublist, entryPrice, params)) {
         trades++;
         double profit = (currentPrice - entryPrice) / entryPrice * 100;
         if (profit > 0) {

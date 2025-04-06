@@ -1,7 +1,5 @@
 package ch.kekelidze.krakentrader;
 
-import static ch.kekelidze.krakentrader.api.service.KrakenWebSocketService.getStrategyParameters;
-
 import ch.kekelidze.krakentrader.api.service.KrakenApiService;
 import ch.kekelidze.krakentrader.api.service.KrakenCsvService;
 import ch.kekelidze.krakentrader.backtester.service.BackTesterService;
@@ -24,7 +22,7 @@ public class KrakenTraderApplication {
     var application = SpringApplication.run(KrakenTraderApplication.class, args);
 //    optimizeMLModel(application);
 //    optimizeAndValidate(application);
-//    validateWithRecentData(application);
+    validateWithRecentData(application);
   }
 
   private static void optimizeMLModel(ApplicationContext application) throws IOException {
@@ -50,8 +48,7 @@ public class KrakenTraderApplication {
     int trainingSize = (int) (historicalData.size() * 0.7);
     var validationData = historicalData.subList(trainingSize, historicalData.size());
 
-    var result = backtestService.runSimulation(validationData, getStrategyParameters(),
-        INITIAL_CAPITAL);
+    var result = backtestService.runSimulation(validationData, optimizeParameters, INITIAL_CAPITAL);
     log.info("Trade result: {}", result);
   }
 
@@ -62,8 +59,7 @@ public class KrakenTraderApplication {
     var tradeService = application.getBean(TradeService.class);
     var backtestService = application.getBean(BackTesterService.class);
     var historicalData = krakenApiService.queryHistoricalData(coin, 60);
-    var result = backtestService.runSimulation(historicalData, getStrategyParameters(),
-        INITIAL_CAPITAL);
+    var result = backtestService.runSimulation(historicalData, INITIAL_CAPITAL);
     log.info("Trade result: {}", result);
   }
 }

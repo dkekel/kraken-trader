@@ -9,4 +9,18 @@ public interface Strategy {
   boolean shouldBuy(List<Bar> data, StrategyParameters params);
 
   boolean shouldSell(List<Bar> data, double entryPrice, StrategyParameters params);
+
+  default StrategyParameters getStrategyParameters() {
+    return StrategyParameters.builder()
+        .movingAverageShortPeriod(9).movingAverageLongPeriod(21)
+        .rsiBuyThreshold(30).rsiSellThreshold(70).rsiPeriod(14)
+        .macdShortBarCount(12).macdLongBarCount(26).macdBarCount(9)
+        .adxPeriod(14).adxBullishThreshold(25).adxBearishThreshold(30)
+        .mfiPeriod(20).mfiOversoldThreshold(40).mfiOverboughtThreshold(50)
+        .lossPercent(5).profitPercent(10)
+        .volumePeriod(20)
+        .aboveAverageThreshold(20)
+        .weightedAgreementThreshold(55)
+        .build();
+  }
 }

@@ -1,7 +1,5 @@
 package ch.kekelidze.krakentrader.api;
 
-import static ch.kekelidze.krakentrader.api.service.KrakenWebSocketService.getStrategyParameters;
-
 import ch.kekelidze.krakentrader.api.service.KrakenApiService;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import ch.kekelidze.krakentrader.trade.service.TradeService;
@@ -97,11 +95,7 @@ public class KrakenWebSocketClient {
         }
       }
 
-      var strategyParameters = getStrategyParameters();
-      if (priceQueue.size() >= strategyParameters.movingAverageLongPeriod()) {
-        log.info("Enough data received. Executing strategy...");
-        tradeService.executeStrategy(new ArrayList<>(priceQueue), strategyParameters);
-      }
+      tradeService.executeStrategy(new ArrayList<>(priceQueue));
     }
   }
 

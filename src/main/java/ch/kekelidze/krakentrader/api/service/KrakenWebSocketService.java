@@ -43,17 +43,4 @@ public class KrakenWebSocketService {
       throw new RuntimeException(e);
     }
   }
-
-  public static StrategyParameters getStrategyParameters() {
-    return StrategyParameters.builder()
-        .movingAverageShortPeriod(9).movingAverageLongPeriod(21)
-        .rsiBuyThreshold(30).rsiSellThreshold(70).rsiPeriod(14)
-        .macdShortBarCount(12).macdLongBarCount(26).macdBarCount(9)
-        .adxPeriod(14).adxBullishThreshold(25).adxBearishThreshold(30)
-        .lossPercent(5).profitPercent(10)
-        .volumePeriod(20)
-        .aboveAverageThreshold(20)
-        .weightedAgreementThreshold(55)
-        .build();
-  }
 }
