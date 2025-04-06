@@ -9,6 +9,31 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 
+/**
+ * <b>Uses 1 hour candles</b>
+ * <p>
+ * <p>
+ * The MovingAverageScalper class implements a trading strategy based on moving averages of
+ * different periods and incorporates risk management. It analyzes financial data (candlestick bars)
+ * to determine buy and sell signals based on predefined conditions.
+ * <p>
+ * This strategy checks for convergence and divergence of moving averages (MA) of varying time
+ * periods as indicators for market entry and exit points. Additionally, it integrates risk
+ * management by evaluating stop-loss or take-profit conditions.
+ * <p>
+ * The core functionality includes: - Identifying buy opportunities by checking if short-period MAs
+ * cross above long-period MAs under specific conditions. - Identifying sell opportunities by
+ * checking if short-period MAs cross below long-period MAs or if specific risk management levels
+ * are triggered. - Custom-defined moving average comparisons for determining broader market
+ * trends.
+ * <p>
+ * Dependencies: - {@link MovingAverageIndicator}: Handles the computation and analysis of moving
+ * averages. - {@link RiskManagementIndicator}: Handles the logic for risk management signals.
+ * <p>
+ * Implements the {@link Strategy} interface for trading strategies.
+ * <p>
+ * Thread-safety: This class is not thread-safe.
+ */
 @Slf4j
 @Component("movingAverageScalper")
 @RequiredArgsConstructor
