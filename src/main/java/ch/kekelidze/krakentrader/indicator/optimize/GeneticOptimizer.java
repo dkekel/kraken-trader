@@ -46,8 +46,8 @@ public class GeneticOptimizer implements Optimizer {
                     IntegerChromosome.of(20, 30),   // movingAverageLongPeriod
                     IntegerChromosome.of(10, 20),   // rsiPeriod
                     IntegerChromosome.of(25, 35),   // rsiBuyThreshold
-                    IntegerChromosome.of(10, 20),   // macdShortBarCount MA divergence
-                    IntegerChromosome.of(20, 30),   // macdLongBarCount MA divergence
+                    IntegerChromosome.of(10, 20),   // macdFastPeriod MA divergence
+                    IntegerChromosome.of(20, 30),   // macdSlowPeriod MA divergence
                     IntegerChromosome.of(15, 25),   // adx bullish threshold
                     IntegerChromosome.of(30, 35),   // adx bearish threshold
                     IntegerChromosome.of(10, 20)   // average volume threshold
@@ -94,8 +94,8 @@ public class GeneticOptimizer implements Optimizer {
         .movingAverageLongPeriod(genotype.get(1).get(0).intValue())
         .rsiPeriod(genotype.get(2).get(0).intValue())
         .rsiBuyThreshold(genotype.get(3).get(0).intValue())
-        .macdShortBarCount(genotype.get(4).get(0).intValue())
-        .macdLongBarCount(genotype.get(5).get(0).intValue())
+        .macdFastPeriod(genotype.get(4).get(0).intValue())
+        .macdSlowPeriod(genotype.get(5).get(0).intValue())
         .adxBullishThreshold(genotype.get(6).get(0).intValue())
         .adxBearishThreshold(genotype.get(7).get(0).intValue())
         .aboveAverageThreshold(genotype.get(8).get(0).intValue())
@@ -103,7 +103,7 @@ public class GeneticOptimizer implements Optimizer {
         .rsiSellThreshold(70)
         .lossPercent(5)
         .profitPercent(10)
-        .macdBarCount(9)
+        .macdSignalPeriod(9)
         .adxPeriod(14)
         .volumePeriod(20)
         .build();

@@ -62,7 +62,7 @@ public class MultiIndexMomentumStrategy implements Strategy {
   public StrategyParameters getStrategyParameters() {
     return StrategyParameters.builder()
         .rsiBuyThreshold(50).rsiSellThreshold(50).rsiPeriod(14)
-        .macdShortBarCount(12).macdLongBarCount(26).macdBarCount(9)
+        .macdFastPeriod(12).macdSlowPeriod(26).macdSignalPeriod(9)
         .mfiPeriod(20).mfiOversoldThreshold(40).mfiOverboughtThreshold(50)
         .lossPercent(5).profitPercent(5)
         .minimumCandles(26)
