@@ -22,13 +22,18 @@ RUN ./gradlew build --no-daemon
 # Final runtime image
 FROM eclipse-temurin:21
 
-LABEL description="Runtime image for KrakenTraderApplication"
+LABEL description="Runtime image for KrakenTraderApplication" \
+      name="krakentraderapplication" \
+      tag="latest"
 
 # Set working directory
 WORKDIR /app
 
 # Copy the JAR file from the build stage
 COPY --from=build /app/build/libs/*.jar /app/KrakenTraderApplication.jar
+
+# Copy all model*.h5 files from local folder to the app folder
+COPY model*.h5 /app/
 
 # Set the entry point
 ENTRYPOINT ["java", "-jar", "/app/KrakenTraderApplication.jar"]
