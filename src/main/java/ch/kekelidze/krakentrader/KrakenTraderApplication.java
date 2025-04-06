@@ -22,7 +22,7 @@ public class KrakenTraderApplication {
     var application = SpringApplication.run(KrakenTraderApplication.class, args);
 //    optimizeMLModel(application);
 //    optimizeAndValidate(application);
-    validateWithRecentData(application);
+//    validateWithRecentData(application);
   }
 
   private static void optimizeMLModel(ApplicationContext application) throws IOException {
@@ -58,7 +58,7 @@ public class KrakenTraderApplication {
     var krakenApiService = application.getBean(KrakenApiService.class);
     var tradeService = application.getBean(TradeService.class);
     var backtestService = application.getBean(BackTesterService.class);
-    var historicalData = krakenApiService.queryHistoricalData(coin, 60);
+    var historicalData = krakenApiService.queryHistoricalData(coin, 5);
     var result = backtestService.runSimulation(historicalData, INITIAL_CAPITAL);
     log.info("Trade result: {}", result);
   }

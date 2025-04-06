@@ -16,7 +16,7 @@ public class BackTesterService {
 
   private final Strategy strategy;
 
-  public BackTesterService(@Qualifier("multiIndexMomentum") Strategy strategy) {
+  public BackTesterService(@Qualifier("movingAverageScalper") Strategy strategy) {
     this.strategy = strategy;
   }
 
