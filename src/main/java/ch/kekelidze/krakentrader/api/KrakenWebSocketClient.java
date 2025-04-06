@@ -27,6 +27,8 @@ public class KrakenWebSocketClient {
   private static final String OHLC = "ohlc";
   private static final String SYMBOL = "XRP/USD";
 
+  private static final int MAX_QUEUE_SIZE = 300;
+
   private static final Deque<Bar> priceQueue = new LinkedList<>();
 
   private static TradeService tradeService;
@@ -43,10 +45,7 @@ public class KrakenWebSocketClient {
   private static void initializePriceQueue(KrakenApiService krakenApiService) {
     var historicalData = krakenApiService.queryHistoricalData(SYMBOL, 60);
     for (Bar bar : historicalData) {
-      if (priceQueue.size() >= 30) {
-        priceQueue.pollFirst();
-      }
-      priceQueue.addLast(bar);
+      enqueueNewBar(bar);
     }
   }
 
@@ -115,8 +114,8 @@ public class KrakenWebSocketClient {
     return lastBar != null && lastBar.getEndTime().isEqual(bar.getEndTime());
   }
 
-  private void enqueueNewBar(Bar bar) {
-    if (priceQueue.size() >= 30) {
+  private static void enqueueNewBar(Bar bar) {
+    if (priceQueue.size() >= MAX_QUEUE_SIZE) {
       priceQueue.pollFirst();
     }
     priceQueue.addLast(bar);
