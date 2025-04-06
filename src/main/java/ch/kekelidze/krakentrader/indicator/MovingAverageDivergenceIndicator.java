@@ -11,6 +11,7 @@ import org.ta4j.core.indicators.EMAIndicator;
 import org.ta4j.core.indicators.MACDIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 
+@SuppressWarnings("DuplicatedCode")
 @Slf4j
 @Component
 public class MovingAverageDivergenceIndicator implements Indicator {
@@ -19,16 +20,24 @@ public class MovingAverageDivergenceIndicator implements Indicator {
   public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
     double macd = calculateMovingAverageDivergence(data, params);
     var macdSignal = calculateMacdSignal(data, params);
-    log.debug("MACD: {}, Signal: {}", macd, macdSignal);
-    return macdSignal > macd;
+    double previousMacd = calculateMovingAverageDivergence(data.subList(0, data.size() - 1),
+        params);
+    double previousMacdSignal = calculateMacdSignal(data.subList(0, data.size() - 1), params);
+    log.debug("MACD: {}, Signal: {}, Previous MACD: {}, Previous Signal: {}", macd, macdSignal,
+        previousMacd, previousMacdSignal);
+    return previousMacd <= previousMacdSignal && macd > macdSignal;
   }
 
   @Override
   public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
     double macd = calculateMovingAverageDivergence(data, params);
     var macdSignal = calculateMacdSignal(data, params);
-    log.debug("MACD: {}, Signal: {}", macd, macdSignal);
-    return macdSignal < macd;
+    double previousMacd = calculateMovingAverageDivergence(data.subList(0, data.size() - 1),
+        params);
+    double previousMacdSignal = calculateMacdSignal(data.subList(0, data.size() - 1), params);
+    log.debug("MACD: {}, Signal: {}, Previous MACD: {}, Previous Signal: {}", macd, macdSignal,
+        previousMacd, previousMacdSignal);
+    return previousMacd >= previousMacdSignal && macd < macdSignal;
   }
 
   private double calculateMovingAverageDivergence(List<Bar> pricePeriods,
