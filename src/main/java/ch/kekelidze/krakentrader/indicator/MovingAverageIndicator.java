@@ -9,7 +9,6 @@ import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseBarSeriesBuilder;
 import org.ta4j.core.indicators.EMAIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
-import org.ta4j.core.indicators.helpers.CrossIndicator;
 
 @Slf4j
 @Component
@@ -22,8 +21,10 @@ public class MovingAverageIndicator implements Indicator {
     var maLong = movingAverage.maLong();
     var endIndex = movingAverage.endIndex();
 
-    var crossAbove = new CrossIndicator(maShort, maLong);
-    return endIndex > 0 && crossAbove.getValue(endIndex);
+    return endIndex > 0 &&
+        maShort.getValue(endIndex).isGreaterThan(maLong.getValue(endIndex)) &&
+        maShort.getValue(endIndex-1).isLessThanOrEqual(maLong.getValue(endIndex-1));
+
   }
 
   @Override
@@ -33,8 +34,10 @@ public class MovingAverageIndicator implements Indicator {
     var maLong = movingAverage.maLong();
     var endIndex = movingAverage.endIndex();
 
-    var crossBelow = new CrossIndicator(maLong, maShort);
-    return endIndex > 0 && crossBelow.getValue(endIndex);
+    return endIndex > 0 &&
+        maLong.getValue(endIndex).isGreaterThan(maShort.getValue(endIndex)) &&
+        maLong.getValue(endIndex-1).isLessThanOrEqual(maShort.getValue(endIndex-1));
+
   }
 
   public MovingAverage calculateMovingAverage(List<Bar> data, StrategyParameters params) {
