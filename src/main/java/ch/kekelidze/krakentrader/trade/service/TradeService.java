@@ -42,6 +42,7 @@ public class TradeService {
       tradeState.setInTrade(true);
       tradeState.setEntryPrice(currentPrice);
       tradeState.setPositionSize(portfolio.getTotalCapital() * PORTFOLIO_ALLOCATION / currentPrice);
+      currentCapital = portfolio.addToTotalCapital(-tradeState.getPositionSize() * currentPrice);
       log.info("BUY {} at: {}", coinPair, tradeState.getEntryPrice());
     } else if (inTrade && strategy.shouldSell(data, tradeState.getEntryPrice(), params)) {
       tradeState.setInTrade(false);
