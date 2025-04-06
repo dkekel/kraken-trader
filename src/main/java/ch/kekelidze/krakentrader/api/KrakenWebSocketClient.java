@@ -26,6 +26,7 @@ public class KrakenWebSocketClient {
   private static final String SYMBOL = "XRP/USD";
 
   private static final int MAX_QUEUE_SIZE = 300;
+  private static final int PERIOD = 5;
 
   private static final Deque<Bar> priceQueue = new LinkedList<>();
 
@@ -41,7 +42,7 @@ public class KrakenWebSocketClient {
   }
 
   private static void initializePriceQueue(KrakenApiService krakenApiService) {
-    var historicalData = krakenApiService.queryHistoricalData(SYMBOL, 60);
+    var historicalData = krakenApiService.queryHistoricalData(SYMBOL, PERIOD);
     for (Bar bar : historicalData) {
       enqueueNewBar(bar);
     }
@@ -58,10 +59,10 @@ public class KrakenWebSocketClient {
                 "symbol": [
                     "%s"
                 ],
-                "interval": 60
+                "interval": %d
             }
         }
-        """.formatted(SYMBOL);
+        """.formatted(SYMBOL, PERIOD);
     session.getAsyncRemote().sendText(subscribeMsg);
   }
 
