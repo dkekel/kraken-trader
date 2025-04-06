@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 
 @Slf4j
-@Component
+@Component("weightedAgreement")
 @RequiredArgsConstructor
 public class WeightedAgreementStrategy implements Strategy {
 

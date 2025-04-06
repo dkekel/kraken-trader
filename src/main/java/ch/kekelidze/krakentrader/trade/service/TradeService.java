@@ -1,32 +1,28 @@
 package ch.kekelidze.krakentrader.trade.service;
 
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
-import ch.kekelidze.krakentrader.strategy.IndicatorAgreementStrategy;
-import ch.kekelidze.krakentrader.strategy.MovingAverageScalper;
-import ch.kekelidze.krakentrader.strategy.PricePredictionStrategy;
 import ch.kekelidze.krakentrader.strategy.Strategy;
-import ch.kekelidze.krakentrader.strategy.WeightedAgreementStrategy;
 import ch.kekelidze.krakentrader.trade.TradeState;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.ta4j.core.Bar;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class TradeService {
 
   private final TradeState tradeState;
+  private final Strategy strategy;
 
-  private final IndicatorAgreementStrategy indicatorAgreementStrategy;
-  private final WeightedAgreementStrategy weightedAgreementStrategy;
-  private final MovingAverageScalper movingAverageScalper;
+  public TradeService(TradeState tradeState, @Qualifier("movingAverageScalper") Strategy strategy) {
+    this.tradeState = tradeState;
+    this.strategy = strategy;
+  }
 
   public void executeStrategy(List<Bar> data) {
-    var params = movingAverageScalper.getStrategyParameters();
-    executeSelectedStrategy(data, params, movingAverageScalper);
+    executeSelectedStrategy(data, strategy.getStrategyParameters(), strategy);
   }
 
   private void executeSelectedStrategy(List<Bar> data, StrategyParameters params,

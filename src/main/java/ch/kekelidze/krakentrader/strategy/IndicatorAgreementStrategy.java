@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 
 @Slf4j
-@Component
+@Component("indicatorAgreement")
 @RequiredArgsConstructor
 public class IndicatorAgreementStrategy implements Strategy {
 

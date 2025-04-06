@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 
-@Component
+@Component("multiIndexMomentum")
 @RequiredArgsConstructor
 public class MultiIndexMomentumStrategy implements Strategy {
 

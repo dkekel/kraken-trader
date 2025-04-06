@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 
 @Slf4j
-@Component
+@Component("movingAverageScalper")
 @RequiredArgsConstructor
 public class MovingAverageScalper implements Strategy {
 

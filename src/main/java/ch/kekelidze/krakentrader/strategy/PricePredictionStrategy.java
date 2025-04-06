@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 
-@Component
+@Component("pricePrediction")
 @RequiredArgsConstructor
 public class PricePredictionStrategy implements Strategy {
 

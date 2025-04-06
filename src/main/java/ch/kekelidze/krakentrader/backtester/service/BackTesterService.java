@@ -2,34 +2,32 @@ package ch.kekelidze.krakentrader.backtester.service;
 
 import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
-import ch.kekelidze.krakentrader.strategy.IndicatorAgreementStrategy;
-import ch.kekelidze.krakentrader.strategy.MovingAverageScalper;
 import ch.kekelidze.krakentrader.strategy.Strategy;
-import ch.kekelidze.krakentrader.strategy.WeightedAgreementStrategy;
 import java.util.ArrayList;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.ta4j.core.Bar;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class BackTesterService {
 
-  private final IndicatorAgreementStrategy indicatorAgreementStrategy;
-  private final WeightedAgreementStrategy weightedAgreementStrategy;
-  private final MovingAverageScalper movingAverageScalper;
+  private final Strategy strategy;
+
+  public BackTesterService(@Qualifier("multiIndexMomentum") Strategy strategy) {
+    this.strategy = strategy;
+  }
 
   public BacktestResult runSimulation(List<Bar> data, double initialCapital) {
-    return runSimulation(data, movingAverageScalper, movingAverageScalper.getStrategyParameters(),
+    return runSimulation(data, strategy, strategy.getStrategyParameters(),
         initialCapital);
   }
 
   public BacktestResult runSimulation(List<Bar> data, StrategyParameters strategyParameters,
       double initialCapital) {
-    return runSimulation(data, movingAverageScalper, strategyParameters, initialCapital);
+    return runSimulation(data, strategy, strategyParameters, initialCapital);
   }
 
   private BacktestResult runSimulation(List<Bar> data, Strategy strategy, StrategyParameters params,
