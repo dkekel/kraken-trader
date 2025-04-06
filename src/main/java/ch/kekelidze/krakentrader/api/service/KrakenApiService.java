@@ -6,13 +6,12 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +21,6 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.ta4j.core.Bar;
-import org.ta4j.core.BaseBar;
-import org.ta4j.core.num.DecimalNum;
 
 /**
  * The KrakenApiService class provides methods for evaluating trading conditions based on moving
@@ -154,5 +151,93 @@ public class KrakenApiService {
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException("Failed to fetch and parse historical data: " + e.getMessage(), e);
     }
+  }
+
+  /**
+   * Retrieves the top N coins by volume from the Kraken public API.
+   *
+   * @param limit the number of coins to return
+   * @return List of coin symbols sorted by volume in descending order.
+   */
+  public List<String> getTopCoinsByVolume(int limit) {
+    String url = "https://api.kraken.com/0/public/AssetPairs";
+
+    try (HttpClient client = HttpClient.newHttpClient()) {
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(URI.create(url))
+          .build();
+
+      HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+      JSONObject json = new JSONObject(response.body());
+      JSONObject result = json.getJSONObject("result");
+
+      // Extract asset pairs and sort by volume (descending)
+      List<String> pairs = new ArrayList<>();
+      result.keys().forEachRemaining(pairs::add);
+
+      var coinPairs = pairs.stream()
+          .map(result::getJSONObject)
+          .filter(pair -> pair.getString("quote").equals("ZUSD"))
+          .filter(pair -> pair.has("wsname"))
+          .map(pair -> pair.getString("wsname"))
+          .toList();
+
+      var volumes = getCoinVolumes(coinPairs);
+
+      return volumes.entrySet().stream()
+          .sorted((e1, e2) -> Double.compare(e2.getValue(), e1.getValue()))
+          .map(Map.Entry::getKey)
+          .limit(limit)
+          .toList();
+    } catch (IOException | InterruptedException e) {
+      throw new RuntimeException("Failed to fetch top coins by volume: " + e.getMessage(), e);
+    }
+  }
+
+
+  /**
+   * Fetches the volumes of the specified coin pairs from Kraken's Trades API.
+   *
+   * @param coinPairs a list of coin pairs
+   * @return a map where keys are coin pairs and values are the corresponding volumes
+   */
+  public Map<String, Double> getCoinVolumes(List<String> coinPairs) {
+    String apiUrlTemplate = "https://api.kraken.com/0/public/Trades?pair=%s&since=%d";
+    Map<String, Double> volumes = new HashMap<>();
+
+    for (String pair : coinPairs) {
+      long twelveHoursAgo =
+          System.currentTimeMillis() / 1000 - 12 * 3600; // Current time minus 12 hours in seconds
+      String url = apiUrlTemplate.formatted(pair, twelveHoursAgo);
+
+      try (HttpClient client = HttpClient.newHttpClient()) {
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        JSONObject json = new JSONObject(response.body());
+        if (json.has("result")) {
+          JSONObject result = json.getJSONObject("result");
+          JSONArray trades = result.getJSONArray(pair);
+
+          // Use the highest trade volume for the pair
+          double volume = 0;
+          for (int i = 0; i < trades.length(); i++) {
+            JSONArray trade = trades.getJSONArray(i);
+            double tradeVolume = trade.getDouble(1);  // Volume is the second element in the array
+            if (tradeVolume > volume) {
+              volume = tradeVolume;
+            }
+          }
+
+          volumes.put(pair, volume);
+        }
+      } catch (IOException | InterruptedException e) {
+        throw new RuntimeException("Failed to fetch volume for pair: " + pair, e);
+      }
+    }
+
+    return volumes;
   }
 }
