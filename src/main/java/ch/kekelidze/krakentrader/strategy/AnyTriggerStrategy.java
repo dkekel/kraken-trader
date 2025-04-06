@@ -15,9 +15,9 @@ import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 
 @Slf4j
-@Component("indicatorAgreement")
+@Component("anyTrigger")
 @RequiredArgsConstructor
-public class IndicatorAgreementStrategy implements Strategy {
+public class AnyTriggerStrategy implements Strategy {
 
   private final MovingAverageIndicator movingAverageIndicator;
   private final RsiIndicator rsiIndicator;
@@ -38,9 +38,8 @@ public class IndicatorAgreementStrategy implements Strategy {
   @Override
   public boolean shouldBuy(List<Bar> data, StrategyParameters params) {
     return adxIndicator.isBuySignal(data, params) &&
-        (pricePredictionIndicator.isBuySignal(data, params) ||
-        Stream.of(movingAverageIndicator, movingAverageDivergenceIndicator)
-        .allMatch(indicator -> indicator.isBuySignal(data, params)));
+        Stream.of(movingAverageIndicator, movingAverageDivergenceIndicator,
+            pricePredictionIndicator).anyMatch(indicator -> indicator.isBuySignal(data, params));
   }
 
   /**
