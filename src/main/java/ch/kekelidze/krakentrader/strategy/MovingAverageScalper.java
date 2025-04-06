@@ -88,6 +88,7 @@ public class MovingAverageScalper implements Strategy {
     return StrategyParameters.builder()
         .movingAverageShortPeriod(9).movingAverageLongPeriod(50)
         .lossPercent(5).profitPercent(15)
+        .minimumCandles(50)
         .build();
   }
 }

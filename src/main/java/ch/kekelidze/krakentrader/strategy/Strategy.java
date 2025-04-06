@@ -21,6 +21,7 @@ public interface Strategy {
         .volumePeriod(20)
         .aboveAverageThreshold(20)
         .weightedAgreementThreshold(55)
+        .minimumCandles(26)
         .build();
   }
 }

@@ -40,6 +40,7 @@ public class MultiIndexMomentumStrategy implements Strategy {
         .macdShortBarCount(12).macdLongBarCount(26).macdBarCount(9)
         .mfiPeriod(20).mfiOversoldThreshold(40).mfiOverboughtThreshold(50)
         .lossPercent(5).profitPercent(5)
+        .minimumCandles(26)
         .build();
   }
 }

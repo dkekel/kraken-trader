@@ -48,9 +48,9 @@ public class BackTesterService {
     // Store all trade profits for volatility calculation
     List<Double> tradeReturns = new ArrayList<>();
 
-    for (int i = params.movingAverageLongPeriod(); i < data.size(); i++) {
+    for (int i = params.minimumCandles(); i < data.size(); i++) {
       // Calculate indicators
-      List<Bar> sublist = data.subList(i - params.movingAverageLongPeriod(), i);
+      List<Bar> sublist = data.subList(i - params.minimumCandles(), i);
 
       // Current price for equity calculation
       double currentPrice = data.get(i).getClosePrice().doubleValue();
