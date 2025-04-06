@@ -41,7 +41,7 @@ public class KrakenWebSocketClient {
   }
 
   private static void initializePriceQueue(KrakenApiService krakenApiService) {
-    var historicalData = krakenApiService.queryHistoricalData(SYMBOL, 5);
+    var historicalData = krakenApiService.queryHistoricalData(SYMBOL, 60);
     for (Bar bar : historicalData) {
       if (priceQueue.size() >= 30) {
         priceQueue.pollFirst();
@@ -61,7 +61,7 @@ public class KrakenWebSocketClient {
                 "symbol": [
                     "%s"
                 ],
-                "interval": 5
+                "interval": 60
             }
         }
         """.formatted(SYMBOL);
