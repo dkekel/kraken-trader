@@ -7,6 +7,7 @@ import ch.kekelidze.krakentrader.indicator.optimize.Optimizer;
 import ch.kekelidze.krakentrader.trade.service.TradeService;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -58,8 +59,8 @@ public class KrakenTraderApplication {
     var krakenApiService = application.getBean(KrakenApiService.class);
     var tradeService = application.getBean(TradeService.class);
     var backtestService = application.getBean(BackTesterService.class);
-    var historicalData = krakenApiService.queryHistoricalData(coin, 5);
-    var result = backtestService.runSimulation(historicalData, INITIAL_CAPITAL);
+    var historicalData = krakenApiService.queryHistoricalData(List.of(coin), 5);
+    var result = backtestService.runSimulation(historicalData.get(coin), INITIAL_CAPITAL);
     log.info("Trade result: {}", result);
   }
 }

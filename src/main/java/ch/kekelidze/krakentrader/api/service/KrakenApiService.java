@@ -124,30 +124,32 @@ public class KrakenApiService {
    * @param period period duration, e.g. 60 for 1-hour candles
    * @return list of closing prices per period
    */
-  public List<Bar> queryHistoricalData(String coin, int period) {
-    String url =
-        "https://api.kraken.com/0/public/OHLC?pair=" + coin + "&interval=" + period;
-
+  public Map<String, List<Bar>> queryHistoricalData(List<String> coin, int period) {
+    var historicalData = new HashMap<String, List<Bar>>();
     try (HttpClient client = HttpClient.newHttpClient()) {
-      HttpRequest request = HttpRequest.newBuilder()
-          .uri(URI.create(url))
-          .build();
+      for (String coinPair : coin) {
+        String url =
+            "https://api.kraken.com/0/public/OHLC?pair=" + coinPair + "&interval=" + period;
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .build();
 
-      HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-      JSONObject json = new JSONObject(response.body());
-      JSONObject result = json.getJSONObject("result");
-      JSONArray ohlcData = result.keySet().stream().findFirst().map(result::getJSONArray)
-          .orElse(new JSONArray());
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        JSONObject json = new JSONObject(response.body());
+        JSONObject result = json.getJSONObject("result");
+        JSONArray ohlcData = result.keySet().stream().filter(coinPair::equals)
+            .map(result::getJSONArray).findFirst().orElse(new JSONArray());
 
-      // Extract closing prices (index 4 in Kraken's OHLC array)
-      var dataBars = new ArrayList<Bar>();
-      for (int i = 0; i < ohlcData.length(); i++) {
-        var ohlcCandle = ohlcData.getJSONArray(i);
-        var bar = responseConverterUtils.getPriceBar(ohlcCandle, period);
-        dataBars.add(bar);
+        // Extract closing prices (index 4 in Kraken's OHLC array)
+        var dataBars = new ArrayList<Bar>();
+        for (int i = 0; i < ohlcData.length(); i++) {
+          var ohlcCandle = ohlcData.getJSONArray(i);
+          var bar = responseConverterUtils.getPriceBar(ohlcCandle, period);
+          dataBars.add(bar);
+        }
+        historicalData.put(coinPair, dataBars);
       }
-
-      return dataBars;
+      return historicalData;
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException("Failed to fetch and parse historical data: " + e.getMessage(), e);
     }

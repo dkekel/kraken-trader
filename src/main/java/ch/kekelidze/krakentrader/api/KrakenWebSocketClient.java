@@ -10,7 +10,10 @@ import jakarta.websocket.OnOpen;
 import jakarta.websocket.Session;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -23,12 +26,13 @@ public class KrakenWebSocketClient {
   private static final String CHANNEL = "channel";
   private static final String STATUS = "status";
   private static final String OHLC = "ohlc";
-  private static final String SYMBOL = "XRP/USD";
+  private static final List<String> SYMBOLS = List.of("DOGE/USD", "XRP/USD", "ETH/USD", "HONEY/USD",
+      "PEPE/USD", "FLR/USD", "SGB/USD");
 
   private static final int MAX_QUEUE_SIZE = 300;
   private static final int PERIOD = 5;
 
-  private static final Deque<Bar> priceQueue = new LinkedList<>();
+  private static final Map<String, Deque<Bar>> priceQueue = new HashMap<>();
 
   private static TradeService tradeService;
   private static ResponseConverterUtils responseConverterUtils;
@@ -42,27 +46,30 @@ public class KrakenWebSocketClient {
   }
 
   private static void initializePriceQueue(KrakenApiService krakenApiService) {
-    var historicalData = krakenApiService.queryHistoricalData(SYMBOL, PERIOD);
-    for (Bar bar : historicalData) {
-      enqueueNewBar(bar);
+    var historicalData = krakenApiService.queryHistoricalData(SYMBOLS, PERIOD);
+    for (String coin : SYMBOLS) {
+      var historicalCoinData = historicalData.get(coin);
+      var coinQueue = priceQueue.computeIfAbsent(coin, key -> new LinkedList<>());
+      for (Bar bar : historicalCoinData) {
+        enqueueNewBar(bar, coinQueue);
+      }
     }
   }
 
   @OnOpen
   public void onOpen(Session session) {
     log.info("Connected to Kraken WebSocket");
+    var symbols = String.join(",", SYMBOLS.stream().map(s -> "\"" + s + "\"").toList());
     String subscribeMsg = """
         {
             "method": "subscribe",
             "params": {
                 "channel": "ohlc",
-                "symbol": [
-                    "%s"
-                ],
+                "symbol": [%s],
                 "interval": %d
             }
         }
-        """.formatted(SYMBOL, PERIOD);
+        """.formatted(String.join(",", symbols), PERIOD);
     session.getAsyncRemote().sendText(subscribeMsg);
   }
 
@@ -88,15 +95,18 @@ public class KrakenWebSocketClient {
         JSONObject ohlcObject = data.getJSONObject(i);
         var ohlcEntry = responseConverterUtils.convertJsonToOhlcEntry(ohlcObject);
         var bar = responseConverterUtils.getPriceBarFromOhlcEntry(ohlcEntry);
-        if (isUpdatedCandle(bar)) {
-          var lastBar = priceQueue.peekLast();
+        var symbol = ohlcEntry.symbol();
+        var candleQueue = priceQueue.get(symbol);
+        if (isUpdatedCandle(symbol, bar)) {
+          var lastBar = candleQueue.peekLast();
           lastBar.addPrice(bar.getClosePrice());
         } else {
-          enqueueNewBar(bar);
+          enqueueNewBar(bar, candleQueue);
         }
-      }
 
-      tradeService.executeStrategy(new ArrayList<>(priceQueue));
+        new Thread(
+            () -> tradeService.executeStrategy(symbol, new ArrayList<>(candleQueue))).start();
+      }
     }
   }
 
@@ -104,12 +114,13 @@ public class KrakenWebSocketClient {
     return json.has(CHANNEL) ? String.valueOf(json.get(CHANNEL)) : "";
   }
 
-  private boolean isUpdatedCandle(Bar bar) {
-    var lastBar = priceQueue.peekLast();
+  private boolean isUpdatedCandle(String symbol, Bar bar) {
+    var candleQueue = priceQueue.get(symbol);
+    var lastBar = candleQueue.peekLast();
     return lastBar != null && lastBar.getEndTime().isEqual(bar.getEndTime());
   }
 
-  private static void enqueueNewBar(Bar bar) {
+  private static void enqueueNewBar(Bar bar, Deque<Bar> priceQueue) {
     if (priceQueue.size() >= MAX_QUEUE_SIZE) {
       priceQueue.pollFirst();
     }

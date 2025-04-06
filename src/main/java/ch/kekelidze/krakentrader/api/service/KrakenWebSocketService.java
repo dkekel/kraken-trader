@@ -2,8 +2,7 @@ package ch.kekelidze.krakentrader.api.service;
 
 import ch.kekelidze.krakentrader.api.KrakenWebSocketClient;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
-import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
-import ch.kekelidze.krakentrader.trade.TradeState;
+import ch.kekelidze.krakentrader.trade.Portfolio;
 import ch.kekelidze.krakentrader.trade.service.TradeService;
 import jakarta.websocket.ContainerProvider;
 import jakarta.websocket.WebSocketContainer;
@@ -19,8 +18,7 @@ public class KrakenWebSocketService {
 
   private static final String WS_URL = "wss://ws.kraken.com/v2";
 
-  private final TradeState tradeState;
-
+  private final Portfolio portfolio;
   private final TradeService tradeService;
   private final ResponseConverterUtils responseConverterUtils;
   private final KrakenApiService krakenApiService;
@@ -29,7 +27,7 @@ public class KrakenWebSocketService {
     try {
       // Initialize the WebSocket client with Spring-managed dependencies
       KrakenWebSocketClient.initialize(tradeService, responseConverterUtils, krakenApiService);
-      tradeState.reset();
+      portfolio.setTotalCapital(2000);
 
       // Connect to WebSocket server
       WebSocketContainer container = ContainerProvider.getWebSocketContainer();

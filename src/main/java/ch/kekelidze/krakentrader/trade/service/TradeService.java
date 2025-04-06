@@ -2,7 +2,7 @@ package ch.kekelidze.krakentrader.trade.service;
 
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.Strategy;
-import ch.kekelidze.krakentrader.trade.TradeState;
+import ch.kekelidze.krakentrader.trade.Portfolio;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -13,38 +13,48 @@ import org.ta4j.core.Bar;
 @Service
 public class TradeService {
 
-  private final TradeState tradeState;
+  private static final double PORTFOLIO_ALLOCATION = 1/8d;
+  
+  private final Portfolio portfolio;
   private final Strategy strategy;
 
-  public TradeService(TradeState tradeState, @Qualifier("movingAverageScalper") Strategy strategy) {
-    this.tradeState = tradeState;
+  public TradeService(Portfolio portfolio, @Qualifier("movingAverageScalper") Strategy strategy) {
+    this.portfolio = portfolio;
     this.strategy = strategy;
   }
 
-  public void executeStrategy(List<Bar> data) {
-    executeSelectedStrategy(data, strategy.getStrategyParameters(), strategy);
+  public void executeStrategy(String coinPair, List<Bar> data) {
+    executeSelectedStrategy(coinPair, data, strategy.getStrategyParameters(), strategy);
   }
 
-  private void executeSelectedStrategy(List<Bar> data, StrategyParameters params,
+  private void executeSelectedStrategy(String coinPair, List<Bar> data, StrategyParameters params,
       Strategy strategy) {
+    var tradeState = portfolio.getOrCreateTradeState(coinPair);
     var currentPrice = data.getLast().getClosePrice().doubleValue();
+    double currentCapital = portfolio.getTotalCapital();
+
+    if (currentCapital <= 0) {
+      log.info("No capital available to trade {}", coinPair);
+    }
 
     var inTrade = tradeState.isInTrade();
     if (!inTrade && strategy.shouldBuy(data, params)) {
       tradeState.setInTrade(true);
       tradeState.setEntryPrice(currentPrice);
-      tradeState.setPositionSize(tradeState.getCapital() / currentPrice);
-      log.info("BUY at: {}", tradeState.getEntryPrice());
+      tradeState.setPositionSize(portfolio.getTotalCapital() * PORTFOLIO_ALLOCATION / currentPrice);
+      log.info("BUY {} at: {}", coinPair, tradeState.getEntryPrice());
     } else if (inTrade && strategy.shouldSell(data, tradeState.getEntryPrice(), params)) {
       tradeState.setInTrade(false);
       var entryPrice = tradeState.getEntryPrice();
       double profit = (currentPrice - entryPrice) / entryPrice * 100;
       var totalProfit = tradeState.getTotalProfit();
       tradeState.setTotalProfit(totalProfit + profit);
-      tradeState.setCapital(tradeState.getPositionSize() * currentPrice);
-      log.info("SELL at: {} | Profit: {}%", currentPrice, profit);
+      int profitLossFactor = profit > 0 ? 1 : -1;
+      currentCapital = portfolio.addToTotalCapital(
+          profitLossFactor * tradeState.getPositionSize() * currentPrice);
+      log.info("SELL {} at: {} | Profit: {}%", coinPair, currentPrice, profit);
     }
-    log.info("Total Profit: {}%", tradeState.getTotalProfit());
-    log.info("Capital: {}", tradeState.getCapital());
+    log.info("{} total Profit: {}%", coinPair, tradeState.getTotalProfit());
+    log.info("Capital: {}", currentCapital);
   }
 }
