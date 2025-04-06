@@ -20,7 +20,8 @@ public class RiskManagementIndicator implements Indicator {
     var currentPrice = data.getLast().getClosePrice().doubleValue();
     var stopLossTakeProfit = shouldStopLoss(entryPrice, currentPrice, params.lossPercent())
         || shouldTakeProfit(entryPrice, currentPrice, params.profitPercent());
-    log.debug("Shot stop loss/take profit: {}", stopLossTakeProfit);
+    log.debug("Shot stop loss/take profit: {} | Closing time: {}", stopLossTakeProfit,
+        data.getLast().getEndTime());
     return stopLossTakeProfit;
   }
 

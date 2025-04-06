@@ -49,7 +49,8 @@ public class MovingAverageIndicator implements Indicator {
     EMAIndicator maShort = new EMAIndicator(closePrice, params.movingAverageShortPeriod());
     EMAIndicator maLong = new EMAIndicator(closePrice, params.movingAverageLongPeriod());
     int endIndex = series.getEndIndex();
-    log.debug("MA short: {}, MA long: {}", maShort.getValue(endIndex), maLong.getValue(endIndex));
+    log.debug("MA short: {}, MA long: {}, Closing Time: {}", maShort.getValue(endIndex),
+        maLong.getValue(endIndex), data.get(endIndex).getEndTime());
     return new MovingAverage(maShort, maLong, endIndex);
   }
 

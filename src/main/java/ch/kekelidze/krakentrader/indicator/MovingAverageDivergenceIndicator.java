@@ -23,8 +23,9 @@ public class MovingAverageDivergenceIndicator implements Indicator {
     double previousMacd = calculateMovingAverageDivergence(data.subList(0, data.size() - 1),
         params);
     double previousMacdSignal = calculateMacdSignal(data.subList(0, data.size() - 1), params);
-    log.debug("MACD: {}, Signal: {}, Previous MACD: {}, Previous Signal: {}", macd, macdSignal,
-        previousMacd, previousMacdSignal);
+    log.debug("MACD: {}, Signal: {}, Previous MACD: {}, Previous Signal: {}, Closing Time: {}",
+        macd, macdSignal,
+        previousMacd, previousMacdSignal, data.getLast().getEndTime());
     return previousMacd <= previousMacdSignal && macd > macdSignal;
   }
 
@@ -35,8 +36,10 @@ public class MovingAverageDivergenceIndicator implements Indicator {
     double previousMacd = calculateMovingAverageDivergence(data.subList(0, data.size() - 1),
         params);
     double previousMacdSignal = calculateMacdSignal(data.subList(0, data.size() - 1), params);
-    log.debug("MACD: {}, Signal: {}, Previous MACD: {}, Previous Signal: {}", macd, macdSignal,
-        previousMacd, previousMacdSignal);
+
+    log.debug("MACD: {}, Signal: {}, Previous MACD: {}, Previous Signal: {}, Closing Time: {}",
+        macd, macdSignal,
+        previousMacd, previousMacdSignal, data.getLast().getEndTime());
     return previousMacd >= previousMacdSignal && macd < macdSignal;
   }
 

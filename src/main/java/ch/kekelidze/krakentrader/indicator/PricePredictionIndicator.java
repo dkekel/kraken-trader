@@ -31,7 +31,8 @@ public class PricePredictionIndicator implements Indicator {
   public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
     var prediction = calculatePrediction(data);
     var previousPrice = data.getLast().getClosePrice().doubleValue();
-    log.debug("Prediction: {}, Previous Price: {}", prediction, previousPrice);
+    log.debug("Prediction: {}, Previous Price: {}, Closing Time: {}", prediction, previousPrice,
+        data.getLast().getEndTime());
     return prediction > previousPrice;
   }
 
@@ -39,7 +40,8 @@ public class PricePredictionIndicator implements Indicator {
   public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
     var prediction = calculatePrediction(data);
     var previousPrice = data.getLast().getClosePrice().doubleValue();
-    log.debug("Prediction: {}, Previous Price: {}", prediction, previousPrice);
+    log.debug("Prediction: {}, Previous Price: {}, Closing Time: {}", prediction, previousPrice,
+        data.getLast().getEndTime());
     return prediction < previousPrice;
   }
 

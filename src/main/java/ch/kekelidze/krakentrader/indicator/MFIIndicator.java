@@ -13,14 +13,16 @@ public class MFIIndicator implements Indicator {
   @Override
   public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
     double mfi = calculateMFI(data, params.mfiPeriod());
-    log.debug("MFI: {}, Buy threshold: {}", mfi, params.mfiOversoldThreshold());
+    log.debug("MFI: {}, Buy threshold: {}, Closing time: {}", mfi, params.mfiOversoldThreshold(),
+        data.getLast().getEndTime());
     return mfi < params.mfiOversoldThreshold();
   }
 
   @Override
   public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
     double mfi = calculateMFI(data, params.mfiPeriod());
-    log.debug("MFI: {}, Sell threshold: {}", mfi, params.mfiOverboughtThreshold());
+    log.debug("MFI: {}, Sell threshold: {}, Closing time: {}", mfi, params.mfiOverboughtThreshold(),
+        data.getLast().getEndTime());
     return mfi > params.mfiOverboughtThreshold();
   }
 

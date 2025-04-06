@@ -25,7 +25,8 @@ public class AdxIndicator implements Indicator {
   public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
     BarSeries series = new BaseBarSeriesBuilder().withBars(data).build();
     double adx = calculateADX(series, params.adxPeriod());
-    log.debug("ADX: {}, Buy threshold: {}", adx, params.adxBullishThreshold());
+    log.debug("ADX: {}, Buy threshold: {}, Closing time: {}", adx, params.adxBullishThreshold(),
+        data.getLast().getEndTime());
     return adx > params.adxBullishThreshold();
   }
 
@@ -40,7 +41,8 @@ public class AdxIndicator implements Indicator {
   public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
     BarSeries series = new BaseBarSeriesBuilder().withBars(data).build();
     double adx = calculateADX(series, params.adxPeriod());
-    log.debug("ADX: {}, Sell threshold: {}", adx, params.adxBearishThreshold());
+    log.debug("ADX: {}, Sell threshold: {}, Closing time: {}", adx, params.adxBearishThreshold(),
+        data.getLast().getEndTime());
     return adx < params.adxBearishThreshold();
   }
 
