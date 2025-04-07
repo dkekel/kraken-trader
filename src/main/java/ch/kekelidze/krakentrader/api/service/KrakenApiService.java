@@ -6,12 +6,12 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import lombok.RequiredArgsConstructor;
@@ -31,13 +31,6 @@ import org.ta4j.core.Bar;
 @RequiredArgsConstructor
 public class KrakenApiService {
 
-  // Constant values for moving average periods and trading amount
-  private static final int MA_9 = 9;
-  private static final int MA_50 = 50;
-  private static final int MA_100 = 100;
-  private static final int MA_200 = 200;
-  private static final double TRADING_AMOUNT = 15.0;
-
   @Value("${kraken.api.key}")
   private String apiKey;
   @Value("${kraken.api.secret}")
@@ -45,57 +38,86 @@ public class KrakenApiService {
 
   private final ResponseConverterUtils responseConverterUtils;
 
-//  private void placeLimitOrder(String coin, double amount) {
-//    try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-//      String apiEndpoint = "https://api.kraken.com/0/private/AddOrder";
-//
-//      // Construct the request payload
-//      String body = "nonce=" + System.currentTimeMillis() +
-//          "&ordertype=limit" +
-//          "&type=buy" +
-//          "&pair=" + coin +
-//          "&volume=" + amount;
-//
-//      HttpPost post = new HttpPost(apiEndpoint);
-//      post.setEntity(new StringEntity(body, ContentType.APPLICATION_FORM_URLENCODED));
-//
-//      // Set the required headers (example placeholders, replace as needed)
-//      post.setHeader("API-Key", "<Your-API-Key>");
-//      post.setHeader("API-Sign", "<Your-API-Signature>");
-//
-//      try (CloseableHttpResponse response = httpClient.execute(post)) {
-//        if (response.getStatusLine().getStatusCode() == 200) {
-//          String jsonResponse = EntityUtils.toString(response.getEntity());
-//          ObjectMapper mapper = new ObjectMapper();
-//          JsonNode rootNode = mapper.readTree(jsonResponse);
-//
-//          if (!rootNode.path("error").isEmpty()) {
-//            throw new RuntimeException(
-//                "Kraken API returned error: " + rootNode.path("error").toString());
-//          }
-//
-//          System.out.println("Limit order placed successfully. Response: " + jsonResponse);
-//        } else {
-//          throw new RuntimeException(
-//              "API call failed with status code: " + response.getStatusLine().getStatusCode());
-//        }
-//      }
-//    } catch (Exception e) {
-//      throw new RuntimeException("Failed to place limit order: " + e.getMessage(), e);
-//    }
-//  }
+  /**
+   * Retrieves the current account balances from the Kraken API.
+   *
+   * @return a map where keys are asset names and values are their corresponding balances.
+   * @throws Exception if the API call fails or the response cannot be parsed.
+   */
+  public Map<String, Double> getAccountBalance() throws Exception {
+    String nonce = String.valueOf(System.currentTimeMillis());
+    String postData = "nonce=" + nonce;
+
+    // The path should be the URI path, not including the domain
+    String path = "/0/private/Balance";
+    String signature = getApiSignature(path, nonce, postData);
+
+    // Send request to Kraken API
+    try (HttpClient client = HttpClient.newHttpClient()) {
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(URI.create("https://api.kraken.com" + path))
+          .header("API-Key", apiKey)
+          .header("API-Sign", signature)
+          .header("Content-Type", "application/x-www-form-urlencoded")
+          .POST(HttpRequest.BodyPublishers.ofString(postData))
+          .build();
+
+      HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+      JSONObject responseBody = new JSONObject(response.body());
+
+      if (responseBody.has("error") && !responseBody.getJSONArray("error").isEmpty()) {
+        throw new RuntimeException(
+            "Kraken API returned an error: " + responseBody.getJSONArray("error"));
+      }
+
+      JSONObject result = responseBody.getJSONObject("result");
+      Map<String, Double> balances = new HashMap<>();
+      for (String asset : result.keySet()) {
+        double balance = result.getDouble(asset);
+        if (balance > 0) { // Only include assets with non-zero balance
+          balances.put(asset, balance);
+        }
+      }
+      return balances;
+    }
+  }
+
+  /**
+   * Creates an API signature for private Kraken API calls.
+   *
+   * @param path     The URI path
+   * @param nonce    The nonce value
+   * @param postData The POST data
+   * @return The signature as a Base64 encoded string
+   * @throws Exception if signature generation fails
+   */
+  public String getApiSignature(String path, String nonce, String postData) throws Exception {
+    // Message signature using HMAC-SHA512 of (URI path + SHA256(nonce + POST data)) and base64 decoded secret API key
+    MessageDigest md = MessageDigest.getInstance("SHA-256");
+    md.update((nonce + postData).getBytes());
+
+    Mac mac = Mac.getInstance("HmacSHA512");
+    byte[] secretBytes = Base64.getDecoder().decode(apiSecret);
+    mac.init(new SecretKeySpec(secretBytes, "HmacSHA512"));
+
+    mac.update(path.getBytes());
+    mac.update(md.digest());
+
+    return Base64.getEncoder().encodeToString(mac.doFinal());
+  }
 
   public void placeMarketOrder(String coin, double amount) throws Exception {
     String nonce = String.valueOf(System.currentTimeMillis());
     String postData =
         "nonce=" + nonce + "&ordertype=market&pair=" + coin + "&type=buy&volume=" + amount;
 
-    var signature = getApiSignature(nonce, postData);
+    var path = "/0/private/AddOrder";
+    var signature = getApiSignature(path, nonce, postData);
 
     // Send request
     try (HttpClient client = HttpClient.newHttpClient()) {
       HttpRequest request = HttpRequest.newBuilder()
-          .uri(URI.create("https://api.kraken.com/0/private/AddOrder"))
+          .uri(URI.create("https://api.kraken.com" + path))
           .header("API-Key", apiKey)
           .header("API-Sign", signature)
           .header("Content-Type", "application/x-www-form-urlencoded")
@@ -105,15 +127,6 @@ public class KrakenApiService {
       HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
       log.info("Order Response: " + response.body());
     }
-  }
-
-  private String getApiSignature(String nonce, String postData) throws Exception {
-    // Sign the request
-    Mac sha512 = Mac.getInstance("HmacSHA512");
-    byte[] secretBytes = Base64.getDecoder().decode(apiSecret);
-    sha512.init(new SecretKeySpec(secretBytes, "HmacSHA512"));
-    byte[] hash = sha512.doFinal((nonce + postData).getBytes());
-    return Base64.getEncoder().encodeToString(hash);
   }
 
   /**
@@ -242,4 +255,44 @@ public class KrakenApiService {
 
     return volumes;
   }
+
+  //  private void placeLimitOrder(String coin, double amount) {
+//    try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+//      String apiEndpoint = "https://api.kraken.com/0/private/AddOrder";
+//
+//      // Construct the request payload
+//      String body = "nonce=" + System.currentTimeMillis() +
+//          "&ordertype=limit" +
+//          "&type=buy" +
+//          "&pair=" + coin +
+//          "&volume=" + amount;
+//
+//      HttpPost post = new HttpPost(apiEndpoint);
+//      post.setEntity(new StringEntity(body, ContentType.APPLICATION_FORM_URLENCODED));
+//
+//      // Set the required headers (example placeholders, replace as needed)
+//      post.setHeader("API-Key", "<Your-API-Key>");
+//      post.setHeader("API-Sign", "<Your-API-Signature>");
+//
+//      try (CloseableHttpResponse response = httpClient.execute(post)) {
+//        if (response.getStatusLine().getStatusCode() == 200) {
+//          String jsonResponse = EntityUtils.toString(response.getEntity());
+//          ObjectMapper mapper = new ObjectMapper();
+//          JsonNode rootNode = mapper.readTree(jsonResponse);
+//
+//          if (!rootNode.path("error").isEmpty()) {
+//            throw new RuntimeException(
+//                "Kraken API returned error: " + rootNode.path("error").toString());
+//          }
+//
+//          System.out.println("Limit order placed successfully. Response: " + jsonResponse);
+//        } else {
+//          throw new RuntimeException(
+//              "API call failed with status code: " + response.getStatusLine().getStatusCode());
+//        }
+//      }
+//    } catch (Exception e) {
+//      throw new RuntimeException("Failed to place limit order: " + e.getMessage(), e);
+//    }
+//  }
 }
