@@ -49,4 +49,15 @@ public class TradeState {
   public synchronized void setTotalProfit(double totalProfit) {
     this.totalProfit = totalProfit;
   }
+
+  @Override
+  public synchronized String toString() {
+    return "TradeState{" +
+        "coinPair='" + coinPair + '\'' +
+        ", inTrade=" + inTrade +
+        ", entryPrice=" + entryPrice +
+        ", positionSize=" + positionSize +
+        ", totalProfit=" + totalProfit +
+        '}';
+  }
 }
