@@ -43,17 +43,17 @@ public class TradeService {
       tradeState.setEntryPrice(currentPrice);
       tradeState.setPositionSize(portfolio.getTotalCapital() * PORTFOLIO_ALLOCATION / currentPrice);
       currentCapital = portfolio.addToTotalCapital(-tradeState.getPositionSize() * currentPrice);
-      log.info("BUY {} at: {}", coinPair, tradeState.getEntryPrice());
+      log.info("BUY {} {} at: {}", coinPair, tradeState.getPositionSize(),
+          tradeState.getEntryPrice());
     } else if (inTrade && strategy.shouldSell(data, tradeState.getEntryPrice(), params)) {
       tradeState.setInTrade(false);
       var entryPrice = tradeState.getEntryPrice();
       double profit = (currentPrice - entryPrice) / entryPrice * 100;
       var totalProfit = tradeState.getTotalProfit();
       tradeState.setTotalProfit(totalProfit + profit);
-      int profitLossFactor = profit > 0 ? 1 : -1;
-      currentCapital = portfolio.addToTotalCapital(
-          profitLossFactor * tradeState.getPositionSize() * currentPrice);
-      log.info("SELL {} at: {} | Profit: {}%", coinPair, currentPrice, profit);
+      currentCapital = portfolio.addToTotalCapital(tradeState.getPositionSize() * currentPrice);
+      log.info("SELL {} {} at: {} | Profit: {}%", coinPair, tradeState.getPositionSize(),
+          currentPrice, profit);
       log.info("{} total Profit: {}%", coinPair, tradeState.getTotalProfit());
     }
     log.info("Capital: {}", currentCapital);
