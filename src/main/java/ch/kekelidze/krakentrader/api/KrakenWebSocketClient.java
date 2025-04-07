@@ -88,7 +88,7 @@ public class KrakenWebSocketClient {
     }
 
     if (OHLC.equals(channel) && isUpdateMessage(json)) {
-      log.info("Received message: {}", message);
+      log.debug("Received message: {}", message);
 
       JSONArray data = json.getJSONArray("data");
       for (int i = 0; i < data.length(); i++) {
@@ -109,6 +109,7 @@ public class KrakenWebSocketClient {
           continue;
         }
 
+        log.debug("Triggering strategy evaluation for {} at {}", symbol, bar.getEndTime());
         new Thread(
             () -> tradeService.executeStrategy(symbol, new ArrayList<>(candleQueue))).start();
       }
