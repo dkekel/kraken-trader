@@ -32,11 +32,10 @@ public class KrakenAveragePriceService {
   // Asset name mappings (Kraken uses X prefix for many crypto assets)
   private static final Map<String, String> ASSET_MAPPINGS = Map.ofEntries(
       Map.entry("XETH", "ETH"),
-      Map.entry("XXRP", "XRP"),
-      Map.entry("HONEY", "HONEY"),
+      Map.entry("XXRP", "XRP.F"),
+      Map.entry("HONE", "HONEY"),
       Map.entry("ETH2.S", "ETH2.S"),
       Map.entry("ETH.F", "ETH.F"),
-      Map.entry("XXDG", "DOGE"),
       Map.entry("FLR", "FLR"),
       Map.entry("FLR.S", "FLR.S"),
       Map.entry("PEPE", "PEPE"),
