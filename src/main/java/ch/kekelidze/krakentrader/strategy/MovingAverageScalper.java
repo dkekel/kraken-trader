@@ -2,6 +2,7 @@ package ch.kekelidze.krakentrader.strategy;
 
 import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
 import ch.kekelidze.krakentrader.indicator.RiskManagementIndicator;
+import ch.kekelidze.krakentrader.indicator.RsiIndicator;
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +42,7 @@ public class MovingAverageScalper implements Strategy {
 
   private final MovingAverageIndicator movingAverageIndicator;
   private final RiskManagementIndicator riskManagementIndicator;
+  private final RsiIndicator rsiIndicator;
 
   /**
    * Determines whether a buy signal is present based on the provided price data
@@ -78,15 +80,16 @@ public class MovingAverageScalper implements Strategy {
   @Override
   public boolean shouldSell(List<Bar> data, double entryPrice, StrategyParameters params) {
     var sellSignalParams = StrategyParameters.builder().movingAverageShortPeriod(9)
-        .movingAverageLongPeriod(200).build();
+        .movingAverageLongPeriod(26).build();
     var sellSignal = movingAverageIndicator.isSellSignal(data, entryPrice, sellSignalParams);
     var riskSellSignal = riskManagementIndicator.isSellSignal(data, entryPrice, params);
+    var rsiSignal = rsiIndicator.isSellSignal(data, entryPrice, params);
     var ma50greaterThan100 = isMa50GreaterThan100(data);
     var ma100greaterThan200 = isMa100GreaterThan200(data);
     log.debug(
         "Is sell signal: {}, Risk sell signal: {}, MA50 greater than 100: {}, MA100 greater than 200: {}",
         sellSignal, riskSellSignal, ma50greaterThan100, ma100greaterThan200);
-    return sellSignal || riskSellSignal || ma50greaterThan100 || ma100greaterThan200;
+    return sellSignal || riskSellSignal || rsiSignal || (ma50greaterThan100 && ma100greaterThan200);
   }
 
   private boolean isMa50Below100(List<Bar> data) {
@@ -132,6 +135,7 @@ public class MovingAverageScalper implements Strategy {
   @Override
   public StrategyParameters getStrategyParameters() {
     return StrategyParameters.builder()
+        .rsiBuyThreshold(35).rsiSellThreshold(70).rsiPeriod(14)
         .lossPercent(5).profitPercent(15)
         .minimumCandles(150)
         .build();
