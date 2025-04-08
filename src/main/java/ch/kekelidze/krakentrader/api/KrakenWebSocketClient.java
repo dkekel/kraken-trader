@@ -29,8 +29,8 @@ public class KrakenWebSocketClient {
   private static final List<String> SYMBOLS = List.of("DOGE/USD", "XRP/USD", "ETH/USD", "HONEY/USD",
       "PEPE/USD", "FLR/USD", "SGB/USD");
 
-  private static final int MAX_QUEUE_SIZE = 300;
-  private static final int PERIOD = 5;
+  private static final int MAX_QUEUE_SIZE = 600;
+  private static final int PERIOD = 60;
 
   private static final Map<String, Deque<Bar>> priceQueue = new HashMap<>();
 
