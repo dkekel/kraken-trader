@@ -1,0 +1,14 @@
+services:
+#  Moving Average Scalper strategy
+  kraken-trader-moving-average:
+    image: kraken-trader:latest
+    command: movingAverageScalper
+    volumes:
+      - ./logs/movingAverageScalper:/app/logs
+
+#  Multi Index Momentum strategy
+  kraken-trader-multi-index:
+    image: kraken-trader:latest
+    command: multiIndexMomentum
+    volumes:
+      - ./logs/multiIndexMomentum:/app/logs
