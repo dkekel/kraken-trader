@@ -1,6 +1,7 @@
-package ch.kekelidze.krakentrader.api.service;
+package ch.kekelidze.krakentrader.api.websocket.service;
 
-import ch.kekelidze.krakentrader.api.KrakenWebSocketClient;
+import ch.kekelidze.krakentrader.api.websocket.KrakenWebSocketClient;
+import ch.kekelidze.krakentrader.api.rest.service.KrakenApiService;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.trade.Portfolio;

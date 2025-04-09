@@ -1,4 +1,4 @@
-package ch.kekelidze.krakentrader.api.service;
+package ch.kekelidze.krakentrader.api.rest.service;
 
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import java.io.IOException;

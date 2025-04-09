@@ -1,6 +1,6 @@
-package ch.kekelidze.krakentrader.api;
+package ch.kekelidze.krakentrader.api.websocket;
 
-import ch.kekelidze.krakentrader.api.service.KrakenWebSocketService;
+import ch.kekelidze.krakentrader.api.websocket.service.KrakenWebSocketService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

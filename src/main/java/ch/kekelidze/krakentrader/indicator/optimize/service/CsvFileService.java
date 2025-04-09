@@ -1,4 +1,4 @@
-package ch.kekelidze.krakentrader.api.service;
+package ch.kekelidze.krakentrader.indicator.optimize.service;
 
 import java.time.Duration;
 import java.time.ZoneId;
@@ -17,7 +17,7 @@ import org.ta4j.core.num.DecimalNum;
 
 @Slf4j
 @Service
-public class KrakenCsvService {
+public class CsvFileService {
 
   /**
    * Kraken’s OHLC Format: Each candle is an array [time, open, high, low, close, volume, count].

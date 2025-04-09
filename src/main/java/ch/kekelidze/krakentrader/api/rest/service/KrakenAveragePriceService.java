@@ -1,4 +1,4 @@
-package ch.kekelidze.krakentrader.api.service;
+package ch.kekelidze.krakentrader.api.rest.service;
 
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;

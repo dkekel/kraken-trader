@@ -1,7 +1,7 @@
 package ch.kekelidze.krakentrader.trade.service;
 
-import ch.kekelidze.krakentrader.api.service.KrakenApiService;
-import ch.kekelidze.krakentrader.api.service.KrakenAveragePriceService;
+import ch.kekelidze.krakentrader.api.rest.service.KrakenApiService;
+import ch.kekelidze.krakentrader.api.rest.service.KrakenAveragePriceService;
 import ch.kekelidze.krakentrader.trade.TradeState;
 import java.util.HashMap;
 import java.util.Map;
