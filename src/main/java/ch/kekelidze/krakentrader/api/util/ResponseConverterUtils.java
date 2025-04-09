@@ -55,8 +55,8 @@ public class ResponseConverterUtils {
         .intervalBegin(ZonedDateTime.parse(jsonObject.getString("interval_begin"))
             .withZoneSameInstant(ZoneId.systemDefault()))
         .interval(jsonObject.getInt("interval"))
-        .timestamp(ZonedDateTime.parse(jsonObject.getString("timestamp"))
-            .withZoneSameInstant(ZoneId.systemDefault()))
+        .timestamp(ZonedDateTime.parse(jsonObject.getString("interval_begin"))
+            .withZoneSameInstant(ZoneId.systemDefault()).plusMinutes(jsonObject.getInt("interval")))
         .build();
   }
 }
