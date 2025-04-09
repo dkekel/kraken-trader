@@ -10,6 +10,6 @@ public class KrakenWebSocketRunner {
 
   @Bean
   public CommandLineRunner startWebSocketClient(KrakenWebSocketService service) {
-    return args -> service.startWebSocketClient();
+    return service::startWebSocketClient;
   }
 }

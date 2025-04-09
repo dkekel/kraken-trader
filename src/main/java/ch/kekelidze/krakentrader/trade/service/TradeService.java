@@ -4,8 +4,8 @@ import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParame
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.trade.Portfolio;
 import java.util.List;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.ta4j.core.Bar;
 
@@ -16,11 +16,11 @@ public class TradeService {
   private static final double PORTFOLIO_ALLOCATION = 1/8d;
   
   private final Portfolio portfolio;
-  private final Strategy strategy;
+  @Setter
+  private Strategy strategy;
 
-  public TradeService(Portfolio portfolio, @Qualifier("movingAverageScalper") Strategy strategy) {
+  public TradeService(Portfolio portfolio) {
     this.portfolio = portfolio;
-    this.strategy = strategy;
   }
 
   public void executeStrategy(String coinPair, List<Bar> data) {

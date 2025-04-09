@@ -2,6 +2,7 @@ package ch.kekelidze.krakentrader.api.service;
 
 import ch.kekelidze.krakentrader.api.KrakenWebSocketClient;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
+import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.trade.Portfolio;
 import ch.kekelidze.krakentrader.trade.service.TradeService;
 import jakarta.websocket.ContainerProvider;
@@ -9,6 +10,7 @@ import jakarta.websocket.WebSocketContainer;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -22,12 +24,16 @@ public class KrakenWebSocketService {
   private final TradeService tradeService;
   private final ResponseConverterUtils responseConverterUtils;
   private final KrakenApiService krakenApiService;
+  private final ApplicationContext applicationContext;
   
-  public void startWebSocketClient() {
+  public void startWebSocketClient(String[] args) {
     try {
+      var strategy = applicationContext.getBean(args[0], Strategy.class);
+      tradeService.setStrategy(strategy);
+      portfolio.setTotalCapital(2000);
+
       // Initialize the WebSocket client with Spring-managed dependencies
       KrakenWebSocketClient.initialize(tradeService, responseConverterUtils, krakenApiService);
-      portfolio.setTotalCapital(2000);
 
       // Connect to WebSocket server
       WebSocketContainer container = ContainerProvider.getWebSocketContainer();
