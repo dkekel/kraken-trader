@@ -9,6 +9,6 @@ services:
 #  Multi Index Momentum strategy
   kraken-trader-multi-index:
     image: kraken-trader:latest
-    command: [ "multiIndexMomentum", "DOGE/USD,XRP/USD,ETH/USD, HONEY/USD, PEPE/USD, FLR/USD, SGB/USD" ]
+    command: [ "multiIndexMomentum", "DOGE/USD,XRP/USD,ETH/USD,HONEY/USD,PEPE/USD,FLR/USD,SGB/USD" ]
     volumes:
       - ./logs/multiIndexMomentum:/app/logs
