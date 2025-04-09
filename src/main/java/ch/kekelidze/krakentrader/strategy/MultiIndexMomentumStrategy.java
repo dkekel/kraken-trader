@@ -8,6 +8,7 @@ import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParame
 import java.util.List;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 
@@ -36,6 +37,7 @@ import org.ta4j.core.Bar;
  * This class is designed to be used as a component in a Spring application and is dependent on the
  * specific implementations of the indicators mentioned above.
  */
+@Slf4j
 @Component("multiIndexMomentum")
 @RequiredArgsConstructor
 public class MultiIndexMomentumStrategy implements Strategy {
@@ -47,15 +49,21 @@ public class MultiIndexMomentumStrategy implements Strategy {
 
   @Override
   public boolean shouldBuy(List<Bar> data, StrategyParameters params) {
-    return Stream.of(movingAverageDivergenceIndicator, mfiIndicator, rsiIndicator)
+    return Stream.of(movingAverageDivergenceIndicator, mfiIndicator, rsiIndicator).peek(
+            indicator -> log.debug("Indicator: {}, Buy signal: {}",
+                indicator.getClass().getSimpleName(), indicator.isBuySignal(data, params)))
         .allMatch(indicator -> indicator.isBuySignal(data, params));
   }
 
   @Override
   public boolean shouldSell(List<Bar> data, double entryPrice, StrategyParameters params) {
+    var riskManagementSignal = riskManagementIndicator.isSellSignal(data, entryPrice, params);
+    log.debug("Risk management signal: {}", riskManagementSignal);
     return Stream.of(movingAverageDivergenceIndicator, mfiIndicator, rsiIndicator)
+        .peek(indicator -> log.debug("Indicator: {}, Sell signal: {}",
+            indicator.getClass().getSimpleName(), indicator.isSellSignal(data, entryPrice, params)))
         .allMatch(indicator -> indicator.isSellSignal(data, entryPrice, params))
-        || riskManagementIndicator.isSellSignal(data, entryPrice, params);
+        || riskManagementSignal;
   }
 
   @Override

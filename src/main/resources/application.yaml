@@ -8,19 +8,23 @@ kraken:
 logging:
   level:
     ch.kekelidze.krakentrader.indicator.AdxIndicator: INFO
-    ch.kekelidze.krakentrader.indicator.MovingAverageIndicator: INFO
-    ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceIndicator: INFO
+    ch.kekelidze.krakentrader.indicator.MovingAverageIndicator: DEBUG
+    ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceIndicator: DEBUG
+    ch.kekelidze.krakentrader.indicator.MFIIndicator: debug
     ch.kekelidze.krakentrader.indicator.PricePredictionIndicator: INFO
     ch.kekelidze.krakentrader.indicator.VolumeIndicator: INFO
-    ch.kekelidze.krakentrader.indicator.ch.kekelidze.krakentrader.indicator.RSIIndicator: INFO
+    ch.kekelidze.krakentrader.indicator.RsiIndicator: DEBUG
     ch.kekelidze.krakentrader.indicator.RiskManagementIndicator: INFO
 
-    ch.kekelidze.krakentrader.strategy.IndicatorAgreementStrategy: INFO
     ch.kekelidze.krakentrader.strategy.WeightedAgreementStrategy: DEBUG
     ch.kekelidze.krakentrader.strategy.PricePredictionStrategy: INFO
     ch.kekelidze.krakentrader.strategy.MovingAverageScalper: DEBUG
+    ch.kekelidze.krakentrader.strategy.MultiIndexMomentumStrategy: debug
+
+    ch.kekelidze.krakentrader.api.service.KrakenAveragePriceService: debug
 
     ch.kekelidze.krakentrader.backtester.service.BackTesterService: INFO
+    ch.kekelidze.krakentrader.api.KrakenWebSocketClient: debug
 
   file:
     name: logs/kraken-trader.log
