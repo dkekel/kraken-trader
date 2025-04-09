@@ -40,6 +40,8 @@ import org.ta4j.core.Bar;
 @RequiredArgsConstructor
 public class MovingAverageScalper implements Strategy {
 
+  private static final int PERIOD = 60;
+
   private final MovingAverageIndicator movingAverageIndicator;
   private final RiskManagementIndicator riskManagementIndicator;
   private final RsiIndicator rsiIndicator;
@@ -139,5 +141,10 @@ public class MovingAverageScalper implements Strategy {
         .lossPercent(5).profitPercent(15)
         .minimumCandles(150)
         .build();
+  }
+
+  @Override
+  public int getPeriod() {
+    return PERIOD;
   }
 }

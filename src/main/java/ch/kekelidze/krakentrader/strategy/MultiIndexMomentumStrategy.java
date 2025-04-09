@@ -42,6 +42,8 @@ import org.ta4j.core.Bar;
 @RequiredArgsConstructor
 public class MultiIndexMomentumStrategy implements Strategy {
 
+  private static final int PERIOD = 15;
+
   private final MovingAverageDivergenceIndicator movingAverageDivergenceIndicator;
   private final MFIIndicator mfiIndicator;
   private final RsiIndicator rsiIndicator;
@@ -75,5 +77,10 @@ public class MultiIndexMomentumStrategy implements Strategy {
         .lossPercent(5).profitPercent(5)
         .minimumCandles(26)
         .build();
+  }
+
+  @Override
+  public int getPeriod() {
+    return PERIOD;
   }
 }

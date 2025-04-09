@@ -30,7 +30,8 @@ public class KrakenWebSocketClient {
       "PEPE/USD", "FLR/USD", "SGB/USD");
 
   private static final int MAX_QUEUE_SIZE = 600;
-  private static final int PERIOD = 60;
+  //Default period is 1h, overridable from the strategy implementation
+  private static int PERIOD = 60;
 
   private static final Map<String, Deque<Bar>> priceQueue = new HashMap<>();
 
@@ -42,6 +43,7 @@ public class KrakenWebSocketClient {
       KrakenApiService krakenApiService) {
     tradeService = strategyService;
     responseConverterUtils = converterUtils;
+    PERIOD = tradeService.getStrategy().getPeriod();
     initializePriceQueue(krakenApiService);
   }
 

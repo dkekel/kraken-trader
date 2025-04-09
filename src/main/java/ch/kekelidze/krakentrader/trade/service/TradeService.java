@@ -4,6 +4,7 @@ import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParame
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.trade.Portfolio;
 import java.util.List;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ public class TradeService {
   private static final double PORTFOLIO_ALLOCATION = 1/8d;
   
   private final Portfolio portfolio;
+  @Getter
   @Setter
   private Strategy strategy;
 

@@ -24,4 +24,8 @@ public interface Strategy {
         .minimumCandles(26)
         .build();
   }
+
+  default int getPeriod() {
+    return 60;
+  }
 }
