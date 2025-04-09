@@ -2,13 +2,13 @@ services:
 #  Moving Average Scalper strategy
   kraken-trader-moving-average:
     image: kraken-trader:latest
-    command: movingAverageScalper
+    command: [ "movingAverageScalper", "DOGE/USD,XRP/USD,ETH/USD,HONEY/USD,PEPE/USD,FLR/USD,SGB/USD" ]
     volumes:
       - ./logs/movingAverageScalper:/app/logs
 
 #  Multi Index Momentum strategy
   kraken-trader-multi-index:
     image: kraken-trader:latest
-    command: multiIndexMomentum
+    command: [ "multiIndexMomentum", "DOGE/USD,XRP/USD,ETH/USD, HONEY/USD, PEPE/USD, FLR/USD, SGB/USD" ]
     volumes:
       - ./logs/multiIndexMomentum:/app/logs

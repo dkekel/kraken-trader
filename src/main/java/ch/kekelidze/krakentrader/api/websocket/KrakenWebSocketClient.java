@@ -26,12 +26,11 @@ public class KrakenWebSocketClient {
   private static final String CHANNEL = "channel";
   private static final String STATUS = "status";
   private static final String OHLC = "ohlc";
-  private static final List<String> SYMBOLS = List.of("DOGE/USD", "XRP/USD", "ETH/USD", "HONEY/USD",
-      "PEPE/USD", "FLR/USD", "SGB/USD");
 
   private static final int MAX_QUEUE_SIZE = 600;
+  private static List<String> SYMBOLS;
   //Default period is 1h, overridable from the strategy implementation
-  private static int PERIOD = 60;
+  static int PERIOD = 60;
 
   private static final Map<String, Deque<Bar>> priceQueue = new HashMap<>();
 
@@ -40,9 +39,10 @@ public class KrakenWebSocketClient {
 
   // Method to set dependencies from Spring context
   public static void initialize(TradeService strategyService, ResponseConverterUtils converterUtils,
-      KrakenApiService krakenApiService) {
+      KrakenApiService krakenApiService, String[] symbols) {
     tradeService = strategyService;
     responseConverterUtils = converterUtils;
+    SYMBOLS = List.of(symbols);
     PERIOD = tradeService.getStrategy().getPeriod();
     initializePriceQueue(krakenApiService);
   }
@@ -62,7 +62,12 @@ public class KrakenWebSocketClient {
   public void onOpen(Session session) {
     log.info("Connected to Kraken WebSocket");
     var symbols = String.join(",", SYMBOLS.stream().map(s -> "\"" + s + "\"").toList());
-    String subscribeMsg = """
+    var subscribeMsg = getSubscribeMessage(symbols);
+    session.getAsyncRemote().sendText(subscribeMsg);
+  }
+
+  protected String getSubscribeMessage(String symbols) {
+    return  """
         {
             "method": "subscribe",
             "params": {
@@ -72,7 +77,6 @@ public class KrakenWebSocketClient {
             }
         }
         """.formatted(String.join(",", symbols), PERIOD);
-    session.getAsyncRemote().sendText(subscribeMsg);
   }
 
   @OnMessage
@@ -112,8 +116,7 @@ public class KrakenWebSocketClient {
         }
 
         log.debug("Triggering strategy evaluation for {} at {}", symbol, bar.getEndTime());
-        new Thread(
-            () -> tradeService.executeStrategy(symbol, new ArrayList<>(candleQueue))).start();
+        tradeService.executeStrategy(symbol, new ArrayList<>(candleQueue));
       }
     }
   }
