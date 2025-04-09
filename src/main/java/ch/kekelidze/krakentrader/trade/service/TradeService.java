@@ -1,6 +1,6 @@
 package ch.kekelidze.krakentrader.trade.service;
 
-import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import ch.kekelidze.krakentrader.trade.Portfolio;

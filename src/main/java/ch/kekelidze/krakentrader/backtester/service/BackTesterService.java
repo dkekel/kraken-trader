@@ -1,7 +1,7 @@
 package ch.kekelidze.krakentrader.backtester.service;
 
 import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
-import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.ArrayList;

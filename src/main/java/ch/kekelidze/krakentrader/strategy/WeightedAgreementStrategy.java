@@ -4,7 +4,7 @@ import ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceIndicator;
 import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
 import ch.kekelidze.krakentrader.indicator.PricePredictionIndicator;
 import ch.kekelidze.krakentrader.indicator.VolumeIndicator;
-import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

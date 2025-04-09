@@ -1,4 +1,4 @@
-package ch.kekelidze.krakentrader.indicator.optimize.configuration;
+package ch.kekelidze.krakentrader.indicator.configuration;
 
 import lombok.Builder;
 

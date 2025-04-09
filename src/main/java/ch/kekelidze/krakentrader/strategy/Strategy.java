@@ -1,6 +1,6 @@
 package ch.kekelidze.krakentrader.strategy;
 
-import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 
 public interface Strategy {

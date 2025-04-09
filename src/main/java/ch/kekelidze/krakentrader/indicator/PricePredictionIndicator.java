@@ -1,6 +1,6 @@
 package ch.kekelidze.krakentrader.indicator;
 
-import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
