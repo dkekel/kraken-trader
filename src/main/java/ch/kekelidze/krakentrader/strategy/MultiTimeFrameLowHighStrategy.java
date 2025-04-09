@@ -1,13 +1,14 @@
 package ch.kekelidze.krakentrader.strategy;
 
+import ch.kekelidze.krakentrader.api.service.KrakenApiService;
 import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
 import ch.kekelidze.krakentrader.indicator.RiskManagementIndicator;
 import ch.kekelidze.krakentrader.indicator.RsiIndicator;
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import org.ta4j.core.Bar;
 
 /**
  * <b>Uses 4 hour candles</b>
@@ -44,19 +45,24 @@ public class MultiTimeFrameLowHighStrategy implements Strategy {
   private final MovingAverageIndicator movingAverageIndicator;
   private final RsiIndicator rsiIndicator;
   private final RiskManagementIndicator riskManagementIndicator;
+  private final KrakenApiService krakenApiService;
 
   @Override
-  public boolean shouldBuy(List<Bar> data, StrategyParameters params) {
+  public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
+    var symbol = context.getSymbol();
+    var data = context.getBars();
     var rsiSignal = rsiIndicator.isBuySignal(data, params);
-    //TODO MA should be calculated with 15min candles instead
-    var maSignal = movingAverageIndicator.calculateMovingAverage(data, params);
+    var shortCandles = krakenApiService.queryHistoricalData(List.of(symbol), 15).get(symbol);
+    var maSignal = movingAverageIndicator.calculateMovingAverage(shortCandles, params);
     var endIndex = maSignal.endIndex();
     return rsiSignal && maSignal.maShort().getValue(endIndex)
         .isLessThan(data.getLast().getClosePrice());
   }
 
   @Override
-  public boolean shouldSell(List<Bar> data, double entryPrice, StrategyParameters params) {
+  public boolean shouldSell(EvaluationContext context, double entryPrice,
+      StrategyParameters params) {
+    var data = context.getBars();
     var rsiSignal = rsiIndicator.isSellSignal(data, entryPrice, params);
     var maSignal = movingAverageIndicator.calculateMovingAverage(data, params);
     var endIndex = maSignal.endIndex();
@@ -73,5 +79,10 @@ public class MultiTimeFrameLowHighStrategy implements Strategy {
         .lossPercent(3).profitPercent(4)
         .minimumCandles(50)
         .build();
+  }
+
+  @Override
+  public int getPeriod() {
+    return 4 * 60;
   }
 }

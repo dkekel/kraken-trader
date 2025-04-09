@@ -4,6 +4,7 @@ import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
 import ch.kekelidze.krakentrader.indicator.RiskManagementIndicator;
 import ch.kekelidze.krakentrader.indicator.RsiIndicator;
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,18 +48,18 @@ public class MovingAverageScalper implements Strategy {
   private final RsiIndicator rsiIndicator;
 
   /**
-   * Determines whether a buy signal is present based on the provided price data
-   * and trading strategy parameters. This method evaluates multiple conditions:
-   * - If the data indicates a buy signal based on specified moving average periods.
-   * - If the 50-period moving average is below the 100-period moving average.
-   * - If the 100-period moving average is below the 200-period moving average.
+   * This method evaluates multiple conditions: - If the data indicates a buy signal based on
+   * specified moving average periods. - If the 50-period moving average is below the 100-period
+   * moving average. - If the 100-period moving average is below the 200-period moving average.
    *
-   * @param data   a list of price bars, representing the market data to analyze
-   * @param params the strategy parameters that configure trading rules and thresholds
+   * @param context context with the coin symbol and a list of price bars, representing the market
+   *                data to analyze
+   * @param params  the strategy parameters that configure trading rules and thresholds
    * @return true if all the conditions for a buy signal are met; false otherwise
    */
   @Override
-  public boolean shouldBuy(List<Bar> data, StrategyParameters params) {
+  public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
+    var data = context.getBars();
     var buySignalParams = StrategyParameters.builder().movingAverageShortPeriod(9)
         .movingAverageLongPeriod(50).build();
     var buySignal = movingAverageIndicator.isBuySignal(data, buySignalParams);
@@ -70,17 +71,19 @@ public class MovingAverageScalper implements Strategy {
   }
 
   /**
-   * Determines whether a sell action should be executed based on multiple trading indicators.
    * The method evaluates sell signals from moving average indicators, risk management indicators,
    * and additional conditions related to moving averages.
    *
-   * @param data        the list of price bars containing market data
-   * @param entryPrice  the entry price of the trade
-   * @param params      the strategy parameters for decision-making
+   * @param context    context with the coin symbol and a list of price bars, representing the
+   *                   market data to analyze
+   * @param entryPrice the entry price of the trade
+   * @param params     the strategy parameters for decision-making
    * @return true if any of the sell signal conditions are met, false otherwise
    */
   @Override
-  public boolean shouldSell(List<Bar> data, double entryPrice, StrategyParameters params) {
+  public boolean shouldSell(EvaluationContext context, double entryPrice,
+      StrategyParameters params) {
+    var data = context.getBars();
     var sellSignalParams = StrategyParameters.builder().movingAverageShortPeriod(9)
         .movingAverageLongPeriod(26).build();
     var sellSignal = movingAverageIndicator.isSellSignal(data, entryPrice, sellSignalParams);

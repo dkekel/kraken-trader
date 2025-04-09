@@ -3,6 +3,7 @@ package ch.kekelidze.krakentrader.backtester.service;
 import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.Strategy;
+import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -20,18 +21,18 @@ public class BackTesterService {
     this.strategy = strategy;
   }
 
-  public BacktestResult runSimulation(List<Bar> data, double initialCapital) {
-    return runSimulation(data, strategy, strategy.getStrategyParameters(),
+  public BacktestResult runSimulation(EvaluationContext context, double initialCapital) {
+    return runSimulation(context, strategy, strategy.getStrategyParameters(),
         initialCapital);
   }
 
-  public BacktestResult runSimulation(List<Bar> data, StrategyParameters strategyParameters,
-      double initialCapital) {
-    return runSimulation(data, strategy, strategyParameters, initialCapital);
+  public BacktestResult runSimulation(EvaluationContext context,
+      StrategyParameters strategyParameters, double initialCapital) {
+    return runSimulation(context, strategy, strategyParameters, initialCapital);
   }
 
-  private BacktestResult runSimulation(List<Bar> data, Strategy strategy, StrategyParameters params,
-      double initialCapital) {
+  private BacktestResult runSimulation(EvaluationContext context, Strategy strategy,
+      StrategyParameters params, double initialCapital) {
     // Simulate trades using parameters
     boolean inPosition = false;
     double currentCapital = initialCapital;
@@ -48,6 +49,7 @@ public class BackTesterService {
     // Store all trade profits for volatility calculation
     List<Double> tradeReturns = new ArrayList<>();
 
+    var data = context.getBars();
     for (int i = params.minimumCandles(); i < data.size(); i++) {
       // Calculate indicators
       List<Bar> sublist = data.subList(i - params.minimumCandles(), i);
@@ -55,15 +57,17 @@ public class BackTesterService {
       // Current price for equity calculation
       double currentPrice = data.get(i).getClosePrice().doubleValue();
 
+      var evaluationContext = EvaluationContext.builder().symbol(context.getSymbol()).bars(sublist)
+          .build();
       // Execute strategy logic
-      if (!inPosition && strategy.shouldBuy(sublist, params)) {
+      if (!inPosition && strategy.shouldBuy(evaluationContext, params)) {
         trades++;
         entryPrice = currentPrice;
         inPosition = true;
         // For simplicity, assume we use 100% of capital
         positionSize = currentCapital / entryPrice;
         log.debug("BUY at: {}", entryPrice);
-      } else if (inPosition && strategy.shouldSell(sublist, entryPrice, params)) {
+      } else if (inPosition && strategy.shouldSell(evaluationContext, entryPrice, params)) {
         trades++;
         double profit = (currentPrice - entryPrice) / entryPrice * 100;
         if (profit > 0) {

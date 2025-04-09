@@ -5,12 +5,11 @@ import ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceIndicator;
 import ch.kekelidze.krakentrader.indicator.RiskManagementIndicator;
 import ch.kekelidze.krakentrader.indicator.RsiIndicator;
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
-import java.util.List;
+import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.ta4j.core.Bar;
 
 /**
  * <b>15 minute candles</b>
@@ -50,7 +49,8 @@ public class MultiIndexMomentumStrategy implements Strategy {
   private final RiskManagementIndicator riskManagementIndicator;
 
   @Override
-  public boolean shouldBuy(List<Bar> data, StrategyParameters params) {
+  public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
+    var data = context.getBars();
     return Stream.of(movingAverageDivergenceIndicator, mfiIndicator, rsiIndicator).peek(
             indicator -> log.debug("Indicator: {}, Buy signal: {}",
                 indicator.getClass().getSimpleName(), indicator.isBuySignal(data, params)))
@@ -58,7 +58,9 @@ public class MultiIndexMomentumStrategy implements Strategy {
   }
 
   @Override
-  public boolean shouldSell(List<Bar> data, double entryPrice, StrategyParameters params) {
+  public boolean shouldSell(EvaluationContext context, double entryPrice,
+      StrategyParameters params) {
+    var data = context.getBars();
     var riskManagementSignal = riskManagementIndicator.isSellSignal(data, entryPrice, params);
     log.debug("Risk management signal: {}", riskManagementSignal);
     return Stream.of(movingAverageDivergenceIndicator, mfiIndicator, rsiIndicator)

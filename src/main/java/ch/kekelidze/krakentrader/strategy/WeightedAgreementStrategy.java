@@ -5,11 +5,10 @@ import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
 import ch.kekelidze.krakentrader.indicator.PricePredictionIndicator;
 import ch.kekelidze.krakentrader.indicator.VolumeIndicator;
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
-import java.util.List;
+import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.ta4j.core.Bar;
 
 @Slf4j
 @Component("weightedAgreement")
@@ -27,12 +26,14 @@ public class WeightedAgreementStrategy implements Strategy {
    * * ML Prediction	35%	Predictive power * MA Crossover	30%	Trend alignment * RSI +
    * Divergence	25%	Momentum + reversal * Volume	10%	Confirmation Buy
    *
-   * @param data   price data
-   * @param params trade params
+   * @param context context with the coin symbol and a list of price bars, representing the market
+   *                data to analyze
+   * @param params  trade params
    * @return true if total score > {@link StrategyParameters#weightedAgreementThreshold()}
    */
   @Override
-  public boolean shouldBuy(List<Bar> data, StrategyParameters params) {
+  public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
+    var data = context.getBars();
     var mlScore = pricePredictionIndicator.isBuySignal(data, params) ? 1 : 0;
     var maScore = movingAverageIndicator.isBuySignal(data, params) ? 1 : 0;
     var divergenceScore = movingAverageDivergenceIndicator.isBuySignal(data, params) ? 1 : 0;
@@ -48,12 +49,15 @@ public class WeightedAgreementStrategy implements Strategy {
    * * ML Prediction	35%	Predictive power * MA Crossover	30%	Trend alignment * RSI +
    * Divergence	25%	Momentum + reversal * Volume	10%	Confirmation Sell
    *
-   * @param data   price data
-   * @param params trade params
+   * @param context context with the coin symbol and a list of price bars, representing the market
+   *                data to analyze
+   * @param params  trade params
    * @return true if total score > {@link StrategyParameters#weightedAgreementThreshold()}
    */
   @Override
-  public boolean shouldSell(List<Bar> data, double entryPrice, StrategyParameters params) {
+  public boolean shouldSell(EvaluationContext context, double entryPrice,
+      StrategyParameters params) {
+    var data = context.getBars();
     var mlScore = pricePredictionIndicator.isSellSignal(data, entryPrice, params) ? 1 : 0;
     var maScore = movingAverageIndicator.isSellSignal(data, entryPrice, params) ? 1 : 0;
     var divergenceScore =

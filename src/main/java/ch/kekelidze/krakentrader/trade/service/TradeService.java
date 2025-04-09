@@ -2,6 +2,7 @@ package ch.kekelidze.krakentrader.trade.service;
 
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.Strategy;
+import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import ch.kekelidze.krakentrader.trade.Portfolio;
 import java.util.List;
 import lombok.Getter;
@@ -39,15 +40,17 @@ public class TradeService {
       log.info("No capital available to trade {}", coinPair);
     }
 
+    var evaluationContext = EvaluationContext.builder().symbol(coinPair).bars(data).build();
     var inTrade = tradeState.isInTrade();
-    if (!inTrade && strategy.shouldBuy(data, params)) {
+    if (!inTrade && strategy.shouldBuy(evaluationContext, params)) {
       tradeState.setInTrade(true);
       tradeState.setEntryPrice(currentPrice);
       tradeState.setPositionSize(portfolio.getTotalCapital() * PORTFOLIO_ALLOCATION / currentPrice);
       currentCapital = portfolio.addToTotalCapital(-tradeState.getPositionSize() * currentPrice);
       log.info("BUY {} {} at: {}", coinPair, tradeState.getPositionSize(),
           tradeState.getEntryPrice());
-    } else if (inTrade && strategy.shouldSell(data, tradeState.getEntryPrice(), params)) {
+    } else if (inTrade && strategy.shouldSell(evaluationContext, tradeState.getEntryPrice(),
+        params)) {
       tradeState.setInTrade(false);
       var entryPrice = tradeState.getEntryPrice();
       double profit = (currentPrice - entryPrice) / entryPrice * 100;

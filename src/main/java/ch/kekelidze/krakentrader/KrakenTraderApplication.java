@@ -4,6 +4,7 @@ import ch.kekelidze.krakentrader.api.service.KrakenApiService;
 import ch.kekelidze.krakentrader.api.service.KrakenCsvService;
 import ch.kekelidze.krakentrader.backtester.service.BackTesterService;
 import ch.kekelidze.krakentrader.indicator.optimize.Optimizer;
+import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import ch.kekelidze.krakentrader.trade.service.TradeService;
 import java.io.File;
 import java.io.IOException;
@@ -42,14 +43,19 @@ public class KrakenTraderApplication {
     var optimizer = application.getBean("walkForwardOptimizer", Optimizer.class);
     var backtestService = application.getBean(BackTesterService.class);
     var historicalData = krakenCsvService.readCsvFile("data/XRPUSD_60_Q4_2024.csv");
-    var optimizeParameters = optimizer.optimizeParameters(historicalData);
+    var evaluationContext = EvaluationContext.builder().symbol("XRP/USD").bars(historicalData)
+        .build();
+    var optimizeParameters = optimizer.optimizeParameters(evaluationContext);
     log.info("Optimised strategy: {}", optimizeParameters);
 
     // 30% validation
     int trainingSize = (int) (historicalData.size() * 0.7);
     var validationData = historicalData.subList(trainingSize, historicalData.size());
 
-    var result = backtestService.runSimulation(validationData, optimizeParameters, INITIAL_CAPITAL);
+    var evaluationContextWithValidation = EvaluationContext.builder().symbol("XRP/USD")
+        .bars(validationData).build();
+    var result = backtestService.runSimulation(evaluationContextWithValidation, optimizeParameters,
+        INITIAL_CAPITAL);
     log.info("Trade result: {}", result);
   }
 
@@ -60,7 +66,9 @@ public class KrakenTraderApplication {
     var tradeService = application.getBean(TradeService.class);
     var backtestService = application.getBean(BackTesterService.class);
     var historicalData = krakenApiService.queryHistoricalData(List.of(coin), 5);
-    var result = backtestService.runSimulation(historicalData.get(coin), INITIAL_CAPITAL);
+    var evaluationContext = EvaluationContext.builder().symbol(coin).bars(historicalData.get(coin))
+        .build();
+    var result = backtestService.runSimulation(evaluationContext, INITIAL_CAPITAL);
     log.info("Trade result: {}", result);
   }
 }

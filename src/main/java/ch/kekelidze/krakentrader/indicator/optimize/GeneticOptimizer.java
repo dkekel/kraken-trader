@@ -5,6 +5,7 @@ import static io.jenetics.engine.Limits.bySteadyFitness;
 import ch.kekelidze.krakentrader.backtester.service.BackTesterService;
 import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
 import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import io.jenetics.Genotype;
 import io.jenetics.IntegerChromosome;
 import io.jenetics.IntegerGene;
@@ -35,11 +36,11 @@ public class GeneticOptimizer implements Optimizer {
   }
 
   @Override
-  public StrategyParameters optimizeParameters(List<Bar> data) {
-    historicalData = new ArrayList<>(data);
+  public StrategyParameters optimizeParameters(EvaluationContext context) {
+    historicalData = new ArrayList<>(context.getBars());
 
     Engine<IntegerGene, Double> engine = Engine.builder(
-            GeneticOptimizer::fitness,
+            genotype -> fitness(context.getSymbol(), genotype),
             Codec.of(
                 Genotype.of(
                     IntegerChromosome.of(5, 15),    // movingAverageShortPeriod
@@ -78,9 +79,12 @@ public class GeneticOptimizer implements Optimizer {
   }
 
   // Fitness function (Sharpe Ratio)
-  private static Double fitness(Genotype<IntegerGene> genotype) {
+  private static Double fitness(String coinPair, Genotype<IntegerGene> genotype) {
     StrategyParameters params = getStrategyParameters(genotype);
-    BacktestResult result = backTesterService.runSimulation(historicalData, params, initialBalance);
+    var evaluationContext = EvaluationContext.builder().symbol(coinPair).bars(historicalData)
+        .build();
+    BacktestResult result = backTesterService.runSimulation(evaluationContext, params,
+        initialBalance);
     return result.sharpeRatio();
     // Example combined fitness function
 //    return result.sharpeRatio() * 0.6 +
