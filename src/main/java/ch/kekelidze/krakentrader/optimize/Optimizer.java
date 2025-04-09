@@ -1,6 +1,6 @@
-package ch.kekelidze.krakentrader.indicator.optimize;
+package ch.kekelidze.krakentrader.optimize;
 
-import ch.kekelidze.krakentrader.indicator.optimize.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 
 public interface Optimizer {

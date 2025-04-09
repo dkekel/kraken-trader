@@ -1,4 +1,4 @@
-package ch.kekelidze.krakentrader.indicator.optimize.util;
+package ch.kekelidze.krakentrader.optimize.util;
 
 import java.util.List;
 import org.springframework.stereotype.Component;

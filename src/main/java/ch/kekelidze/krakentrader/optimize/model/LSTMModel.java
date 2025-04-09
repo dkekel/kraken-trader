@@ -1,4 +1,4 @@
-package ch.kekelidze.krakentrader.indicator.optimize.model;
+package ch.kekelidze.krakentrader.optimize.model;
 
 import java.util.ArrayList;
 import java.util.Arrays;

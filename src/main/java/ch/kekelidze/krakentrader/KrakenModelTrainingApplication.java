@@ -1,8 +1,8 @@
 package ch.kekelidze.krakentrader;
 
-import ch.kekelidze.krakentrader.indicator.optimize.model.LSTMModel;
-import ch.kekelidze.krakentrader.indicator.optimize.service.CsvFileService;
-import ch.kekelidze.krakentrader.indicator.optimize.util.TestDataUtils;
+import ch.kekelidze.krakentrader.optimize.model.LSTMModel;
+import ch.kekelidze.krakentrader.optimize.service.CsvFileService;
+import ch.kekelidze.krakentrader.optimize.util.TestDataUtils;
 import java.io.File;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;

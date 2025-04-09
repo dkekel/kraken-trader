@@ -1,4 +1,4 @@
-package ch.kekelidze.krakentrader.indicator.optimize.service;
+package ch.kekelidze.krakentrader.optimize.service;
 
 import java.time.Duration;
 import java.time.ZoneId;
