@@ -1,5 +1,7 @@
 package ch.kekelidze.krakentrader;
 
+import ch.kekelidze.krakentrader.api.rest.service.KrakenApiService;
+import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import ch.kekelidze.krakentrader.api.websocket.KrakenWebSocketRunner;
 import ch.kekelidze.krakentrader.indicator.Indicator;
 import ch.kekelidze.krakentrader.strategy.Strategy;
@@ -10,8 +12,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @Slf4j
 @SpringBootApplication(
-    scanBasePackageClasses = {KrakenWebSocketRunner.class, Indicator.class, Strategy.class,
-        Portfolio.class}
+    scanBasePackageClasses = {KrakenWebSocketRunner.class, KrakenApiService.class,
+        ResponseConverterUtils.class, Indicator.class, Strategy.class, Portfolio.class}
 )
 public class KrakenTraderApplication {
 
