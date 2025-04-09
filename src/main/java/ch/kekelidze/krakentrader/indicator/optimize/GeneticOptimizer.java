@@ -9,8 +9,10 @@ import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import io.jenetics.Genotype;
 import io.jenetics.IntegerChromosome;
 import io.jenetics.IntegerGene;
+import io.jenetics.Mutator;
 import io.jenetics.Optimize;
 import io.jenetics.Phenotype;
+import io.jenetics.SinglePointCrossover;
 import io.jenetics.engine.Codec;
 import io.jenetics.engine.Engine;
 import io.jenetics.engine.EvolutionResult;
@@ -58,10 +60,10 @@ public class GeneticOptimizer implements Optimizer {
             ))
         .populationSize(50) // Increase population size
         .optimize(Optimize.MAXIMUM)
-//        .alterers(
-//            new Mutator<>(0.3), // Add Mutator for genetic diversity
-//            new SinglePointCrossover<>(0.5) // Include crossover for better exploration
-//        )
+        .alterers(
+            new Mutator<>(0.3), // Add Mutator for genetic diversity
+            new SinglePointCrossover<>(0.5) // Include crossover for better exploration
+        )
         .build();
     final EvolutionStatistics<Double, DoubleMomentStatistics> statistics =
         EvolutionStatistics.ofNumber();
@@ -110,6 +112,7 @@ public class GeneticOptimizer implements Optimizer {
         .macdSignalPeriod(9)
         .adxPeriod(14)
         .volumePeriod(20)
+        .minimumCandles(150)
         .build();
   }
 }
