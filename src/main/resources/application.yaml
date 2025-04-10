@@ -9,18 +9,23 @@ logging:
   level:
     ch.kekelidze.krakentrader.indicator.AdxIndicator: INFO
     ch.kekelidze.krakentrader.indicator.MovingAverageIndicator: DEBUG
-    ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceIndicator: DEBUG
-    ch.kekelidze.krakentrader.indicator.MFIIndicator: debug
+    ch.kekelidze.krakentrader.indicator.SimpleMovingAverageDivergenceIndicator: info
+    ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceCrossOverIndicator: info
+    ch.kekelidze.krakentrader.indicator.MFIIndicator: info
     ch.kekelidze.krakentrader.indicator.PricePredictionIndicator: INFO
     ch.kekelidze.krakentrader.indicator.VolumeIndicator: INFO
-    ch.kekelidze.krakentrader.indicator.RsiIndicator: DEBUG
+    ch.kekelidze.krakentrader.indicator.RsiIndicator: info
     ch.kekelidze.krakentrader.indicator.RiskManagementIndicator: INFO
+
+    ch.kekelidze.krakentrader.indicator.analyser.SupportResistanceAnalyser: debug
+    ch.kekelidze.krakentrader.indicator.analyser.VolatilityAnalyzer: info
 
     ch.kekelidze.krakentrader.strategy.WeightedAgreementStrategy: DEBUG
     ch.kekelidze.krakentrader.strategy.PricePredictionStrategy: INFO
     ch.kekelidze.krakentrader.strategy.MovingAverageScalper: DEBUG
-    ch.kekelidze.krakentrader.strategy.MultiIndexMomentumStrategy: debug
+    ch.kekelidze.krakentrader.strategy.MultiIndexMomentumStrategy: info
     ch.kekelidze.krakentrader.strategy.MultiTimeFrameLowHighStrategy: debug
+    ch.kekelidze.krakentrader.strategy.ConsolidationStrategy: debug
 
     ch.kekelidze.krakentrader.api.rest.service.KrakenAveragePriceService: debug
 
