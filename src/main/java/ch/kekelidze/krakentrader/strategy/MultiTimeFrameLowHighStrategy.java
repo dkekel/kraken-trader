@@ -8,6 +8,7 @@ import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -38,6 +39,7 @@ import org.springframework.stereotype.Component;
  * <p>
  * Implements: - The {@link Strategy} interface to provide custom buy and sell decision logic.
  */
+@Slf4j
 @Component("multiTimeFrameLowHigh")
 @RequiredArgsConstructor
 public class MultiTimeFrameLowHighStrategy implements Strategy {
@@ -58,8 +60,10 @@ public class MultiTimeFrameLowHighStrategy implements Strategy {
             .isEqual(closingTimestamp)).toList();
     var maSignal = movingAverageIndicator.calculateMovingAverage(shortCandles, params);
     var endIndex = maSignal.endIndex();
-    return rsiSignal && maSignal.maShort().getValue(endIndex)
+    var maBuySignal = maSignal.maShort().getValue(endIndex)
         .isLessThan(data.getLast().getClosePrice());
+    log.debug("RSI buy signal: {}, MA buy signal: {}", rsiSignal, maBuySignal);
+    return rsiSignal && maBuySignal;
   }
 
   @Override
@@ -69,9 +73,12 @@ public class MultiTimeFrameLowHighStrategy implements Strategy {
     var rsiSignal = rsiIndicator.isSellSignal(data, entryPrice, params);
     var maSignal = movingAverageIndicator.calculateMovingAverage(data, params);
     var endIndex = maSignal.endIndex();
-    return rsiSignal && maSignal.maShort().getValue(endIndex)
-        .isGreaterThan(data.getLast().getClosePrice())
-        || riskManagementIndicator.isSellSignal(data, entryPrice, params);
+    var riskManagementSignal = riskManagementIndicator.isSellSignal(data, entryPrice, params);
+    var maSellSignal = maSignal.maShort().getValue(endIndex)
+        .isGreaterThan(data.getLast().getClosePrice());
+    log.debug("RSI sell signal: {}, MA sell signal: {}, Risk sell signal: {}", rsiSignal,
+        maSellSignal, riskManagementSignal);
+    return rsiSignal && maSellSignal || riskManagementSignal;
   }
 
   @Override
