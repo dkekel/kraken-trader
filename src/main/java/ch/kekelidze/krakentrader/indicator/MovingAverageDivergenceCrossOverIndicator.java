@@ -14,7 +14,7 @@ import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 @SuppressWarnings("DuplicatedCode")
 @Slf4j
 @Component
-public class MovingAverageDivergenceIndicator implements Indicator {
+public class MovingAverageDivergenceCrossOverIndicator implements Indicator {
 
   @Override
   public boolean isBuySignal(List<Bar> data, StrategyParameters params) {

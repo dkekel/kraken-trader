@@ -1,7 +1,7 @@
 package ch.kekelidze.krakentrader.strategy;
 
 import ch.kekelidze.krakentrader.indicator.MFIIndicator;
-import ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceIndicator;
+import ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceCrossOverIndicator;
 import ch.kekelidze.krakentrader.indicator.RiskManagementIndicator;
 import ch.kekelidze.krakentrader.indicator.RsiIndicator;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
@@ -43,7 +43,7 @@ public class MultiIndexMomentumStrategy implements Strategy {
 
   private static final int PERIOD = 15;
 
-  private final MovingAverageDivergenceIndicator movingAverageDivergenceIndicator;
+  private final MovingAverageDivergenceCrossOverIndicator movingAverageDivergenceCrossOverIndicator;
   private final MFIIndicator mfiIndicator;
   private final RsiIndicator rsiIndicator;
   private final RiskManagementIndicator riskManagementIndicator;
@@ -51,7 +51,7 @@ public class MultiIndexMomentumStrategy implements Strategy {
   @Override
   public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
     var data = context.getBars();
-    return Stream.of(movingAverageDivergenceIndicator, mfiIndicator, rsiIndicator).peek(
+    return Stream.of(movingAverageDivergenceCrossOverIndicator, mfiIndicator, rsiIndicator).peek(
             indicator -> log.debug("Indicator: {}, Buy signal: {}",
                 indicator.getClass().getSimpleName(), indicator.isBuySignal(data, params)))
         .allMatch(indicator -> indicator.isBuySignal(data, params));
@@ -63,9 +63,9 @@ public class MultiIndexMomentumStrategy implements Strategy {
     var data = context.getBars();
     var riskManagementSignal = riskManagementIndicator.isSellSignal(data, entryPrice, params);
     log.debug("Risk management signal: {}", riskManagementSignal);
-    return Stream.of(movingAverageDivergenceIndicator, mfiIndicator, rsiIndicator)
-        .peek(indicator -> log.debug("Indicator: {}, Sell signal: {}",
-            indicator.getClass().getSimpleName(), indicator.isSellSignal(data, entryPrice, params)))
+    return Stream.of(movingAverageDivergenceCrossOverIndicator, mfiIndicator, rsiIndicator).peek(
+            indicator -> log.debug("Indicator: {}, Sell signal: {}",
+                indicator.getClass().getSimpleName(), indicator.isSellSignal(data, entryPrice, params)))
         .allMatch(indicator -> indicator.isSellSignal(data, entryPrice, params))
         || riskManagementSignal;
   }

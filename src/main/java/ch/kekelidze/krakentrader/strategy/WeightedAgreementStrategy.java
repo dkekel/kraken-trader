@@ -1,6 +1,6 @@
 package ch.kekelidze.krakentrader.strategy;
 
-import ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceIndicator;
+import ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceCrossOverIndicator;
 import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
 import ch.kekelidze.krakentrader.indicator.PricePredictionIndicator;
 import ch.kekelidze.krakentrader.indicator.VolumeIndicator;
@@ -17,7 +17,7 @@ public class WeightedAgreementStrategy implements Strategy {
 
   private final PricePredictionIndicator pricePredictionIndicator;
   private final MovingAverageIndicator movingAverageIndicator;
-  private final MovingAverageDivergenceIndicator movingAverageDivergenceIndicator;
+  private final MovingAverageDivergenceCrossOverIndicator movingAverageDivergenceCrossOverIndicator;
   private final VolumeIndicator volumeIndicator;
 
   /**
@@ -36,7 +36,7 @@ public class WeightedAgreementStrategy implements Strategy {
     var data = context.getBars();
     var mlScore = pricePredictionIndicator.isBuySignal(data, params) ? 1 : 0;
     var maScore = movingAverageIndicator.isBuySignal(data, params) ? 1 : 0;
-    var divergenceScore = movingAverageDivergenceIndicator.isBuySignal(data, params) ? 1 : 0;
+    var divergenceScore = movingAverageDivergenceCrossOverIndicator.isBuySignal(data, params) ? 1 : 0;
     var volumeScore = volumeIndicator.isBuySignal(data, params) ? 1 : 0;
     double score = calculateTotalScore(mlScore, maScore, divergenceScore, volumeScore);
     log.debug("Buy score: {}, Agreement threshold: {}", score, params.weightedAgreementThreshold());
@@ -61,7 +61,7 @@ public class WeightedAgreementStrategy implements Strategy {
     var mlScore = pricePredictionIndicator.isSellSignal(data, entryPrice, params) ? 1 : 0;
     var maScore = movingAverageIndicator.isSellSignal(data, entryPrice, params) ? 1 : 0;
     var divergenceScore =
-        movingAverageDivergenceIndicator.isSellSignal(data, entryPrice, params) ? 1 : 0;
+        movingAverageDivergenceCrossOverIndicator.isSellSignal(data, entryPrice, params) ? 1 : 0;
     var volumeScore = volumeIndicator.isSellSignal(data, entryPrice, params) ? 1 : 0;
     double score = calculateTotalScore(mlScore, maScore, divergenceScore, volumeScore);
     log.debug("Sell score: {}, Agreement threshold: {}", score,
