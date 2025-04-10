@@ -48,6 +48,10 @@ public class MovingAverageScalper implements Strategy {
   private final RsiIndicator rsiIndicator;
 
   /**
+   * Trade result 2017-2025: BacktestResult[totalProfit=-46.1555098101701,
+   * sharpeRatio=-0.5829977876832445, maxDrawdown=69.7756673306187, winRate=0.18597857838364168,
+   * capital=4603.746903770854]
+   * <p>
    * This method evaluates multiple conditions: - If the data indicates a buy signal based on
    * specified moving average periods. - If the 50-period moving average is below the 100-period
    * moving average. - If the 100-period moving average is below the 200-period moving average.

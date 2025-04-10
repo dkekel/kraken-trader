@@ -12,6 +12,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
+ * Trade result 2017-2025: BacktestResult[totalProfit=-414.57575941950097,
+ * sharpeRatio=-0.5724765742956222, maxDrawdown=99.8382899728495, winRate=0.2875615763546798,
+ * capital=43.46795260161401]
+ * <p>
  * <b>15 minute candles</b>
  * <p>
  * <p>
@@ -20,11 +24,11 @@ import org.springframework.stereotype.Component;
  * technical indicators. This strategy uses Moving Average Convergence Divergence (MACD), Money Flow
  * Index (MFI), and Relative Strength Index (RSI) indicators to evaluate market conditions.
  * <p>
- * The strategy employs the following indicators: - MovingAverageDivergenceIndicator: Calculates
- * MACD and its signal line to assess market momentum. - MFIIndicator: Evaluates the Money Flow
- * Index to determine overbought or oversold conditions. - RsiIndicator: Computes the Relative
- * Strength Index to measure the speed and change of price movements. - RiskManagementIndicator:
- * Used to make sell decisions based on risk and profit thresholds.
+ * The strategy employs the following indicators: - MovingAverageDivergenceCrossOverIndicator:
+ * Calculates MACD and its signal line to assess market momentum. - MFIIndicator: Evaluates the
+ * Money Flow Index to determine overbought or oversold conditions. - RsiIndicator: Computes the
+ * Relative Strength Index to measure the speed and change of price movements. -
+ * RiskManagementIndicator: Used to make sell decisions based on risk and profit thresholds.
  * <p>
  * The strategy makes a buy decision when all individual indicators signal a buy condition.
  * Similarly, it makes a sell decision if all indicators signal a sell condition, or if the
