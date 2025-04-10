@@ -66,7 +66,7 @@ public class BackTesterService {
         inPosition = true;
         // For simplicity, assume we use 100% of capital
         positionSize = currentCapital / entryPrice;
-        log.debug("BUY at: {}", entryPrice);
+        log.debug("BUY at: {} on {}", entryPrice, data.get(i).getEndTime());
       } else if (inPosition && strategy.shouldSell(evaluationContext, entryPrice, params)) {
         trades++;
         double profit = (currentPrice - entryPrice) / entryPrice * 100;
@@ -82,7 +82,8 @@ public class BackTesterService {
         inPosition = false;
         totalProfit += profit;
 
-        log.debug("SELL at: {} | Profit: {}%", currentPrice, profit);
+        log.debug("SELL at: {} on {} | Profit: {}%", currentPrice, data.get(i).getEndTime(),
+            profit);
       }
 
       // Update equity curve for each bar (whether in position or not)
