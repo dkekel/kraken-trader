@@ -22,9 +22,10 @@ public record StrategyParameters(int movingAverageShortPeriod, int movingAverage
                                  double lossPercent, double profitPercent,
                                  double weightedAgreementThreshold,
                                  int adxPeriod, int adxBullishThreshold, int adxBearishThreshold,
-                                 int volumePeriod,
+                                 int volumePeriod, int volatilityPeriod, int lookbackPeriod,
                                  int mfiOverboughtThreshold, int mfiOversoldThreshold,
                                  int mfiPeriod,
+                                 int supportResistancePeriod, double supportResistanceThreshold,
                                  int minimumCandles) {
 
 }
