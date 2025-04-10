@@ -51,8 +51,11 @@ public class MultiTimeFrameLowHighStrategy implements Strategy {
   public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
     var symbol = context.getSymbol();
     var data = context.getBars();
+    var closingTimestamp = data.getLast().getEndTime();
     var rsiSignal = rsiIndicator.isBuySignal(data, params);
-    var shortCandles = historicalDataService.queryHistoricalData(List.of(symbol), 15).get(symbol);
+    var shortCandles = historicalDataService.queryHistoricalData(List.of(symbol), 15).get(symbol)
+        .stream().filter(bar -> bar.getEndTime().isBefore(closingTimestamp) || bar.getEndTime()
+            .isEqual(closingTimestamp)).toList();
     var maSignal = movingAverageIndicator.calculateMovingAverage(shortCandles, params);
     var endIndex = maSignal.endIndex();
     return rsiSignal && maSignal.maShort().getValue(endIndex)
