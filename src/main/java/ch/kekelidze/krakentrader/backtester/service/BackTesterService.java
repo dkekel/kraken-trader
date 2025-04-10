@@ -17,7 +17,7 @@ public class BackTesterService {
 
   private final Strategy strategy;
 
-  public BackTesterService(@Qualifier("movingAverageScalper") Strategy strategy) {
+  public BackTesterService(@Qualifier("multiTimeFrameLowHigh") Strategy strategy) {
     this.strategy = strategy;
   }
 

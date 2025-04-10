@@ -1,8 +1,11 @@
 package ch.kekelidze.krakentrader.optimize.service;
 
+import ch.kekelidze.krakentrader.api.HistoricalDataService;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import java.io.BufferedReader;
@@ -17,7 +20,7 @@ import org.ta4j.core.num.DecimalNum;
 
 @Slf4j
 @Service
-public class CsvFileService {
+public class CsvFileService implements HistoricalDataService {
 
   /**
    * Kraken’s OHLC Format: Each candle is an array [time, open, high, low, close, volume, count].
@@ -59,5 +62,18 @@ public class CsvFileService {
       throw new RuntimeException("Failed to read CSV file: " + filePath, e);
     }
     return bars;
+  }
+
+  @Override
+  public Map<String, List<Bar>> queryHistoricalData(List<String> coin, int period) {
+    var result = new HashMap<String, List<Bar>>();
+    for (String symbol : coin) {
+      var filePath = String.format("data/%s_%d.csv", symbol, period);
+      var bars = readCsvFile(filePath);
+      if (!bars.isEmpty()) {
+        result.put(symbol, bars);
+      }
+    }
+    return result;
   }
 }

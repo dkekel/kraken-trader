@@ -1,5 +1,6 @@
 package ch.kekelidze.krakentrader.api.rest.service;
 
+import ch.kekelidze.krakentrader.api.HistoricalDataService;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import java.io.IOException;
 import java.net.URI;
@@ -29,7 +30,7 @@ import org.ta4j.core.Bar;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class KrakenApiService {
+public class KrakenApiService implements HistoricalDataService {
 
   @Value("${kraken.api.key}")
   private String apiKey;
@@ -137,6 +138,7 @@ public class KrakenApiService {
    * @param period period duration, e.g. 60 for 1-hour candles
    * @return list of closing prices per period
    */
+  @Override
   public Map<String, List<Bar>> queryHistoricalData(List<String> coin, int period) {
     var historicalData = new HashMap<String, List<Bar>>();
     try (HttpClient client = HttpClient.newHttpClient()) {

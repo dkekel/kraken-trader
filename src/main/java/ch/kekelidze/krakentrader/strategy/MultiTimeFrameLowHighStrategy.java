@@ -1,6 +1,6 @@
 package ch.kekelidze.krakentrader.strategy;
 
-import ch.kekelidze.krakentrader.api.rest.service.KrakenApiService;
+import ch.kekelidze.krakentrader.api.HistoricalDataService;
 import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
 import ch.kekelidze.krakentrader.indicator.RiskManagementIndicator;
 import ch.kekelidze.krakentrader.indicator.RsiIndicator;
@@ -45,14 +45,14 @@ public class MultiTimeFrameLowHighStrategy implements Strategy {
   private final MovingAverageIndicator movingAverageIndicator;
   private final RsiIndicator rsiIndicator;
   private final RiskManagementIndicator riskManagementIndicator;
-  private final KrakenApiService krakenApiService;
+  private final HistoricalDataService historicalDataService;
 
   @Override
   public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
     var symbol = context.getSymbol();
     var data = context.getBars();
     var rsiSignal = rsiIndicator.isBuySignal(data, params);
-    var shortCandles = krakenApiService.queryHistoricalData(List.of(symbol), 15).get(symbol);
+    var shortCandles = historicalDataService.queryHistoricalData(List.of(symbol), 15).get(symbol);
     var maSignal = movingAverageIndicator.calculateMovingAverage(shortCandles, params);
     var endIndex = maSignal.endIndex();
     return rsiSignal && maSignal.maShort().getValue(endIndex)
