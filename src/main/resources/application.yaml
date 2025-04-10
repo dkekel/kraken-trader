@@ -24,7 +24,7 @@ logging:
 
     ch.kekelidze.krakentrader.api.rest.service.KrakenAveragePriceService: debug
 
-    ch.kekelidze.krakentrader.backtester.service.BackTesterService: INFO
+    ch.kekelidze.krakentrader.backtester.service.BackTesterService: debug
     ch.kekelidze.krakentrader.api.websocket.KrakenWebSocketClient: debug
 
   file:
