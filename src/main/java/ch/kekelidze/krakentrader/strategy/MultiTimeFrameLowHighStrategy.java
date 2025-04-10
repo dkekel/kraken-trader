@@ -6,6 +6,7 @@ import ch.kekelidze.krakentrader.indicator.RiskManagementIndicator;
 import ch.kekelidze.krakentrader.indicator.RsiIndicator;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
+import java.time.ZonedDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,10 @@ import org.springframework.stereotype.Component;
  * based on risk management rules.
  * <p>
  * Implements: - The {@link Strategy} interface to provide custom buy and sell decision logic.
+ * <p>
+ * Trade result 2024-2025: BacktestResult[totalProfit=16.204985678128413,
+ * sharpeRatio=-0.08510771986872004, maxDrawdown=10.560888552893571, winRate=0.25,
+ * capital=11631.808934383058]
  */
 @Slf4j
 @Component("multiTimeFrameLowHigh")
@@ -51,14 +56,9 @@ public class MultiTimeFrameLowHighStrategy implements Strategy {
 
   @Override
   public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
-    var symbol = context.getSymbol();
     var data = context.getBars();
-    var closingTimestamp = data.getLast().getEndTime();
     var rsiSignal = rsiIndicator.isBuySignal(data, params);
-    var shortCandles = historicalDataService.queryHistoricalData(List.of(symbol), 15).get(symbol)
-        .stream().filter(bar -> bar.getEndTime().isBefore(closingTimestamp) || bar.getEndTime()
-            .isEqual(closingTimestamp)).toList();
-    var maSignal = movingAverageIndicator.calculateMovingAverage(shortCandles, params);
+    var maSignal = calculateMovingAverage(context.getSymbol(), data.getLast().getEndTime(), params);
     var endIndex = maSignal.endIndex();
     var maBuySignal = maSignal.maShort().getValue(endIndex)
         .isLessThan(data.getLast().getClosePrice());
@@ -71,7 +71,7 @@ public class MultiTimeFrameLowHighStrategy implements Strategy {
       StrategyParameters params) {
     var data = context.getBars();
     var rsiSignal = rsiIndicator.isSellSignal(data, entryPrice, params);
-    var maSignal = movingAverageIndicator.calculateMovingAverage(data, params);
+    var maSignal = calculateMovingAverage(context.getSymbol(), data.getLast().getEndTime(), params);
     var endIndex = maSignal.endIndex();
     var riskManagementSignal = riskManagementIndicator.isSellSignal(data, entryPrice, params);
     var maSellSignal = maSignal.maShort().getValue(endIndex)
@@ -79,6 +79,17 @@ public class MultiTimeFrameLowHighStrategy implements Strategy {
     log.debug("RSI sell signal: {}, MA sell signal: {}, Risk sell signal: {}", rsiSignal,
         maSellSignal, riskManagementSignal);
     return rsiSignal && maSellSignal || riskManagementSignal;
+  }
+
+  private MovingAverageIndicator.MovingAverage calculateMovingAverage(String symbol,
+      ZonedDateTime closingTimestamp, StrategyParameters params) {
+    var shortPeriodData = historicalDataService.queryHistoricalData(List.of(symbol), 15).get(symbol)
+        .stream().filter(bar -> bar.getEndTime().isBefore(closingTimestamp) || bar.getEndTime()
+            .isEqual(closingTimestamp)).toList();
+    var shortCandles = shortPeriodData.subList(
+        Math.max(0, shortPeriodData.size() - params.movingAverageShortPeriod() * 3),
+        shortPeriodData.size());
+    return movingAverageIndicator.calculateMovingAverage(shortCandles, params);
   }
 
   @Override
