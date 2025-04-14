@@ -112,7 +112,7 @@ public class BackTesterService {
     // Calculate metrics
     return BacktestResult.builder()
         .totalProfit(totalProfit)
-        .sharpeRatio(calculateSharpe(totalProfit, volatility, tradeReturns.size()))
+        .sharpeRatio(calculateSharpe(totalProfit, volatility, tradeReturns.size(), data.size()))
         .winRate(trades > 0 ? wins / (double) trades : 0)
         .maxDrawdown(maxDrawdown)
         .capital(currentCapital)
@@ -136,21 +136,27 @@ public class BackTesterService {
     return Math.sqrt(sumSquaredDiff / returns.size());
   }
 
-
-  private double calculateSharpe(double totalProfit, double volatility, int numTrades) {
+  private double calculateSharpe(double totalProfit, double volatility, int numTrades,
+      int totalPeriods) {
     if (volatility == 0 || numTrades == 0) {
       return 0;
     }
 
-    // Calculate average return per trade
-    double averageReturn = totalProfit / numTrades;
+    // Calculate the number of years in the backtest period
+    double yearsInPeriod = totalPeriods / (252.0 * 24.0); // assuming 1-hour bars
+
+    // Annualize the return
+    double annualizedReturn = Math.pow(1 + totalProfit / 100.0, 1.0 / yearsInPeriod) - 1;
+
+    // Annualize the volatility
+    double annualizedVolatility = volatility * Math.sqrt(252.0 * 24.0 / totalPeriods);
 
     // Risk-free rate (could be parameterized)
-    // Assuming 0% for simplicity, but can be set to a value like 2.0 for 2%
-    double riskFreeRate = 2.0;
+    // Assuming 1.25%
+    double riskFreeRate = 0.0125; // Convert percentage to decimal
 
-    // Calculate Sharpe ratio
-    return (averageReturn - riskFreeRate) / volatility;
+    // Calculate annualized Sharpe ratio
+    return (annualizedReturn - riskFreeRate) / annualizedVolatility;
   }
 
   private double calculateMaxDrawdown(List<Double> equityCurve) {
