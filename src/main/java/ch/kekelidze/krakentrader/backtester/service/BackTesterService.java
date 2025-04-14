@@ -2,32 +2,37 @@ package ch.kekelidze.krakentrader.backtester.service;
 
 import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.optimize.util.StrategySelector;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.ta4j.core.Bar;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class BackTesterService {
 
-  private final Strategy strategy;
-
-  public BackTesterService(@Qualifier("multiTimeFrameLowHigh") Strategy strategy) {
-    this.strategy = strategy;
-  }
+  private final StrategySelector strategySelector;
 
   public BacktestResult runSimulation(EvaluationContext context, double initialCapital) {
-    return runSimulation(context, strategy, strategy.getStrategyParameters(),
-        initialCapital);
+    Strategy strategy = strategySelector.getBestStrategyForCoin(context.getSymbol());
+    return runSimulation(context, strategy, strategy.getStrategyParameters(), initialCapital);
   }
 
   public BacktestResult runSimulation(EvaluationContext context,
       StrategyParameters strategyParameters, double initialCapital) {
+    Strategy strategy = strategySelector.getBestStrategyForCoin(context.getSymbol());
+    return runSimulation(context, strategy, strategyParameters, initialCapital);
+  }
+
+  public BacktestResult runSimulation(EvaluationContext context, String strategyName,
+      StrategyParameters strategyParameters, double initialCapital) {
+    Strategy strategy = strategySelector.getStrategy(strategyName);
     return runSimulation(context, strategy, strategyParameters, initialCapital);
   }
 

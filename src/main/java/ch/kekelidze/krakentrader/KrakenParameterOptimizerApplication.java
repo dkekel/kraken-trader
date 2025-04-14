@@ -1,7 +1,7 @@
 package ch.kekelidze.krakentrader;
 
 import ch.kekelidze.krakentrader.api.rest.service.KrakenApiService;
-import ch.kekelidze.krakentrader.optimize.service.CsvFileService;
+import ch.kekelidze.krakentrader.api.file.service.CsvFileService;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import ch.kekelidze.krakentrader.backtester.service.BackTesterService;
 import ch.kekelidze.krakentrader.indicator.Indicator;

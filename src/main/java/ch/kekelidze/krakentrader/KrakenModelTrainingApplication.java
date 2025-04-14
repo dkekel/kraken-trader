@@ -1,7 +1,7 @@
 package ch.kekelidze.krakentrader;
 
 import ch.kekelidze.krakentrader.optimize.model.LSTMModel;
-import ch.kekelidze.krakentrader.optimize.service.CsvFileService;
+import ch.kekelidze.krakentrader.api.file.service.CsvFileService;
 import ch.kekelidze.krakentrader.optimize.util.TestDataUtils;
 import java.io.File;
 import java.io.IOException;

@@ -1,10 +1,11 @@
 package ch.kekelidze.krakentrader;
 
 import ch.kekelidze.krakentrader.api.HistoricalDataService;
+import ch.kekelidze.krakentrader.api.file.service.CsvFileService;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import ch.kekelidze.krakentrader.backtester.service.BackTesterService;
 import ch.kekelidze.krakentrader.indicator.Indicator;
-import ch.kekelidze.krakentrader.optimize.service.CsvFileService;
+import ch.kekelidze.krakentrader.optimize.config.StrategyConfig;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.List;
@@ -16,7 +17,7 @@ import org.springframework.context.ApplicationContext;
 @Slf4j
 @SpringBootApplication(
     scanBasePackageClasses = {CsvFileService.class, ResponseConverterUtils.class,
-        BackTesterService.class, Indicator.class, Strategy.class}
+        BackTesterService.class, StrategyConfig.class, Indicator.class, Strategy.class}
 )
 public class KrakenValidateStrategyApplication {
 

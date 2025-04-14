@@ -1,4 +1,4 @@
-package ch.kekelidze.krakentrader.optimize.service;
+package ch.kekelidze.krakentrader.api.file.service;
 
 import ch.kekelidze.krakentrader.api.HistoricalDataService;
 import java.time.Duration;
