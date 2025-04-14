@@ -21,7 +21,7 @@ import org.springframework.context.ApplicationContext;
 )
 public class KrakenValidateStrategyApplication {
 
-  private static final double INITIAL_CAPITAL = 10000;
+  private static final double INITIAL_CAPITAL = 100;
 
   public static void main(String[] args) {
     String coin = args[0];
