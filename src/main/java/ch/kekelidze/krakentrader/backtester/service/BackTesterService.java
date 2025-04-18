@@ -1,6 +1,7 @@
 package ch.kekelidze.krakentrader.backtester.service;
 
 import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
+import ch.kekelidze.krakentrader.indicator.analyser.AtrAnalyser;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.optimize.util.StrategySelector;
 import ch.kekelidze.krakentrader.strategy.Strategy;
@@ -18,6 +19,7 @@ import org.ta4j.core.Bar;
 public class BackTesterService {
 
   private final StrategySelector strategySelector;
+  public final AtrAnalyser atrAnalyser;
 
   public BacktestResult runSimulation(EvaluationContext context, double initialCapital) {
     Strategy strategy = strategySelector.getBestStrategyForCoin(context.getSymbol());
@@ -55,6 +57,7 @@ public class BackTesterService {
     List<Double> tradeReturns = new ArrayList<>();
 
     var data = context.getBars();
+    String tradeId = "";
     for (int i = params.minimumCandles(); i < data.size(); i++) {
       // Calculate indicators
       List<Bar> sublist = data.subList(i - params.minimumCandles(), i);
@@ -69,9 +72,11 @@ public class BackTesterService {
         trades++;
         entryPrice = currentPrice;
         inPosition = true;
+        positionSize = calculateAdaptivePositionSize(sublist, entryPrice, currentCapital, params);
         // For simplicity, assume we use 100% of capital
-        positionSize = currentCapital / entryPrice;
-        log.debug("BUY at: {} on {}", entryPrice, data.get(i).getEndTime());
+//        positionSize = currentCapital / entryPrice;
+        currentCapital -= positionSize * entryPrice;
+        log.debug("BUY {} at: {} on {}", positionSize, entryPrice, data.get(i).getEndTime());
       } else if (inPosition && strategy.shouldSell(evaluationContext, entryPrice, params)) {
         trades++;
         double profit = (currentPrice - entryPrice) / entryPrice * 100;
@@ -83,7 +88,7 @@ public class BackTesterService {
         tradeReturns.add(profit);
 
         // Update capital
-        currentCapital = positionSize * currentPrice;
+        currentCapital += positionSize * currentPrice;
         inPosition = false;
         totalProfit += profit;
 
@@ -117,6 +122,41 @@ public class BackTesterService {
         .maxDrawdown(maxDrawdown)
         .capital(currentCapital)
         .build();
+  }
+
+  /**
+   * Calculates position size as a percentage of capital based on market volatility
+   *
+   * @param data             Recent price bars
+   * @param availableCapital Available capital for position
+   * @param params           Strategy parameters
+   * @return Recommended position size as percentage of capital
+   */
+  public double calculateAdaptivePositionSize(List<Bar> data, double entryPrice,
+      double availableCapital, StrategyParameters params) {
+    // Calculate ATR as percentage of price
+    double atr = atrAnalyser.calculateATR(data, params.atrPeriod());
+    double currentPrice = data.getLast().getClosePrice().doubleValue();
+    double atrPercent = (atr / currentPrice) * 100;
+    var lowerBound = 2.0;
+    var upperBound = 12.0;
+
+    // Base position size (percentage of capital)
+    double basePositionSize = 0.5; // Default 60% of capital
+
+    double capitalPercentage;
+    // Adjust position size based on volatility
+    if (atrPercent < lowerBound) {
+      // Low volatility - can take larger position
+      capitalPercentage = Math.min(basePositionSize * 1.5, 1.0);
+    } else if (atrPercent > upperBound) {
+      // High volatility - reduce position size
+      capitalPercentage = basePositionSize * 0.5;
+    } else {
+      // Normal volatility - use base size
+      capitalPercentage = basePositionSize;
+    }
+    return availableCapital * capitalPercentage / entryPrice;
   }
 
   private double calculateStandardDeviation(List<Double> returns) {
