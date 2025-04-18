@@ -29,7 +29,8 @@ public interface Strategy {
 
   default StrategyParameters getStrategyParameters() {
     return StrategyParameters.builder()
-        .movingAverageShortPeriod(9).movingAverageLongPeriod(21)
+        .movingAverageBuyShortPeriod(9).movingAverageBuyLongPeriod(21)
+        .movingAverageSellShortPeriod(9).movingAverageSellLongPeriod(26)
         .rsiBuyThreshold(30).rsiSellThreshold(70).rsiPeriod(14)
         .macdFastPeriod(12).macdSlowPeriod(26).macdSignalPeriod(9)
         .adxPeriod(14).adxBullishThreshold(25).adxBearishThreshold(30)

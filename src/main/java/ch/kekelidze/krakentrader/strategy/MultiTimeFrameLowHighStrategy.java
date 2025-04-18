@@ -87,15 +87,16 @@ public class MultiTimeFrameLowHighStrategy implements Strategy {
         .stream().filter(bar -> bar.getEndTime().isBefore(closingTimestamp) || bar.getEndTime()
             .isEqual(closingTimestamp)).toList();
     var shortCandles = shortPeriodData.subList(
-        Math.max(0, shortPeriodData.size() - params.movingAverageShortPeriod() * 3),
+        Math.max(0, shortPeriodData.size() - params.movingAverageBuyShortPeriod() * 3),
         shortPeriodData.size());
-    return movingAverageIndicator.calculateMovingAverage(shortCandles, params);
+    return movingAverageIndicator.calculateMovingAverage(shortCandles,
+        params.movingAverageBuyShortPeriod(), params.movingAverageBuyLongPeriod());
   }
 
   @Override
   public StrategyParameters getStrategyParameters() {
     return StrategyParameters.builder()
-        .movingAverageShortPeriod(50).movingAverageLongPeriod(50)
+        .movingAverageBuyShortPeriod(50).movingAverageBuyLongPeriod(50)
         .rsiBuyThreshold(35).rsiSellThreshold(70).rsiPeriod(14)
         .lossPercent(3).profitPercent(4)
         .minimumCandles(50)

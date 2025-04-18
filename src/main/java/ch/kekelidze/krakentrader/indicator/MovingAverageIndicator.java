@@ -16,20 +16,19 @@ public class MovingAverageIndicator implements Indicator {
 
   @Override
   public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
-    var movingAverage = calculateMovingAverage(data, params);
+    var movingAverage = calculateMovingAverage(data, params.movingAverageBuyShortPeriod(),
+        params.movingAverageBuyLongPeriod());
     var maShort = movingAverage.maShort();
     var maLong = movingAverage.maLong();
     var endIndex = movingAverage.endIndex();
 
     return endIndex > 0 &&
         maShort.getValue(endIndex).isGreaterThan(maLong.getValue(endIndex)) &&
-        maShort.getValue(endIndex-1).isLessThanOrEqual(maLong.getValue(endIndex-1));
+        maShort.getValue(endIndex - 1).isLessThanOrEqual(maLong.getValue(endIndex - 1));
   }
 
   public boolean isMa50Below100(List<Bar> data) {
-    var ma50ma100Params = StrategyParameters.builder().movingAverageShortPeriod(50)
-        .movingAverageLongPeriod(100).build();
-    var movingAverage = calculateMovingAverage(data, ma50ma100Params);
+    var movingAverage = calculateMovingAverage(data, 50, 100);
     var ma50 = movingAverage.maShort();
     var ma100 = movingAverage.maLong();
     var endIndex = movingAverage.endIndex();
@@ -37,9 +36,7 @@ public class MovingAverageIndicator implements Indicator {
   }
 
   public boolean isMa100Below200(List<Bar> data) {
-    var ma100ma200Params = StrategyParameters.builder().movingAverageShortPeriod(100)
-        .movingAverageLongPeriod(200).build();
-    var movingAverage = calculateMovingAverage(data, ma100ma200Params);
+    var movingAverage = calculateMovingAverage(data, 100, 200);
     var ma100 = movingAverage.maShort();
     var ma200 = movingAverage.maLong();
     var endIndex = movingAverage.endIndex();
@@ -48,21 +45,20 @@ public class MovingAverageIndicator implements Indicator {
 
   @Override
   public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
-    var movingAverage = calculateMovingAverage(data, params);
+    var movingAverage = calculateMovingAverage(data, params.movingAverageSellShortPeriod(),
+        params.movingAverageSellLongPeriod());
     var maShort = movingAverage.maShort();
     var maLong = movingAverage.maLong();
     var endIndex = movingAverage.endIndex();
 
     return endIndex > 0 &&
         maLong.getValue(endIndex).isGreaterThan(maShort.getValue(endIndex)) &&
-        maLong.getValue(endIndex-1).isLessThanOrEqual(maShort.getValue(endIndex-1));
+        maLong.getValue(endIndex - 1).isLessThanOrEqual(maShort.getValue(endIndex - 1));
 
   }
 
   public boolean isMa50GreaterThan100(List<Bar> data) {
-    var ma50ma100Params = StrategyParameters.builder().movingAverageShortPeriod(50)
-        .movingAverageLongPeriod(100).build();
-    var movingAverage = calculateMovingAverage(data, ma50ma100Params);
+    var movingAverage = calculateMovingAverage(data, 50, 100);
     var ma50 = movingAverage.maShort();
     var ma100 = movingAverage.maLong();
     var endIndex = movingAverage.endIndex();
@@ -70,23 +66,21 @@ public class MovingAverageIndicator implements Indicator {
   }
 
   public boolean isMa100GreaterThan200(List<Bar> data) {
-    var ma100ma200Params = StrategyParameters.builder().movingAverageShortPeriod(100)
-        .movingAverageLongPeriod(200).build();
-    var movingAverage = calculateMovingAverage(data, ma100ma200Params);
+    var movingAverage = calculateMovingAverage(data, 100, 200);
     var ma100 = movingAverage.maShort();
     var ma200 = movingAverage.maLong();
     var endIndex = movingAverage.endIndex();
     return ma100.getValue(endIndex).isGreaterThan(ma200.getValue(endIndex));
   }
 
-  public MovingAverage calculateMovingAverage(List<Bar> data, StrategyParameters params) {
+  public MovingAverage calculateMovingAverage(List<Bar> data, int shortPeriod, int longPeriod) {
     if (data.isEmpty()) {
       throw new IllegalArgumentException("No data available for the given coin and period.");
     }
     BarSeries series = new BaseBarSeriesBuilder().withBars(data).build();
     ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
-    EMAIndicator maShort = new EMAIndicator(closePrice, params.movingAverageShortPeriod());
-    EMAIndicator maLong = new EMAIndicator(closePrice, params.movingAverageLongPeriod());
+    EMAIndicator maShort = new EMAIndicator(closePrice, shortPeriod);
+    EMAIndicator maLong = new EMAIndicator(closePrice, longPeriod);
     int endIndex = series.getEndIndex();
     log.debug("MA short: {}, MA long: {}, Closing Time: {}", maShort.getValue(endIndex),
         maLong.getValue(endIndex), data.get(endIndex).getEndTime());
@@ -94,5 +88,6 @@ public class MovingAverageIndicator implements Indicator {
   }
 
   public record MovingAverage(EMAIndicator maShort, EMAIndicator maLong, int endIndex) {
+
   }
 }

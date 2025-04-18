@@ -214,8 +214,8 @@ public class MultiStrategyOptimizer implements Optimizer {
 
   private StrategyParameters getStrategyParameters(Genotype<DoubleGene> genotype) {
     return StrategyParameters.builder()
-        .movingAverageShortPeriod(genotype.get(0).get(0).intValue())
-        .movingAverageLongPeriod(genotype.get(1).get(0).intValue())
+        .movingAverageBuyShortPeriod(genotype.get(0).get(0).intValue())
+        .movingAverageBuyLongPeriod(genotype.get(1).get(0).intValue())
         .rsiPeriod(genotype.get(2).get(0).intValue())
         .rsiBuyThreshold(genotype.get(3).get(0).doubleValue())
         .rsiSellThreshold(genotype.get(4).get(0).doubleValue())

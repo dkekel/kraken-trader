@@ -15,17 +15,21 @@ import lombok.Builder;
  * RSI sell threshold value indicating oversold conditions. (e.g., 65-75)
  */
 @Builder
-public record StrategyParameters(int movingAverageShortPeriod, int movingAverageLongPeriod,
+public record StrategyParameters(int movingAverageBuyShortPeriod, int movingAverageBuyLongPeriod,
+                                 int movingAverageSellShortPeriod, int movingAverageSellLongPeriod,
                                  int rsiPeriod, double rsiBuyThreshold, double rsiSellThreshold,
                                  int macdFastPeriod, int macdSlowPeriod, int macdSignalPeriod,
-                                 double aboveAverageThreshold,
+                                 int volumePeriod, double aboveAverageThreshold,
                                  double lossPercent, double profitPercent,
                                  double weightedAgreementThreshold,
                                  int adxPeriod, int adxBullishThreshold, int adxBearishThreshold,
-                                 int volumePeriod, int volatilityPeriod, int lookbackPeriod,
+                                 int volatilityPeriod, int lookbackPeriod,
                                  int mfiOverboughtThreshold, int mfiOversoldThreshold,
-                                 int mfiPeriod,
+                                 int mfiPeriod, int atrPeriod, int atrThreshold,
                                  int supportResistancePeriod, double supportResistanceThreshold,
-                                 int minimumCandles) {
+                                 int minimumCandles)
+    implements MovingAverageParameters, RsiParameters, MacdParameters, VolumeParameters,
+    LossProfitParameters, AdxParameters, VolatilityParameters,
+    MfiParameters, AtrParameters, SupportResistanceParameters {
 
 }
