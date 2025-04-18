@@ -117,6 +117,7 @@ public class BackTesterService {
     // Calculate metrics
     return BacktestResult.builder()
         .totalProfit(totalProfit)
+        .totalTrades(trades)
         .sharpeRatio(calculateSharpe(totalProfit, volatility, tradeReturns.size(), data.size()))
         .winRate(trades > 0 ? wins / (double) trades : 0)
         .maxDrawdown(maxDrawdown)
