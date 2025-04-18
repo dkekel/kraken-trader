@@ -3,13 +3,12 @@ package ch.kekelidze.krakentrader.strategy;
 import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
 import ch.kekelidze.krakentrader.indicator.RiskManagementIndicator;
 import ch.kekelidze.krakentrader.indicator.RsiIndicator;
+import ch.kekelidze.krakentrader.indicator.analyser.VolatilityAnalyser;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.ta4j.core.Bar;
 
 /**
  * <b>Uses 1 hour candles</b>
@@ -45,13 +44,10 @@ public class MovingAverageScalper implements Strategy {
 
   private final MovingAverageIndicator movingAverageIndicator;
   private final RiskManagementIndicator riskManagementIndicator;
+  private final VolatilityAnalyser volatilityAnalyser;
   private final RsiIndicator rsiIndicator;
 
   /**
-   * Trade result 2017-2025: BacktestResult[totalProfit=-46.1555098101701,
-   * sharpeRatio=-0.5829977876832445, maxDrawdown=69.7756673306187, winRate=0.18597857838364168,
-   * capital=4603.746903770854]
-   * <p>
    * This method evaluates multiple conditions: - If the data indicates a buy signal based on
    * specified moving average periods. - If the 50-period moving average is below the 100-period
    * moving average. - If the 100-period moving average is below the 200-period moving average.
@@ -92,6 +88,11 @@ public class MovingAverageScalper implements Strategy {
   public boolean shouldSell(EvaluationContext context, double entryPrice,
       StrategyParameters params) {
     var data = context.getBars();
+    var isVolatilityAcceptable = volatilityAnalyser.isVolatilityAcceptable(data, params);
+    if (!isVolatilityAcceptable) {
+      log.debug("Volatility not acceptable");
+      return false;
+    }
     var sellSignalParams = StrategyParameters.builder().movingAverageShortPeriod(9)
         .movingAverageLongPeriod(26).build();
     var maSignal = movingAverageIndicator.isSellSignal(data, entryPrice, sellSignalParams);
@@ -114,7 +115,8 @@ public class MovingAverageScalper implements Strategy {
   public StrategyParameters getStrategyParameters() {
     return StrategyParameters.builder()
         .rsiBuyThreshold(35).rsiSellThreshold(70).rsiPeriod(14)
-        .lossPercent(5).profitPercent(15)
+        .lossPercent(3).profitPercent(15)
+        .atrPeriod(14).atrThreshold(3)
         .minimumCandles(150)
         .build();
   }
