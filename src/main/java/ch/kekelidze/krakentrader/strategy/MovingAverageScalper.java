@@ -60,16 +60,14 @@ public class MovingAverageScalper implements Strategy {
   @Override
   public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
     var data = context.getBars();
-    var buySignalParams = StrategyParameters.builder().movingAverageShortPeriod(9)
-        .movingAverageLongPeriod(50).build();
-    var maSignal = movingAverageIndicator.isBuySignal(data, buySignalParams);
+    var maSignal = movingAverageIndicator.isBuySignal(data, params);
     var ma50below100 = movingAverageIndicator.isMa50Below100(data);
     var ma100below200 = movingAverageIndicator.isMa100Below200(data);
 
     var buySignal = maSignal && ma50below100 && ma100below200;
     if (buySignal) {
-      log.debug("Is buy signal: {}, MA50 below 100: {}, MA100 below 200: {}", maSignal, ma50below100,
-          ma100below200);
+      log.debug("Is buy signal: {}, MA50 below 100: {}, MA100 below 200: {}", maSignal,
+          ma50below100, ma100below200);
     }
     return buySignal;
   }
@@ -93,9 +91,7 @@ public class MovingAverageScalper implements Strategy {
       log.debug("Volatility not acceptable");
       return false;
     }
-    var sellSignalParams = StrategyParameters.builder().movingAverageShortPeriod(9)
-        .movingAverageLongPeriod(26).build();
-    var maSignal = movingAverageIndicator.isSellSignal(data, entryPrice, sellSignalParams);
+    var maSignal = movingAverageIndicator.isSellSignal(data, entryPrice, params);
     var riskSellSignal = riskManagementIndicator.isSellSignal(data, entryPrice, params);
     var rsiSignal = rsiIndicator.isSellSignal(data, entryPrice, params);
     var ma50greaterThan100 = movingAverageIndicator.isMa50GreaterThan100(data);
@@ -114,10 +110,12 @@ public class MovingAverageScalper implements Strategy {
   @Override
   public StrategyParameters getStrategyParameters() {
     return StrategyParameters.builder()
+        .movingAverageBuyShortPeriod(9).movingAverageBuyLongPeriod(50)
+        .movingAverageSellShortPeriod(9).movingAverageSellLongPeriod(26)
         .rsiBuyThreshold(35).rsiSellThreshold(70).rsiPeriod(14)
         .lossPercent(3).profitPercent(15)
         .atrPeriod(14).atrThreshold(3)
-        .minimumCandles(150)
+        .minimumCandles(300)
         .build();
   }
 
