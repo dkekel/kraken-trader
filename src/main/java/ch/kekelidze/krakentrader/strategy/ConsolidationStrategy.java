@@ -3,7 +3,7 @@ package ch.kekelidze.krakentrader.strategy;
 import ch.kekelidze.krakentrader.indicator.RsiIndicator;
 import ch.kekelidze.krakentrader.indicator.SimpleMovingAverageDivergenceIndicator;
 import ch.kekelidze.krakentrader.indicator.analyser.SupportResistanceAnalyser;
-import ch.kekelidze.krakentrader.indicator.analyser.VolatilityAnalyzer;
+import ch.kekelidze.krakentrader.indicator.analyser.VolatilityAnalyser;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +33,7 @@ import org.springframework.stereotype.Component;
 public class ConsolidationStrategy implements Strategy {
 
   private final SupportResistanceAnalyser supportResistanceAnalyser;
-  private final VolatilityAnalyzer volatilityAnalyzer;
+  private final VolatilityAnalyser volatilityAnalyser;
   private final RsiIndicator rsiIndicator;
   private final SimpleMovingAverageDivergenceIndicator simpleMovingAverageDivergenceIndicator;
 
@@ -48,7 +48,7 @@ public class ConsolidationStrategy implements Strategy {
     boolean isNearSupport = supportResistanceAnalyser.isNearLevel(currentPrice, supportLevels,
         atrThreshold);
 
-    boolean isVolatilityLow = volatilityAnalyzer.isVolatilityDecreasing(series,
+    boolean isVolatilityLow = volatilityAnalyser.isVolatilityDecreasing(series,
         params.volatilityPeriod(), params.lookbackPeriod());
 
     var rsiSignal = rsiIndicator.isBuySignal(series, params);
@@ -70,7 +70,7 @@ public class ConsolidationStrategy implements Strategy {
     boolean isNearResistance = supportResistanceAnalyser.isNearLevel(currentPrice, resistanceLevels,
         params.supportResistanceThreshold());
 
-    boolean isVolatilityLow = volatilityAnalyzer.isVolatilityDecreasing(series,
+    boolean isVolatilityLow = volatilityAnalyser.isVolatilityDecreasing(series,
         params.volatilityPeriod(), params.lookbackPeriod());
 
     var rsiSignal = rsiIndicator.isSellSignal(series, entryPrice, params);
