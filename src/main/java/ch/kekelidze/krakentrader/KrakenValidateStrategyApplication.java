@@ -4,12 +4,18 @@ import ch.kekelidze.krakentrader.api.HistoricalDataService;
 import ch.kekelidze.krakentrader.api.file.service.CsvFileService;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import ch.kekelidze.krakentrader.backtester.service.BackTesterService;
+import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
 import ch.kekelidze.krakentrader.indicator.Indicator;
 import ch.kekelidze.krakentrader.optimize.config.StrategyConfig;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.List;
+import java.util.Map;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import lombok.extern.slf4j.Slf4j;
+import java.io.FileWriter;
+import java.io.IOException;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
@@ -24,20 +30,56 @@ public class KrakenValidateStrategyApplication {
   private static final double INITIAL_CAPITAL = 100;
 
   public static void main(String[] args) {
-    String coin = args[0];
+    List<String> coins = List.of(args[0].split(","));
     int period = Integer.parseInt(args[1]);
     var application = SpringApplication.run(KrakenValidateStrategyApplication.class, args);
-    validateWithHistoricalData(application, coin, period);
+    validateWithHistoricalData(application, coins, period);
+    int exitCode = SpringApplication.exit(application, () -> 0);
+    System.exit(exitCode);
   }
 
-  private static void validateWithHistoricalData(ApplicationContext application, String coin,
+  private static void validateWithHistoricalData(ApplicationContext application, List<String> coins,
       int period) {
     var historicalDataService = application.getBean(HistoricalDataService.class);
     var backtestService = application.getBean(BackTesterService.class);
-    var historicalData = historicalDataService.queryHistoricalData(List.of(coin), period);
-    var evaluationContext = EvaluationContext.builder().symbol(coin).bars(historicalData.get(coin))
-        .build();
-    var result = backtestService.runSimulation(evaluationContext, INITIAL_CAPITAL);
-    log.info("Trade result: {}", result);
+    var historicalData = historicalDataService.queryHistoricalData(coins, period);
+    var results = new java.util.HashMap<String, BacktestResult>();
+
+    for (String coin : coins) {
+      var evaluationContext = EvaluationContext.builder()
+          .symbol(coin)
+          .bars(historicalData.get(coin))
+          .build();
+      var result = backtestService.runSimulation(evaluationContext, INITIAL_CAPITAL);
+      results.put(coin, result);
+      log.info("Trade result for {}: {}", coin, result);
+    }
+
+    var timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+    var filename = String.format("results/strategy_results_%s.md", timestamp);
+    writeResultsToMarkdownFile(filename, results);
+  }
+
+  private static void writeResultsToMarkdownFile(String filePath,
+      Map<String, BacktestResult> results) {
+    try (var writer = new FileWriter(filePath)) {
+      writer.write("# Strategy Results\n\n");
+      for (var entry : results.entrySet()) {
+        writer.write(String.format("## %s\n", entry.getKey()));
+
+        BacktestResult result = entry.getValue();
+        writer.write(String.format("- Profit: %.2f%%\n", result.totalProfit()));
+        writer.write(String.format("- Total Trades: %d\n", result.totalTrades()));
+        writer.write(String.format("- Net Profit: %.2f\n", result.capital() - INITIAL_CAPITAL));
+        writer.write(String.format("- Win Rate: %.2f%%\n", result.winRate() * 100));
+        writer.write(
+            String.format("- Largest Drawdown: %.2f%%\n", result.maxDrawdown()));
+        writer.write(String.format("- Sharpe Ratio: %.2f\n\n", result.sharpeRatio()));
+      }
+      writer.flush();
+      log.info("Results successfully written to {}", filePath);
+    } catch (IOException e) {
+      log.error("Failed to write results to file: {}", e.getMessage(), e);
+    }
   }
 }
