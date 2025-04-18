@@ -24,7 +24,26 @@ public class MovingAverageIndicator implements Indicator {
     return endIndex > 0 &&
         maShort.getValue(endIndex).isGreaterThan(maLong.getValue(endIndex)) &&
         maShort.getValue(endIndex-1).isLessThanOrEqual(maLong.getValue(endIndex-1));
+  }
 
+  public boolean isMa50Below100(List<Bar> data) {
+    var ma50ma100Params = StrategyParameters.builder().movingAverageShortPeriod(50)
+        .movingAverageLongPeriod(100).build();
+    var movingAverage = calculateMovingAverage(data, ma50ma100Params);
+    var ma50 = movingAverage.maShort();
+    var ma100 = movingAverage.maLong();
+    var endIndex = movingAverage.endIndex();
+    return ma50.getValue(endIndex).isLessThan(ma100.getValue(endIndex));
+  }
+
+  public boolean isMa100Below200(List<Bar> data) {
+    var ma100ma200Params = StrategyParameters.builder().movingAverageShortPeriod(100)
+        .movingAverageLongPeriod(200).build();
+    var movingAverage = calculateMovingAverage(data, ma100ma200Params);
+    var ma100 = movingAverage.maShort();
+    var ma200 = movingAverage.maLong();
+    var endIndex = movingAverage.endIndex();
+    return ma100.getValue(endIndex).isLessThan(ma200.getValue(endIndex));
   }
 
   @Override
@@ -38,6 +57,26 @@ public class MovingAverageIndicator implements Indicator {
         maLong.getValue(endIndex).isGreaterThan(maShort.getValue(endIndex)) &&
         maLong.getValue(endIndex-1).isLessThanOrEqual(maShort.getValue(endIndex-1));
 
+  }
+
+  public boolean isMa50GreaterThan100(List<Bar> data) {
+    var ma50ma100Params = StrategyParameters.builder().movingAverageShortPeriod(50)
+        .movingAverageLongPeriod(100).build();
+    var movingAverage = calculateMovingAverage(data, ma50ma100Params);
+    var ma50 = movingAverage.maShort();
+    var ma100 = movingAverage.maLong();
+    var endIndex = movingAverage.endIndex();
+    return ma50.getValue(endIndex).isGreaterThan(ma100.getValue(endIndex));
+  }
+
+  public boolean isMa100GreaterThan200(List<Bar> data) {
+    var ma100ma200Params = StrategyParameters.builder().movingAverageShortPeriod(100)
+        .movingAverageLongPeriod(200).build();
+    var movingAverage = calculateMovingAverage(data, ma100ma200Params);
+    var ma100 = movingAverage.maShort();
+    var ma200 = movingAverage.maLong();
+    var endIndex = movingAverage.endIndex();
+    return ma100.getValue(endIndex).isGreaterThan(ma200.getValue(endIndex));
   }
 
   public MovingAverage calculateMovingAverage(List<Bar> data, StrategyParameters params) {

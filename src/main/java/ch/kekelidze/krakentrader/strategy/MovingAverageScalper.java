@@ -66,12 +66,16 @@ public class MovingAverageScalper implements Strategy {
     var data = context.getBars();
     var buySignalParams = StrategyParameters.builder().movingAverageShortPeriod(9)
         .movingAverageLongPeriod(50).build();
-    var buySignal = movingAverageIndicator.isBuySignal(data, buySignalParams);
-    var ma50below100 = isMa50Below100(data);
-    var ma100below200 = isMa100Below200(data);
-    log.debug("Is buy signal: {}, MA50 below 100: {}, MA100 below 200: {}", buySignal, ma50below100,
-        ma100below200);
-    return buySignal && ma50below100 && ma100below200;
+    var maSignal = movingAverageIndicator.isBuySignal(data, buySignalParams);
+    var ma50below100 = movingAverageIndicator.isMa50Below100(data);
+    var ma100below200 = movingAverageIndicator.isMa100Below200(data);
+
+    var buySignal = maSignal && ma50below100 && ma100below200;
+    if (buySignal) {
+      log.debug("Is buy signal: {}, MA50 below 100: {}, MA100 below 200: {}", maSignal, ma50below100,
+          ma100below200);
+    }
+    return buySignal;
   }
 
   /**
@@ -90,55 +94,20 @@ public class MovingAverageScalper implements Strategy {
     var data = context.getBars();
     var sellSignalParams = StrategyParameters.builder().movingAverageShortPeriod(9)
         .movingAverageLongPeriod(26).build();
-    var sellSignal = movingAverageIndicator.isSellSignal(data, entryPrice, sellSignalParams);
+    var maSignal = movingAverageIndicator.isSellSignal(data, entryPrice, sellSignalParams);
     var riskSellSignal = riskManagementIndicator.isSellSignal(data, entryPrice, params);
     var rsiSignal = rsiIndicator.isSellSignal(data, entryPrice, params);
-    var ma50greaterThan100 = isMa50GreaterThan100(data);
-    var ma100greaterThan200 = isMa100GreaterThan200(data);
-    log.debug(
-        "Is sell signal: {}, Risk sell signal: {}, MA50 greater than 100: {}, MA100 greater than 200: {}",
-        sellSignal, riskSellSignal, ma50greaterThan100, ma100greaterThan200);
-    return sellSignal || riskSellSignal || rsiSignal || (ma50greaterThan100 && ma100greaterThan200);
-  }
+    var ma50greaterThan100 = movingAverageIndicator.isMa50GreaterThan100(data);
+    var ma100greaterThan200 = movingAverageIndicator.isMa100GreaterThan200(data);
 
-  private boolean isMa50Below100(List<Bar> data) {
-    var ma50ma100Params = StrategyParameters.builder().movingAverageShortPeriod(50)
-        .movingAverageLongPeriod(100).build();
-    var movingAverage = movingAverageIndicator.calculateMovingAverage(data, ma50ma100Params);
-    var ma50 = movingAverage.maShort();
-    var ma100 = movingAverage.maLong();
-    var endIndex = movingAverage.endIndex();
-    return ma50.getValue(endIndex).isLessThan(ma100.getValue(endIndex));
-  }
-
-  private boolean isMa100Below200(List<Bar> data) {
-    var ma100ma200Params = StrategyParameters.builder().movingAverageShortPeriod(100)
-        .movingAverageLongPeriod(200).build();
-    var movingAverage = movingAverageIndicator.calculateMovingAverage(data, ma100ma200Params);
-    var ma100 = movingAverage.maShort();
-    var ma200 = movingAverage.maLong();
-    var endIndex = movingAverage.endIndex();
-    return ma100.getValue(endIndex).isLessThan(ma200.getValue(endIndex));
-  }
-
-  private boolean isMa50GreaterThan100(List<Bar> data) {
-    var ma50ma100Params = StrategyParameters.builder().movingAverageShortPeriod(50)
-        .movingAverageLongPeriod(100).build();
-    var movingAverage = movingAverageIndicator.calculateMovingAverage(data, ma50ma100Params);
-    var ma50 = movingAverage.maShort();
-    var ma100 = movingAverage.maLong();
-    var endIndex = movingAverage.endIndex();
-    return ma50.getValue(endIndex).isGreaterThan(ma100.getValue(endIndex));
-  }
-
-  private boolean isMa100GreaterThan200(List<Bar> data) {
-    var ma100ma200Params = StrategyParameters.builder().movingAverageShortPeriod(100)
-        .movingAverageLongPeriod(200).build();
-    var movingAverage = movingAverageIndicator.calculateMovingAverage(data, ma100ma200Params);
-    var ma100 = movingAverage.maShort();
-    var ma200 = movingAverage.maLong();
-    var endIndex = movingAverage.endIndex();
-    return ma100.getValue(endIndex).isGreaterThan(ma200.getValue(endIndex));
+    var sellSignal =
+        maSignal || riskSellSignal || rsiSignal || (ma50greaterThan100 && ma100greaterThan200);
+    if (sellSignal) {
+      log.debug(
+          "Is sell signal: {}, Risk sell signal: {}, MA50 greater than 100: {}, MA100 greater than 200: {}",
+          maSignal, riskSellSignal, ma50greaterThan100, ma100greaterThan200);
+    }
+    return sellSignal;
   }
 
   @Override
