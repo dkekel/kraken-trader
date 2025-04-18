@@ -18,8 +18,10 @@ import org.ta4j.core.Bar;
 @RequiredArgsConstructor
 public class BackTesterService {
 
+  private static final int PERIODS_PER_YEAR = 365 * 24;
+
   private final StrategySelector strategySelector;
-  public final AtrAnalyser atrAnalyser;
+  private final AtrAnalyser atrAnalyser;
 
   public BacktestResult runSimulation(EvaluationContext context, double initialCapital) {
     Strategy strategy = strategySelector.getBestStrategyForCoin(context.getSymbol());
@@ -43,7 +45,6 @@ public class BackTesterService {
     // Simulate trades using parameters
     boolean inPosition = false;
     double currentCapital = initialCapital;
-    double totalProfit = 0;
     int wins = 0;
     int trades = 0;
     double entryPrice = 0;
@@ -51,13 +52,8 @@ public class BackTesterService {
 
     // For drawdown calculation
     List<Double> equityCurve = new ArrayList<>();
-    equityCurve.add(currentCapital);
-
-    // Store all trade profits for volatility calculation
-    List<Double> tradeReturns = new ArrayList<>();
 
     var data = context.getBars();
-    String tradeId = "";
     for (int i = params.minimumCandles(); i < data.size(); i++) {
       // Calculate indicators
       List<Bar> sublist = data.subList(i - params.minimumCandles(), i);
@@ -73,25 +69,16 @@ public class BackTesterService {
         entryPrice = currentPrice;
         inPosition = true;
         positionSize = calculateAdaptivePositionSize(sublist, entryPrice, currentCapital, params);
-        // For simplicity, assume we use 100% of capital
-//        positionSize = currentCapital / entryPrice;
         currentCapital -= positionSize * entryPrice;
         log.debug("BUY {} at: {} on {}", positionSize, entryPrice, data.get(i).getEndTime());
       } else if (inPosition && strategy.shouldSell(evaluationContext, entryPrice, params)) {
         trades++;
+        inPosition = false;
         double profit = (currentPrice - entryPrice) / entryPrice * 100;
+        currentCapital += positionSize * currentPrice;
         if (profit > 0) {
           wins++;
         }
-
-        // Add profit to list of returns
-        tradeReturns.add(profit);
-
-        // Update capital
-        currentCapital += positionSize * currentPrice;
-        inPosition = false;
-        totalProfit += profit;
-
         log.debug("SELL at: {} on {} | Profit: {}%", currentPrice, data.get(i).getEndTime(),
             profit);
       }
@@ -99,26 +86,25 @@ public class BackTesterService {
       // Update equity curve for each bar (whether in position or not)
       if (inPosition) {
         // If in position, equity is affected by current market price
-        double currentEquity = positionSize * currentPrice;
+        double currentEquity = currentCapital + positionSize * currentPrice;
         equityCurve.add(currentEquity);
       } else {
         // If not in position, equity remains the same as current capital
         equityCurve.add(currentCapital);
       }
-
     }
-
-    // Calculate volatility as standard deviation
-    double volatility = calculateStandardDeviation(tradeReturns);
 
     // Calculate maximum drawdown from equity curve
     double maxDrawdown = calculateMaxDrawdown(equityCurve);
 
+    var periodicReturns = calculatePeriodicReturns(equityCurve);
+    double sharpeRatio = calculateSharpe(periodicReturns);
+
     // Calculate metrics
     return BacktestResult.builder()
-        .totalProfit(totalProfit)
+        .totalProfit(getMeanReturn(periodicReturns) * PERIODS_PER_YEAR * 100)
         .totalTrades(trades)
-        .sharpeRatio(calculateSharpe(totalProfit, volatility, tradeReturns.size(), data.size()))
+        .sharpeRatio(sharpeRatio)
         .winRate(trades > 0 ? wins / (double) trades : 0)
         .maxDrawdown(maxDrawdown)
         .capital(currentCapital)
@@ -160,44 +146,71 @@ public class BackTesterService {
     return availableCapital * capitalPercentage / entryPrice;
   }
 
-  private double calculateStandardDeviation(List<Double> returns) {
-    if (returns.isEmpty()) {
-      return 0;
+  /**
+   * Calculates periodic returns from an equity curve
+   *
+   * @param equityCurve List of equity values at each time point
+   * @return List of periodic returns
+   */
+  private List<Double> calculatePeriodicReturns(List<Double> equityCurve) {
+    List<Double> returns = new ArrayList<>();
+
+    // Skip the first entry as we need previous value to calculate return
+    for (int i = 1; i < equityCurve.size(); i++) {
+      // Simple return calculation: (current - previous) / previous
+      double previousEquity = equityCurve.get(i - 1);
+      double currentEquity = equityCurve.get(i);
+      double periodicReturn = (currentEquity - previousEquity) / previousEquity;
+
+      returns.add(periodicReturn);
     }
 
-    // Calculate mean
-    double mean = returns.stream().mapToDouble(Double::doubleValue).average().orElse(0);
-
-    // Calculate sum of squared differences
-    double sumSquaredDiff = returns.stream()
-        .mapToDouble(r -> Math.pow(r - mean, 2))
-        .sum();
-
-    // Calculate standard deviation
-    return Math.sqrt(sumSquaredDiff / returns.size());
+    return returns;
   }
 
-  private double calculateSharpe(double totalProfit, double volatility, int numTrades,
-      int totalPeriods) {
-    if (volatility == 0 || numTrades == 0) {
-      return 0;
+  /**
+   * Calculates Sharpe ratio based on periodic returns
+   *
+   * @param periodicReturns List of returns for each period
+   * @return Sharpe ratio
+   */
+  private double calculateSharpe(List<Double> periodicReturns) {
+    double meanReturn = getMeanReturn(periodicReturns);
+
+    // Calculate standard deviation of returns
+    double sumSquaredDiff = 0.0;
+    for (Double ret : periodicReturns) {
+      double diff = ret - meanReturn;
+      sumSquaredDiff += diff * diff;
+    }
+    double stdDev = Math.sqrt(sumSquaredDiff / periodicReturns.size());
+
+    // Avoid division by zero
+    if (stdDev == 0) {
+      return 0.0;
     }
 
-    // Calculate the number of years in the backtest period
-    double yearsInPeriod = totalPeriods / (252.0 * 24.0); // assuming 1-hour bars
+    double annualizedMean = meanReturn * PERIODS_PER_YEAR;
+    double annualizedStdDev = stdDev * Math.sqrt(PERIODS_PER_YEAR);
 
-    // Annualize the return
-    double annualizedReturn = Math.pow(1 + totalProfit / 100.0, 1.0 / yearsInPeriod) - 1;
+    // Add risk-free rate if you want (classic Sharpe ratio)
+    double riskFreeRate = 0.02;
+    double annualizedExcessReturn = annualizedMean - riskFreeRate;
 
-    // Annualize the volatility
-    double annualizedVolatility = volatility * Math.sqrt(252.0 * 24.0 / totalPeriods);
+    return annualizedExcessReturn / annualizedStdDev;
+  }
 
-    // Risk-free rate (could be parameterized)
-    // Assuming 1.25%
-    double riskFreeRate = 0.0125; // Convert percentage to decimal
+  private static double getMeanReturn(List<Double> periodicReturns) {
+    if (periodicReturns.isEmpty()) {
+      return 0.0;
+    }
 
-    // Calculate annualized Sharpe ratio
-    return (annualizedReturn - riskFreeRate) / annualizedVolatility;
+    // Calculate mean return
+    double sumReturns = 0.0;
+    for (Double ret : periodicReturns) {
+      sumReturns += ret;
+    }
+    return sumReturns / periodicReturns.size();
   }
 
   private double calculateMaxDrawdown(List<Double> equityCurve) {
