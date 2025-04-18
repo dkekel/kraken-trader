@@ -16,12 +16,12 @@ import org.springframework.context.ApplicationContext;
 
 @Slf4j
 @SpringBootApplication(
-    scanBasePackageClasses = {KrakenApiService.class, ResponseConverterUtils.class,
+    scanBasePackageClasses = {CsvFileService.class, ResponseConverterUtils.class,
         BackTesterService.class, Indicator.class, Strategy.class, Optimizer.class}
 )
 public class KrakenParameterOptimizerApplication {
 
-  private static final double INITIAL_CAPITAL = 10000;
+  private static final double INITIAL_CAPITAL = 100;
 
   public static void main(String[] args) throws IOException {
     String coin = args[0];
@@ -34,17 +34,16 @@ public class KrakenParameterOptimizerApplication {
       throws IOException {
     var fileName = coin + "_" + period;
     var krakenCsvService = application.getBean(CsvFileService.class);
-    var optimizer = application.getBean("walkForwardOptimizer", Optimizer.class);
+    var optimizer = application.getBean("movingAverageScalperOptimizer", Optimizer.class);
     var backtestService = application.getBean(BackTesterService.class);
     var historicalData = krakenCsvService.readCsvFile("data/" + fileName + ".csv");
+    int trainingSize = (int) (historicalData.size() * 0.7);
     var evaluationContext = EvaluationContext.builder().symbol(getValidCoinName(coin))
-        .bars(historicalData).build();
-    //TODO replace API service with CSV data load for parameter optimisation
+        .bars(historicalData.subList(0, trainingSize)).build();
     var optimizeParameters = optimizer.optimizeParameters(evaluationContext);
     log.info("Optimised strategy: {}", optimizeParameters);
 
     // 30% validation
-    int trainingSize = (int) (historicalData.size() * 0.7);
     var validationData = historicalData.subList(trainingSize, historicalData.size());
 
     var evaluationContextWithValidation = EvaluationContext.builder().symbol(coin)
