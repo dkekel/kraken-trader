@@ -120,7 +120,6 @@ public class GeneticOptimizer implements Optimizer {
         .rsiSellThreshold(genotype.get(6).get(0).allele())
         .lossPercent(genotype.get(7).get(0).allele())
         .profitPercent(genotype.get(8).get(0).allele())
-        .volatilityThreshold(genotype.get(9).get(0).allele())
         // Default values for other parameters
         .macdFastPeriod(12)
         .macdSlowPeriod(26)
