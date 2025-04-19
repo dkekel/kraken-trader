@@ -9,6 +9,7 @@ import ch.kekelidze.krakentrader.optimize.Optimizer;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.io.IOException;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -32,15 +33,14 @@ public class KrakenParameterOptimizerApplication {
 
   private static void optimizeAndValidate(ApplicationContext application, String coin, int period)
       throws IOException {
-    var fileName = coin + "_" + period;
     var krakenCsvService = application.getBean(CsvFileService.class);
-    var optimizer = application.getBean("buyLowSellHighOptimizer", Optimizer.class);
+    var optimizer = application.getBean("movingAverageScalperOptimizer", Optimizer.class);
     var backtestService = application.getBean(BackTesterService.class);
-    var historicalData = krakenCsvService.readCsvFile("data/Q4/" + fileName + ".csv");
+    var historicalData = krakenCsvService.queryHistoricalData(List.of(coin), period);
     var evaluationContext = EvaluationContext.builder().symbol(getValidCoinName(coin))
         .period(period).bars(historicalData).build();
     var optimizeParameters = optimizer.optimizeParameters(evaluationContext);
-    log.info("Optimised strategy: {}", optimizeParameters);
+    log.info("Optimised '{}' strategy: {}", coin, optimizeParameters);
 
     var evaluationContextWithValidation = EvaluationContext.builder().symbol(coin).period(period)
         .bars(historicalData).build();

@@ -38,9 +38,9 @@ import org.springframework.stereotype.Component;
  * Thread-safety: This class is not thread-safe.
  */
 @Slf4j
-@Component("XRPMovingAverageScalper")
+@Component("DOGEMovingAverageScalper")
 @RequiredArgsConstructor
-public class MovingAverageScalper implements Strategy {
+public class DogeMovingAverageScalper implements Strategy {
 
   private static final int PERIOD = 60;
   private final Map<String, Double> highestPrice = new ConcurrentHashMap<>();
@@ -63,7 +63,7 @@ public class MovingAverageScalper implements Strategy {
   @Override
   public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
     var data = context.getBars();
-    var maSignal = movingAverageIndicator.isBuySignal(context, params);
+    var maSignal = movingAverageIndicator.isBuySignal(data, params);
     var ma50below100 = movingAverageIndicator.isMa50Below100(data);
     var ma100Ma200 = movingAverageIndicator.calculateMovingAverage(data, 100, 200);
 
@@ -73,7 +73,7 @@ public class MovingAverageScalper implements Strategy {
     boolean rsiSignal = rsiIndicator.isBuySignal(data, params);
 
     boolean ma100AndMa200Close = movingAverageIndicator.areMovingAveragesWithinThreshold(ma100Ma200,
-        params.volatilityThreshold());
+        1.5);
 
     // Different strategies based on market conditions
     boolean buySignal;
@@ -82,7 +82,7 @@ public class MovingAverageScalper implements Strategy {
       buySignal = maSignal && ma50below100 && rsiSignal;
     } else {
       // Trend-following approach for trending market
-      buySignal = maSignal && !ma50below100 && ma100AndMa200Close;
+      buySignal = maSignal && ma50below100 && ma100AndMa200Close;
     }
 
     if (buySignal) {
@@ -166,12 +166,11 @@ public class MovingAverageScalper implements Strategy {
   @Override
   public StrategyParameters getStrategyParameters() {
     return StrategyParameters.builder()
-        .movingAverageBuyShortPeriod(4).movingAverageBuyLongPeriod(20)
-        .movingAverageSellShortPeriod(7).movingAverageSellLongPeriod(47)
-        .rsiBuyThreshold(28).rsiSellThreshold(66).rsiPeriod(8)
-        .lossPercent(2).profitPercent(14)
-        .atrPeriod(3).atrThreshold(3)
-        .volatilityThreshold(2)
+        .movingAverageBuyShortPeriod(9).movingAverageBuyLongPeriod(50)
+        .movingAverageSellShortPeriod(9).movingAverageSellLongPeriod(26)
+        .rsiBuyThreshold(35).rsiSellThreshold(70).rsiPeriod(14)
+        .lossPercent(3).profitPercent(15)
+        .atrPeriod(14).atrThreshold(3)
         .minimumCandles(300)
         .build();
   }

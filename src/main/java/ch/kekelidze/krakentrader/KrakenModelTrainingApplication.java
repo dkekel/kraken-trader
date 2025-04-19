@@ -5,6 +5,7 @@ import ch.kekelidze.krakentrader.api.file.service.CsvFileService;
 import ch.kekelidze.krakentrader.optimize.util.TestDataUtils;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -29,10 +30,10 @@ public class KrakenModelTrainingApplication {
     var krakenCsvService = application.getBean(CsvFileService.class);
     var lstmModel = application.getBean(LSTMModel.class);
     var testDataService = application.getBean(TestDataUtils.class);
-    var historicalData = krakenCsvService.readCsvFile("data/" + fileName + ".csv");
+    var historicalData = krakenCsvService.queryHistoricalData(List.of(coin), trainingInterval);
     var modelFile = new File(fileName + "_model.h5");
     if (!modelFile.exists()) {
-      var trainingData = testDataService.getTestData(historicalData);
+      var trainingData = testDataService.getTestData(historicalData.get(coin));
       var model = lstmModel.trainModel(trainingData);
       model.save(modelFile);
     }

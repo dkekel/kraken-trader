@@ -22,11 +22,24 @@ import org.ta4j.core.num.DecimalNum;
 @Service
 public class CsvFileService implements HistoricalDataService {
 
+  @Override
+  public Map<String, List<Bar>> queryHistoricalData(List<String> coin, int period) {
+    var result = new HashMap<String, List<Bar>>();
+    for (String symbol : coin) {
+      var filePath = String.format("data/Q4/%s_%d.csv", symbol, period);
+      var bars = readCsvFile(filePath);
+      if (!bars.isEmpty()) {
+        result.put(symbol, bars);
+      }
+    }
+    return result;
+  }
+
   /**
    * Kraken’s OHLC Format: Each candle is an array [time, open, high, low, close, volume, count].
    * @return parsed historical data file
    */
-  public List<Bar> readCsvFile(String filePath) {
+  private List<Bar> readCsvFile(String filePath) {
     List<Bar> bars = new ArrayList<>();
 
     try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
@@ -62,18 +75,5 @@ public class CsvFileService implements HistoricalDataService {
       throw new RuntimeException("Failed to read CSV file: " + filePath, e);
     }
     return bars;
-  }
-
-  @Override
-  public Map<String, List<Bar>> queryHistoricalData(List<String> coin, int period) {
-    var result = new HashMap<String, List<Bar>>();
-    for (String symbol : coin) {
-      var filePath = String.format("data/Q4/%s_%d.csv", symbol, period);
-      var bars = readCsvFile(filePath);
-      if (!bars.isEmpty()) {
-        result.put(symbol, bars);
-      }
-    }
-    return result;
   }
 }

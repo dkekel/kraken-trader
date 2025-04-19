@@ -89,6 +89,25 @@ public class MovingAverageIndicator implements Indicator {
     return new MovingAverage(maShort, maLong, endIndex);
   }
 
+  /**
+   * Checks if two moving averages are within a specified percentage threshold of each other.
+   *
+   * @param movingAverages The short and the long moving average values
+   * @param thresholdPercent The percentage threshold (e.g., 1.0 for 1%)
+   * @return True if the moving averages are within the threshold, false otherwise
+   */
+  public boolean areMovingAveragesWithinThreshold(MovingAverage movingAverages,
+      double thresholdPercent) {
+    // Calculate the percentage difference
+    var endIndex = movingAverages.endIndex();
+    double maShort = movingAverages.maShort().getValue(endIndex).doubleValue();
+    double maLong = movingAverages.maLong().getValue(endIndex).doubleValue();
+    double percentDifference = Math.abs(maShort - maLong) / maLong * 100.0;
+
+    // Check if the difference is less than or equal to the threshold
+    return percentDifference <= thresholdPercent;
+  }
+
   public record MovingAverage(EMAIndicator maShort, EMAIndicator maLong, int endIndex) {
 
   }
