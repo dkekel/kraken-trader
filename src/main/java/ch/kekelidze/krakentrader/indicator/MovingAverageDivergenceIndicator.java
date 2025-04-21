@@ -14,7 +14,7 @@ import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 @SuppressWarnings("DuplicatedCode")
 @Slf4j
 @Component
-public class MovingAverageDivergenceCrossOverIndicator implements Indicator {
+public class MovingAverageDivergenceIndicator implements Indicator {
 
   @Override
   public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
@@ -23,13 +23,9 @@ public class MovingAverageDivergenceCrossOverIndicator implements Indicator {
     var endIndex = macd.getBarSeries().getEndIndex();
     var macdValue = macd.getValue(endIndex);
     var macdSignalValue = macdSignal.getValue(endIndex);
-    var previousMacd = macd.getValue(endIndex - 1);
-    var previousMacdSignal = macdSignal.getValue(endIndex - 1);
-    log.debug("MACD: {}, Signal: {}, Previous MACD: {}, Previous Signal: {}, Closing Time: {}",
-        macdValue.doubleValue(), macdSignalValue.doubleValue(),
-        previousMacd.doubleValue(), previousMacdSignal.doubleValue(), data.getLast().getEndTime());
-    return previousMacd.isLessThanOrEqual(previousMacdSignal) && macdValue.isGreaterThan(
-        macdSignalValue);
+    log.debug("MACD: {}, Signal: {}, Closing Time: {}",
+        macdValue.doubleValue(), macdSignalValue.doubleValue(), data.getLast().getEndTime());
+    return macdValue.isGreaterThan(macdSignalValue);
   }
 
   @Override
@@ -39,14 +35,10 @@ public class MovingAverageDivergenceCrossOverIndicator implements Indicator {
     var endIndex = macd.getBarSeries().getEndIndex();
     var macdValue = macd.getValue(endIndex);
     var macdSignalValue = macdSignal.getValue(endIndex);
-    var previousMacd = macd.getValue(endIndex - 1);
-    var previousMacdSignal = macdSignal.getValue(endIndex - 1);
 
-    log.debug("MACD: {}, Signal: {}, Previous MACD: {}, Previous Signal: {}, Closing Time: {}",
-        macdValue.doubleValue(), macdSignalValue.doubleValue(),
-        previousMacd.doubleValue(), previousMacdSignal.doubleValue(), data.getLast().getEndTime());
-    return previousMacd.isGreaterThanOrEqual(previousMacdSignal) && macdValue.isLessThan(
-        macdSignalValue);
+    log.debug("MACD: {}, Signal: {}, Closing Time: {}",
+        macdValue.doubleValue(), macdSignalValue.doubleValue(), data.getLast().getEndTime());
+    return macdValue.isLessThan(macdSignalValue);
   }
 
   private MACDIndicator calculateMovingAverageDivergence(List<Bar> pricePeriods,
