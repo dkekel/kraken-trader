@@ -234,7 +234,6 @@ public class MultiStrategyOptimizer implements Optimizer {
         .mfiOversoldThreshold(genotype.get(16).get(0).intValue())
         .supportResistancePeriod(genotype.get(17).get(0).intValue())
         .supportResistanceThreshold(genotype.get(18).get(0).doubleValue())
-        .weightedAgreementThreshold(55)
         .aboveAverageThreshold(20)
         .volumePeriod(20)
         .minimumCandles(300)

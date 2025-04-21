@@ -126,7 +126,6 @@ public class GeneticOptimizer implements Optimizer {
         .macdSignalPeriod(9)
         .volumePeriod(20)
         .aboveAverageThreshold(1.5)
-        .weightedAgreementThreshold(0.6)
         .adxPeriod(14)
         .adxBullishThreshold(25)
         .adxBearishThreshold(25)
