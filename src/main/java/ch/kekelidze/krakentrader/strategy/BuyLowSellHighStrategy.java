@@ -1,6 +1,7 @@
 package ch.kekelidze.krakentrader.strategy;
 
 import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
+import ch.kekelidze.krakentrader.indicator.MovingTrendIndicator;
 import ch.kekelidze.krakentrader.indicator.RiskManagementIndicator;
 import ch.kekelidze.krakentrader.indicator.RsiRangeIndicator;
 import ch.kekelidze.krakentrader.indicator.SimpleMovingAverageDivergenceIndicator;
@@ -8,7 +9,6 @@ import ch.kekelidze.krakentrader.indicator.VolatilityIndicator;
 import ch.kekelidze.krakentrader.indicator.VolumeIndicator;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
-import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -24,6 +24,7 @@ public class BuyLowSellHighStrategy implements Strategy {
   private final VolatilityIndicator volatilityIndicator;
   private final SimpleMovingAverageDivergenceIndicator macdIndicator;
   private final VolumeIndicator volumeIndicator;
+  private final MovingTrendIndicator movingTrendIndicator;
 
   @Override
   public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
@@ -32,7 +33,8 @@ public class BuyLowSellHighStrategy implements Strategy {
     boolean macdConfirmed = macdIndicator.isBuySignal(bars, params);
     boolean downtrend = isDowntrend(bars, params);
     boolean bullishSignal = isBullishSignal(bars, params);
-    return downtrend && bullishSignal && volatilityOK && macdConfirmed;
+    return downtrend && bullishSignal && volatilityOK && macdConfirmed
+        && movingTrendIndicator.isBuySignal(bars, params);
   }
 
   private boolean isDowntrend(List<Bar> data, StrategyParameters params) {
