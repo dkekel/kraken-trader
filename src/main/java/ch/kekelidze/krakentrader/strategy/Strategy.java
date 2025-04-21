@@ -36,9 +36,8 @@ public interface Strategy {
         .adxPeriod(14).adxBullishThreshold(25).adxBearishThreshold(30)
         .mfiPeriod(20).mfiOversoldThreshold(40).mfiOverboughtThreshold(50)
         .lossPercent(5).profitPercent(10)
-        .volumePeriod(20)
+        .volumePeriod(24).atrPeriod(14).lowVolatilityThreshold(0.8).highVolatilityThreshold(1.5)
         .aboveAverageThreshold(20)
-        .weightedAgreementThreshold(55)
         .minimumCandles(26)
         .build();
   }
