@@ -36,18 +36,14 @@ public class KrakenParameterOptimizerApplication {
     var krakenCsvService = application.getBean(CsvFileService.class);
     var optimizer = application.getBean("movingAverageScalperOptimizer", Optimizer.class);
     var backtestService = application.getBean(BackTesterService.class);
-    var historicalData = krakenCsvService.readCsvFile("data/" + fileName + ".csv");
-    int trainingSize = (int) (historicalData.size() * 0.7);
+    var historicalData = krakenCsvService.readCsvFile("data/Q4/" + fileName + ".csv");
     var evaluationContext = EvaluationContext.builder().symbol(getValidCoinName(coin))
-        .bars(historicalData.subList(0, trainingSize)).build();
+        .period(period).bars(historicalData).build();
     var optimizeParameters = optimizer.optimizeParameters(evaluationContext);
     log.info("Optimised strategy: {}", optimizeParameters);
 
-    // 30% validation
-    var validationData = historicalData.subList(trainingSize, historicalData.size());
-
-    var evaluationContextWithValidation = EvaluationContext.builder().symbol(coin)
-        .bars(validationData).build();
+    var evaluationContextWithValidation = EvaluationContext.builder().symbol(coin).period(period)
+        .bars(historicalData).build();
     var result = backtestService.runSimulation(evaluationContextWithValidation, optimizeParameters,
         INITIAL_CAPITAL);
     log.info("Trade result: {}", result);
