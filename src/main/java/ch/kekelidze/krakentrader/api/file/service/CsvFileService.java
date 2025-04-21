@@ -68,7 +68,7 @@ public class CsvFileService implements HistoricalDataService {
   public Map<String, List<Bar>> queryHistoricalData(List<String> coin, int period) {
     var result = new HashMap<String, List<Bar>>();
     for (String symbol : coin) {
-      var filePath = String.format("data/%s_%d.csv", symbol, period);
+      var filePath = String.format("data/Q4/%s_%d.csv", symbol, period);
       var bars = readCsvFile(filePath);
       if (!bars.isEmpty()) {
         result.put(symbol, bars);
