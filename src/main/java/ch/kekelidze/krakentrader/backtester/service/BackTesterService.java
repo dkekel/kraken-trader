@@ -1,6 +1,7 @@
 package ch.kekelidze.krakentrader.backtester.service;
 
 import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
+import ch.kekelidze.krakentrader.backtester.util.TimeFrameAdjustmentUtils;
 import ch.kekelidze.krakentrader.indicator.analyser.AtrAnalyser;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.optimize.util.StrategySelector;
@@ -52,11 +53,13 @@ public class BackTesterService {
 
     // For drawdown calculation
     List<Double> equityCurve = new ArrayList<>();
+    var adjustedParameters = TimeFrameAdjustmentUtils.adjustTimeFrame(params, context.getPeriod());
 
     var data = context.getBars();
-    for (int i = params.minimumCandles(); i < data.size(); i++) {
+    var minBars = adjustedParameters.minimumCandles();
+    for (int i = minBars; i < data.size(); i++) {
       // Calculate indicators
-      List<Bar> sublist = data.subList(i - params.minimumCandles(), i);
+      List<Bar> sublist = data.subList(i - minBars, i);
 
       // Current price for equity calculation
       double currentPrice = data.get(i).getClosePrice().doubleValue();
@@ -64,14 +67,16 @@ public class BackTesterService {
       var evaluationContext = EvaluationContext.builder().symbol(context.getSymbol()).bars(sublist)
           .build();
       // Execute strategy logic
-      if (!inPosition && strategy.shouldBuy(evaluationContext, params)) {
+      if (!inPosition && strategy.shouldBuy(evaluationContext, adjustedParameters)) {
         trades++;
         entryPrice = currentPrice;
         inPosition = true;
-        positionSize = calculateAdaptivePositionSize(sublist, entryPrice, currentCapital, params);
+        positionSize = calculateAdaptivePositionSize(sublist, entryPrice, currentCapital,
+            adjustedParameters);
         currentCapital -= positionSize * entryPrice;
         log.debug("BUY {} at: {} on {}", positionSize, entryPrice, data.get(i).getEndTime());
-      } else if (inPosition && strategy.shouldSell(evaluationContext, entryPrice, params)) {
+      } else if (inPosition && (strategy.shouldSell(evaluationContext, entryPrice,
+          adjustedParameters) || i == data.size() - 1)) {
         trades++;
         inPosition = false;
         double profit = (currentPrice - entryPrice) / entryPrice * 100;

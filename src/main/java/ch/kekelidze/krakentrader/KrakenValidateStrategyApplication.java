@@ -48,6 +48,7 @@ public class KrakenValidateStrategyApplication {
     for (String coin : coins) {
       var evaluationContext = EvaluationContext.builder()
           .symbol(coin)
+          .period(period)
           .bars(historicalData.get(coin))
           .build();
       var result = backtestService.runSimulation(evaluationContext, INITIAL_CAPITAL);

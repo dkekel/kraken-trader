@@ -10,5 +10,6 @@ import org.ta4j.core.Bar;
 public class EvaluationContext {
 
   private String symbol;
+  private int period;
   private List<Bar> bars;
 }
