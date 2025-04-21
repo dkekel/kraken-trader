@@ -1,9 +1,9 @@
 package ch.kekelidze.krakentrader.strategy;
 
-import ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceIndicator;
 import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
 import ch.kekelidze.krakentrader.indicator.RiskManagementIndicator;
 import ch.kekelidze.krakentrader.indicator.RsiRangeIndicator;
+import ch.kekelidze.krakentrader.indicator.SimpleMovingAverageDivergenceIndicator;
 import ch.kekelidze.krakentrader.indicator.VolatilityIndicator;
 import ch.kekelidze.krakentrader.indicator.VolumeIndicator;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
@@ -22,7 +22,7 @@ public class BuyLowSellHighStrategy implements Strategy {
   private final RsiRangeIndicator rsiIndicator;
   private final RiskManagementIndicator riskManagementIndicator;
   private final VolatilityIndicator volatilityIndicator;
-  private final MovingAverageDivergenceIndicator macdIndicator;
+  private final SimpleMovingAverageDivergenceIndicator macdIndicator;
   private final VolumeIndicator volumeIndicator;
 
   @Override
