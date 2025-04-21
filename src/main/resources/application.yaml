@@ -1,4 +1,9 @@
 spring:
+  devtools:
+    restart:
+      enabled: false
+    livereload:
+      enabled: false
   application:
     name: "kraken-trader"
 kraken:
