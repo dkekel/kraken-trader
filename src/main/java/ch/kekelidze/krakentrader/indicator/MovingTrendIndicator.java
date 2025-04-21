@@ -1,7 +1,6 @@
 package ch.kekelidze.krakentrader.indicator;
 
 import ch.kekelidze.krakentrader.indicator.analyser.BollingerContractionAnalyser;
-import ch.kekelidze.krakentrader.indicator.configuration.MovingAverageParameters;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -30,12 +29,12 @@ public class MovingTrendIndicator implements Indicator {
    * @param data List of price bars
    * @return true if the market appears to be in a sideways/consolidation phase
    */
-  private boolean isMovingMarketTrend(List<Bar> data, MovingAverageParameters parameters) {
+  private boolean isMovingMarketTrend(List<Bar> data, StrategyParameters parameters) {
     boolean sidewaysChannel = isInSidewaysChannel(data, parameters.movingAverageBuyShortPeriod(),
-        3.0);
+        parameters.contractionThreshold());
 
     boolean bollingerContraction = bollingerContractionAnalyser.hasBollingerContraction(data,
-        parameters.movingAverageBuyShortPeriod(), 4.0);
+        parameters.movingAverageBuyShortPeriod(), parameters.contractionThreshold());
 
     return !(sidewaysChannel && bollingerContraction);
   }

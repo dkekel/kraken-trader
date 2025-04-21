@@ -22,7 +22,7 @@ public record StrategyParameters(int movingAverageBuyShortPeriod, int movingAver
                                  int volumePeriod, double aboveAverageThreshold,
                                  double lossPercent, double profitPercent,
                                  int adxPeriod, int adxBullishThreshold, int adxBearishThreshold,
-                                 int volatilityPeriod,
+                                 int volatilityPeriod, double contractionThreshold,
                                  double lowVolatilityThreshold, double highVolatilityThreshold,
                                  int mfiOverboughtThreshold, int mfiOversoldThreshold,
                                  int mfiPeriod, int atrPeriod, int atrThreshold, int lookbackPeriod,
@@ -30,6 +30,6 @@ public record StrategyParameters(int movingAverageBuyShortPeriod, int movingAver
                                  int minimumCandles)
     implements MovingAverageParameters, RsiParameters, MacdParameters, VolumeParameters,
     LossProfitParameters, AdxParameters, VolatilityParameters,
-    MfiParameters, AtrParameters, SupportResistanceParameters {
+    MfiParameters, AtrParameters, SupportResistanceParameters, MarketSidewayParameters {
 
 }

@@ -33,8 +33,8 @@ public class BuyLowSellHighStrategy implements Strategy {
     boolean macdConfirmed = macdIndicator.isBuySignal(bars, params);
     boolean downtrend = isDowntrend(bars, params);
     boolean bullishSignal = isBullishSignal(bars, params);
-    return downtrend && bullishSignal && volatilityOK && macdConfirmed
-        && movingTrendIndicator.isBuySignal(bars, params);
+    boolean movingTrend = movingTrendIndicator.isBuySignal(bars, params);
+    return downtrend && bullishSignal && volatilityOK && macdConfirmed && movingTrend;
   }
 
   private boolean isDowntrend(List<Bar> data, StrategyParameters params) {
@@ -102,6 +102,7 @@ public class BuyLowSellHighStrategy implements Strategy {
         .atrPeriod(14).lowVolatilityThreshold(0.9).highVolatilityThreshold(1.5)
         .volumePeriod(24).aboveAverageThreshold(20)
         .lossPercent(3).profitPercent(15)
+        .contractionThreshold(3.0)
 //        .volumePeriod(20)
 //        .aboveAverageThreshold(20)
         .minimumCandles(150)

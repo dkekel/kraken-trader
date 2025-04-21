@@ -38,6 +38,7 @@ public class TimeFrameAdjustmentUtils {
         .highVolatilityThreshold(parameters.highVolatilityThreshold())
         .lossPercent(parameters.lossPercent())
         .profitPercent(parameters.profitPercent())
+        .contractionThreshold(parameters.contractionThreshold())
         .minimumCandles(parameters.minimumCandles() * timeFrameMultiplier)
         .build();
 
