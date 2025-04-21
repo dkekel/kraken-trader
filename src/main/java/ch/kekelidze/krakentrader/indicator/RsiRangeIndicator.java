@@ -17,10 +17,7 @@ public class RsiRangeIndicator implements Indicator {
 
   @Override
   public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
-    double rsi = calculateRSI(data, params.rsiPeriod());
-    log.debug("RSI: {}, Buy threshold: {}, Closing time: {}", rsi, params.rsiBuyThreshold(),
-        data.getLast().getEndTime());
-    return rsi >= params.rsiBuyThreshold() && rsi < params.rsiSellThreshold();
+    return hasConsistentRsiImprovement(data, params);
   }
 
   private boolean hasConsistentRsiImprovement(List<Bar> data, StrategyParameters params) {
