@@ -15,7 +15,7 @@ public class StrategyConfig {
 
   private final Strategy defaultStrategy;
 
-  public StrategyConfig(@Qualifier("supportResistanceConsolidation") Strategy defaultStrategy) {
+  public StrategyConfig(@Qualifier("buyLowSellHighStrategy") Strategy defaultStrategy) {
     this.defaultStrategy = defaultStrategy;
   }
 
