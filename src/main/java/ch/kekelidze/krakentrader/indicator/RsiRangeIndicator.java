@@ -4,10 +4,10 @@ import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
@@ -20,9 +20,8 @@ import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 @Component
 public class RsiRangeIndicator implements Indicator {
 
-  // Cache structure: Map<rsiPeriod, Map<hourKey, List<Double>>>
-  // Where List<Double> contains RSI values for different lookbacks, with the most recent at the end
-  private final Map<Integer, Map<String, LinkedList<Double>>> rsiCache = new HashMap<>();
+  // Simplified thread-safe cache structure: Map<coinPair, Map<hourKey, List<Double>>>
+  private final Map<String, Map<String, LinkedList<Double>>> rsiCache = new ConcurrentHashMap<>();
 
 
   @Override
@@ -35,7 +34,7 @@ public class RsiRangeIndicator implements Indicator {
   private boolean hasConsistentRsiImprovement(List<Bar> data, String coinPair,
       StrategyParameters params) {
     // Get RSI values for the last few bars
-    List<Double> rsiValues = calculateLastNRsiValues(data, params.lookbackPeriod(),
+    List<Double> rsiValues = calculateLastNRsiValues(data, coinPair, params.lookbackPeriod(),
         params.rsiPeriod());
 
     // Check if RSI is consistently increasing
@@ -64,12 +63,13 @@ public class RsiRangeIndicator implements Indicator {
     String currentHour = getHourKey(data.getLast().getEndTime());
 
     // Initialize cache for this period if it doesn't exist
-    var periodCache = rsiCache.computeIfAbsent(rsiPeriod, k -> new HashMap<>());
-    var cachedValues = periodCache.computeIfAbsent(currentHour, k -> new LinkedList<>());
+    // Thread-safe way to get or create the coin pair cache
+    var coinCache = rsiCache.computeIfAbsent(coinPair, k -> new ConcurrentHashMap<>());
+    var cachedValues = coinCache.computeIfAbsent(currentHour, k -> new LinkedList<>());
 
     // Check if hour has changed by seeing if we have a key that's not the current hour
     // If we do, remove the old hour data as it's no longer needed
-    periodCache.keySet().removeIf(hourKey -> !hourKey.equals(currentHour));
+    coinCache.keySet().removeIf(hourKey -> !hourKey.equals(currentHour));
 
     if (cachedValues.isEmpty()) {
       // No cache for this hour yet - calculate all RSI values from scratch
