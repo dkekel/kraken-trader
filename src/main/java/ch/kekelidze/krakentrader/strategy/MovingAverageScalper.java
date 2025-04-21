@@ -60,7 +60,7 @@ public class MovingAverageScalper implements Strategy {
   @Override
   public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
     var data = context.getBars();
-    var maSignal = movingAverageIndicator.isBuySignal(data, params);
+    var maSignal = movingAverageIndicator.isBuySignal(context, params);
     var ma50below100 = movingAverageIndicator.isMa50Below100(data);
     var ma100below200 = movingAverageIndicator.isMa100Below200(data);
 

@@ -57,8 +57,8 @@ public class MultiIndexMomentumStrategy implements Strategy {
     var data = context.getBars();
     return Stream.of(movingAverageDivergenceCrossOverIndicator, mfiIndicator, rsiIndicator).peek(
             indicator -> log.debug("Indicator: {}, Buy signal: {}",
-                indicator.getClass().getSimpleName(), indicator.isBuySignal(data, params)))
-        .allMatch(indicator -> indicator.isBuySignal(data, params));
+                indicator.getClass().getSimpleName(), indicator.isBuySignal(context, params)))
+        .allMatch(indicator -> indicator.isBuySignal(context, params));
   }
 
   @Override

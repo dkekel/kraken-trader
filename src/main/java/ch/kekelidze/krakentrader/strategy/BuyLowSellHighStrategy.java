@@ -29,11 +29,11 @@ public class BuyLowSellHighStrategy implements Strategy {
   @Override
   public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
     var bars = context.getBars();
-    boolean volatilityOK = volatilityIndicator.isBuySignal(bars, params);
-    boolean macdConfirmed = macdIndicator.isBuySignal(bars, params);
+    boolean volatilityOK = volatilityIndicator.isBuySignal(context, params);
+    boolean macdConfirmed = macdIndicator.isBuySignal(context, params);
     boolean downtrend = isDowntrend(bars, params);
-    boolean bullishSignal = isBullishSignal(bars, params);
-    boolean movingTrend = movingTrendIndicator.isBuySignal(bars, params);
+    boolean bullishSignal = isBullishSignal(context, params);
+    boolean movingTrend = movingTrendIndicator.isBuySignal(context, params);
     return downtrend && bullishSignal && volatilityOK && macdConfirmed && movingTrend;
   }
 
@@ -46,9 +46,10 @@ public class BuyLowSellHighStrategy implements Strategy {
     return ma20.isLessThan(ma50);
   }
 
-  private boolean isBullishSignal(List<Bar> data, StrategyParameters params) {
-    boolean rsiBuySignal = rsiIndicator.isBuySignal(data, params);
-    boolean volumeConfirmation = volumeIndicator.isBuySignal(data, params);
+  private boolean isBullishSignal(EvaluationContext context, StrategyParameters params) {
+    boolean rsiBuySignal = rsiIndicator.isBuySignal(context, params);
+    boolean volumeConfirmation = volumeIndicator.isBuySignal(context, params);
+    var data = context.getBars();
     boolean hasBullishSequence = hasBullishSequence(data, params);
     return (rsiBuySignal || volumeConfirmation) && hasBullishSequence;
   }

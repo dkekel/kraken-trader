@@ -1,6 +1,7 @@
 package ch.kekelidze.krakentrader.indicator;
 
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -28,7 +29,8 @@ public class PricePredictionIndicator implements Indicator {
   }
 
   @Override
-  public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
+  public boolean isBuySignal(EvaluationContext context, StrategyParameters params) {
+    var data = context.getBars();
     var prediction = calculatePrediction(data);
     var previousPrice = data.getLast().getClosePrice().doubleValue();
     log.debug("Prediction: {}, Previous Price: {}, Closing Time: {}", prediction, previousPrice,

@@ -1,6 +1,7 @@
 package ch.kekelidze.krakentrader.indicator;
 
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,12 +18,13 @@ public class AdxIndicator implements Indicator {
 
   /**
    * Buy only if ADX > 25 (strong trend).
-   * @param data price data
+   * @param context context with price data
    * @param params strategy params
    * @return true if there's strong trend
    */
   @Override
-  public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
+  public boolean isBuySignal(EvaluationContext context, StrategyParameters params) {
+    var data = context.getBars();
     BarSeries series = new BaseBarSeriesBuilder().withBars(data).build();
     double adx = calculateADX(series, params.adxPeriod());
     log.debug("ADX: {}, Buy threshold: {}, Closing time: {}", adx, params.adxBullishThreshold(),

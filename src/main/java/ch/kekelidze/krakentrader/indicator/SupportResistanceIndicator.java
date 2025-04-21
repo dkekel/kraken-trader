@@ -2,6 +2,7 @@ package ch.kekelidze.krakentrader.indicator;
 
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.indicator.analyser.SupportResistanceAnalyser;
+import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,12 +20,13 @@ public class SupportResistanceIndicator implements Indicator {
    * Determines whether the current conditions meet the criteria for a buy signal based on the
    * proximity of the price to defined support levels.
    *
-   * @param data   the list of price bars representing historical data
+   * @param context context with the list of price bars representing historical data
    * @param params the strategy parameters used to adjust the buy signal calculation
    * @return true if the current market conditions indicate a buy signal, false otherwise
    */
   @Override
-  public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
+  public boolean isBuySignal(EvaluationContext context, StrategyParameters params) {
+    var data = context.getBars();
     var supportLevels = supportResistanceAnalyser.findSupportLevels(data,
         params.supportResistancePeriod());
     var currentPrice = data.getLast().getClosePrice().doubleValue();

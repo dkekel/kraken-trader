@@ -57,7 +57,7 @@ public class MultiTimeFrameLowHighStrategy implements Strategy {
   @Override
   public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
     var data = context.getBars();
-    var rsiSignal = rsiIndicator.isBuySignal(data, params);
+    var rsiSignal = rsiIndicator.isBuySignal(context, params);
     var maSignal = calculateMovingAverage(context.getSymbol(), data.getLast().getEndTime(), params);
     var endIndex = maSignal.endIndex();
     var maBuySignal = maSignal.maShort().getValue(endIndex)

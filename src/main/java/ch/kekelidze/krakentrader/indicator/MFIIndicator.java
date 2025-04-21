@@ -1,6 +1,7 @@
 package ch.kekelidze.krakentrader.indicator;
 
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -11,7 +12,8 @@ import org.ta4j.core.Bar;
 public class MFIIndicator implements Indicator {
 
   @Override
-  public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
+  public boolean isBuySignal(EvaluationContext context, StrategyParameters params) {
+    var data = context.getBars();
     double mfi = calculateMFI(data, params.mfiPeriod());
     log.debug("MFI: {}, Buy threshold: {}, Closing time: {}", mfi, params.mfiOversoldThreshold(),
         data.getLast().getEndTime());

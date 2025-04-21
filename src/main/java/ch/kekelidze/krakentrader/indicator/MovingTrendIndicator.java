@@ -2,6 +2,7 @@ package ch.kekelidze.krakentrader.indicator;
 
 import ch.kekelidze.krakentrader.indicator.analyser.BollingerContractionAnalyser;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -14,7 +15,8 @@ public class MovingTrendIndicator implements Indicator {
   private final BollingerContractionAnalyser bollingerContractionAnalyser;
 
   @Override
-  public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
+  public boolean isBuySignal(EvaluationContext context, StrategyParameters params) {
+    var data = context.getBars();
     return isMovingMarketTrend(data, params);
   }
 

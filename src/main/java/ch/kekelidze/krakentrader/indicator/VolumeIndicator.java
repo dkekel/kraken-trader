@@ -2,6 +2,7 @@ package ch.kekelidze.krakentrader.indicator;
 
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.indicator.configuration.VolumeParameters;
+import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -15,12 +16,13 @@ public class VolumeIndicator implements Indicator {
   /**
    * Only if volume is above 20-period average during the signal.
    *
-   * @param data the list of {@code Bar} objects containing historical data
+   * @param context context with the list of {@code Bar} objects containing historical data
    * @param params the trading strategy parameters including thresholds and other configuration values
    * @return {@code true} if the buy signal is triggered, {@code false} otherwise
    */
   @Override
-  public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
+  public boolean isBuySignal(EvaluationContext context, StrategyParameters params) {
+    var data = context.getBars();
     return isVolumeAboveAverage(data, params) && hasIncreasingVolume(data, params.volumePeriod());
   }
 

@@ -14,8 +14,7 @@ public class PricePredictionStrategy implements Strategy {
 
   @Override
   public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
-    var data = context.getBars();
-    return pricePredictionIndicator.isBuySignal(data, params);
+    return pricePredictionIndicator.isBuySignal(context, params);
   }
 
   @Override

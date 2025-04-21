@@ -1,6 +1,7 @@
 package ch.kekelidze.krakentrader.indicator;
 
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -15,7 +16,8 @@ import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 public class RsiIndicator implements Indicator {
 
   @Override
-  public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
+  public boolean isBuySignal(EvaluationContext context, StrategyParameters params) {
+    var data = context.getBars();
     double rsi = calculateRSI(data, params.rsiPeriod());
     log.debug("RSI: {}, Buy threshold: {}, Closing time: {}", rsi, params.rsiBuyThreshold(),
         data.getLast().getEndTime());

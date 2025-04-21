@@ -51,8 +51,8 @@ public class ConsolidationStrategy implements Strategy {
     boolean isVolatilityLow = volatilityAnalyser.isVolatilityDecreasing(series,
         params.volatilityPeriod(), params.lookbackPeriod());
 
-    var rsiSignal = rsiIndicator.isBuySignal(series, params);
-    var macdSignal = simpleMovingAverageDivergenceIndicator.isBuySignal(series, params);
+    var rsiSignal = rsiIndicator.isBuySignal(context, params);
+    var macdSignal = simpleMovingAverageDivergenceIndicator.isBuySignal(context, params);
 
     log.debug("Near support: {}, isVolatilityLow: {}, rsiSignal: {}, macdSignal: {}",
         isNearSupport, isVolatilityLow, rsiSignal, macdSignal);

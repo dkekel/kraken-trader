@@ -1,6 +1,7 @@
 package ch.kekelidze.krakentrader.indicator;
 
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,11 +26,14 @@ public class RsiRangeIndicator implements Indicator {
 
 
   @Override
-  public boolean isBuySignal(List<Bar> data, StrategyParameters params) {
-    return hasConsistentRsiImprovement(data, params);
+  public boolean isBuySignal(EvaluationContext context, StrategyParameters params) {
+    var data = context.getBars();
+    var symbol = context.getSymbol();
+    return hasConsistentRsiImprovement(data, symbol, params);
   }
 
-  private boolean hasConsistentRsiImprovement(List<Bar> data, StrategyParameters params) {
+  private boolean hasConsistentRsiImprovement(List<Bar> data, String coinPair,
+      StrategyParameters params) {
     // Get RSI values for the last few bars
     List<Double> rsiValues = calculateLastNRsiValues(data, params.lookbackPeriod(),
         params.rsiPeriod());
@@ -54,7 +58,8 @@ public class RsiRangeIndicator implements Indicator {
     return isImproving && isRsiWithinThreshold;
   }
 
-  private List<Double> calculateLastNRsiValues(List<Bar> data, int lookback, int rsiPeriod) {
+  private List<Double> calculateLastNRsiValues(List<Bar> data, String coinPair, int lookback,
+      int rsiPeriod) {
     // Extract the current hour for cache tracking
     String currentHour = getHourKey(data.getLast().getEndTime());
 
