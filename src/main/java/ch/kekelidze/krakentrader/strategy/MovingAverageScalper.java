@@ -4,7 +4,7 @@ import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
 import ch.kekelidze.krakentrader.indicator.RiskManagementIndicator;
 import ch.kekelidze.krakentrader.indicator.RsiIndicator;
 import ch.kekelidze.krakentrader.indicator.analyser.VolatilityAnalyser;
-import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.settings.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -91,9 +91,9 @@ public class MovingAverageScalper implements Strategy {
       log.debug("Volatility not acceptable");
       return false;
     }
-    var maSignal = movingAverageIndicator.isSellSignal(data, entryPrice, params);
-    var riskSellSignal = riskManagementIndicator.isSellSignal(data, entryPrice, params);
-    var rsiSignal = rsiIndicator.isSellSignal(data, entryPrice, params);
+    var maSignal = movingAverageIndicator.isSellSignal(context, entryPrice, params);
+    var riskSellSignal = riskManagementIndicator.isSellSignal(context, entryPrice, params);
+    var rsiSignal = rsiIndicator.isSellSignal(context, entryPrice, params);
     var ma50greaterThan100 = movingAverageIndicator.isMa50GreaterThan100(data);
     var ma100greaterThan200 = movingAverageIndicator.isMa100GreaterThan200(data);
 

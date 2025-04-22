@@ -1,6 +1,4 @@
-package ch.kekelidze.krakentrader.indicator.configuration;
-
-import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+package ch.kekelidze.krakentrader.indicator.settings;
 
 public interface MovingAverageParameters {
 

@@ -4,7 +4,7 @@ import static io.jenetics.engine.Limits.bySteadyFitness;
 
 import ch.kekelidze.krakentrader.backtester.service.BackTesterService;
 import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
-import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.settings.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import io.jenetics.EliteSelector;
 import io.jenetics.Genotype;

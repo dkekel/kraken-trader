@@ -4,7 +4,7 @@ import ch.kekelidze.krakentrader.indicator.RsiIndicator;
 import ch.kekelidze.krakentrader.indicator.SimpleMovingAverageDivergenceIndicator;
 import ch.kekelidze.krakentrader.indicator.analyser.SupportResistanceAnalyser;
 import ch.kekelidze.krakentrader.indicator.analyser.VolatilityAnalyser;
-import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.settings.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -73,8 +73,8 @@ public class ConsolidationStrategy implements Strategy {
     boolean isVolatilityLow = volatilityAnalyser.isVolatilityDecreasing(series,
         params.volatilityPeriod(), params.lookbackPeriod());
 
-    var rsiSignal = rsiIndicator.isSellSignal(series, entryPrice, params);
-    var macdSignal = simpleMovingAverageDivergenceIndicator.isSellSignal(series, entryPrice,
+    var rsiSignal = rsiIndicator.isSellSignal(context, entryPrice, params);
+    var macdSignal = simpleMovingAverageDivergenceIndicator.isSellSignal(context, entryPrice,
         params);
 
     log.debug("Near resistance: {}, isVolatilityLow: {}, rsiSignal: {}, macdSignal: {}",

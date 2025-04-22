@@ -1,7 +1,7 @@
 package ch.kekelidze.krakentrader.indicator;
 
-import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
-import ch.kekelidze.krakentrader.indicator.configuration.VolumeParameters;
+import ch.kekelidze.krakentrader.indicator.settings.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.settings.VolumeParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.ArrayList;
 import java.util.List;
@@ -89,13 +89,15 @@ public class VolumeIndicator implements Indicator {
 
   /**
    * Ignore if volume is low (weak momentum).
-   * @param data current prices
+   * @param context with current prices
    * @param entryPrice entry price for the asset
    * @param params trade params
    * @return true if the asset should be sold
    */
   @Override
-  public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
+  public boolean isSellSignal(EvaluationContext context, double entryPrice,
+      StrategyParameters params) {
+    var data = context.getBars();
     return isVolumeAboveAverage(data, params);
   }
 

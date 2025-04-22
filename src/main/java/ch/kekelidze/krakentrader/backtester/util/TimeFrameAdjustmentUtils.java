@@ -1,6 +1,6 @@
 package ch.kekelidze.krakentrader.backtester.util;
 
-import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.settings.StrategyParameters;
 
 public class TimeFrameAdjustmentUtils {
 
@@ -39,6 +39,12 @@ public class TimeFrameAdjustmentUtils {
         .lossPercent(parameters.lossPercent())
         .profitPercent(parameters.profitPercent())
         .contractionThreshold(parameters.contractionThreshold())
+        .sentimentBuyThreshold(parameters.sentimentBuyThreshold())
+        .sentimentSellThreshold(parameters.sentimentSellThreshold())
+        .useSentimentForBuy(parameters.useSentimentForBuy())
+        .useSentimentForSell(parameters.useSentimentForSell())
+        .sentimentLookbackPeriod(parameters.sentimentLookbackPeriod())
+        .useSentimentDivergence(parameters.useSentimentDivergence())
         .minimumCandles(parameters.minimumCandles() * timeFrameMultiplier)
         .build();
 

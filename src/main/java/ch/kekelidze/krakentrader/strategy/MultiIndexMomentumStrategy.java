@@ -4,7 +4,7 @@ import ch.kekelidze.krakentrader.indicator.MFIIndicator;
 import ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceCrossOverIndicator;
 import ch.kekelidze.krakentrader.indicator.RiskManagementIndicator;
 import ch.kekelidze.krakentrader.indicator.RsiIndicator;
-import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.settings.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
@@ -65,12 +65,13 @@ public class MultiIndexMomentumStrategy implements Strategy {
   public boolean shouldSell(EvaluationContext context, double entryPrice,
       StrategyParameters params) {
     var data = context.getBars();
-    var riskManagementSignal = riskManagementIndicator.isSellSignal(data, entryPrice, params);
+    var riskManagementSignal = riskManagementIndicator.isSellSignal(context, entryPrice, params);
     log.debug("Risk management signal: {}", riskManagementSignal);
     return Stream.of(movingAverageDivergenceCrossOverIndicator, mfiIndicator, rsiIndicator).peek(
             indicator -> log.debug("Indicator: {}, Sell signal: {}",
-                indicator.getClass().getSimpleName(), indicator.isSellSignal(data, entryPrice, params)))
-        .allMatch(indicator -> indicator.isSellSignal(data, entryPrice, params))
+                indicator.getClass().getSimpleName(),
+                indicator.isSellSignal(context, entryPrice, params)))
+        .allMatch(indicator -> indicator.isSellSignal(context, entryPrice, params))
         || riskManagementSignal;
   }
 

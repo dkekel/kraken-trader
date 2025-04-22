@@ -1,7 +1,7 @@
 package ch.kekelidze.krakentrader.optimize.service;
 
 import ch.kekelidze.krakentrader.api.HistoricalDataService;
-import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.settings.StrategyParameters;
 import ch.kekelidze.krakentrader.optimize.MultiStrategyOptimizer;
 import ch.kekelidze.krakentrader.optimize.util.StrategySelector;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;

@@ -1,5 +1,6 @@
 package ch.kekelidze.krakentrader.strategy;
 
+import ch.kekelidze.krakentrader.indicator.MarketSentimentIndicator;
 import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
 import ch.kekelidze.krakentrader.indicator.MovingTrendIndicator;
 import ch.kekelidze.krakentrader.indicator.RiskManagementIndicator;
@@ -7,7 +8,7 @@ import ch.kekelidze.krakentrader.indicator.RsiRangeIndicator;
 import ch.kekelidze.krakentrader.indicator.SimpleMovingAverageDivergenceIndicator;
 import ch.kekelidze.krakentrader.indicator.VolatilityIndicator;
 import ch.kekelidze.krakentrader.indicator.VolumeIndicator;
-import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.settings.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class BuyLowSellHighStrategy implements Strategy {
   private final SimpleMovingAverageDivergenceIndicator macdIndicator;
   private final VolumeIndicator volumeIndicator;
   private final MovingTrendIndicator movingTrendIndicator;
+  private final MarketSentimentIndicator sentimentIndicator;
 
   @Override
   public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
@@ -34,7 +36,25 @@ public class BuyLowSellHighStrategy implements Strategy {
     boolean downtrend = isDowntrend(bars, params);
     boolean bullishSignal = isBullishSignal(context, params);
     boolean movingTrend = movingTrendIndicator.isBuySignal(context, params);
-    return downtrend && bullishSignal && volatilityOK && macdConfirmed && movingTrend;
+
+    boolean technicalBuySignal =
+        downtrend && bullishSignal && volatilityOK && macdConfirmed && movingTrend;
+
+    // Add sentiment check if enabled
+    if (params.useSentimentForBuy()) {
+      boolean sentimentSignal = sentimentIndicator.isBuySignal(context, params);
+
+      // Check for bullish sentiment divergence if enabled
+      if (params.useSentimentDivergence() &&
+          sentimentIndicator.isBullishSentimentDivergence(
+              context.getSymbol(), bars, params.sentimentLookbackPeriod())) {
+        sentimentSignal = true;
+      }
+
+      return technicalBuySignal && sentimentSignal;
+    }
+
+    return technicalBuySignal;
   }
 
   private boolean isDowntrend(List<Bar> data, StrategyParameters params) {
@@ -88,7 +108,26 @@ public class BuyLowSellHighStrategy implements Strategy {
   @Override
   public boolean shouldSell(EvaluationContext context, double entryPrice,
       StrategyParameters params) {
-    return riskManagementIndicator.isSellSignal(context.getBars(), entryPrice, params);
+    boolean technicalSellSignal = riskManagementIndicator.isSellSignal(context, entryPrice, params);
+    var bars = context.getBars();
+    // Add sentiment check if enabled
+    if (params.useSentimentForSell()) {
+      Bar currentBar = bars.getLast();
+      long timestamp = currentBar.getEndTime().toEpochSecond();
+
+      boolean sentimentSellSignal = sentimentIndicator.isSellSignal(context, timestamp, params);
+
+      // Check for bearish sentiment divergence if enabled
+      if (params.useSentimentDivergence() &&
+          sentimentIndicator.isBearishSentimentDivergence(
+              context.getSymbol(), bars, params.sentimentLookbackPeriod())) {
+        sentimentSellSignal = true;
+      }
+
+      return technicalSellSignal || sentimentSellSignal;
+    }
+
+    return technicalSellSignal;
   }
 
   //TODO Q4 market
@@ -118,6 +157,12 @@ public class BuyLowSellHighStrategy implements Strategy {
         .contractionThreshold(4.1)
         .atrPeriod(17).lookbackPeriod(7)
         .lowVolatilityThreshold(0.87).highVolatilityThreshold(1.32)
+        .sentimentBuyThreshold(20.0)  // Require relatively positive sentiment to buy
+        .sentimentSellThreshold(-20.0) // Sell on negative sentiment
+        .useSentimentForBuy(true)
+        .useSentimentForSell(true)
+        .sentimentLookbackPeriod(24)  // Look back 24 5-min periods (2 hours)
+        .useSentimentDivergence(true)
         .minimumCandles(159)
         .build();
   }

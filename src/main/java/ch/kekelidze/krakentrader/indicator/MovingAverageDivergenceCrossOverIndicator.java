@@ -1,6 +1,6 @@
 package ch.kekelidze.krakentrader.indicator;
 
-import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.settings.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +35,9 @@ public class MovingAverageDivergenceCrossOverIndicator implements Indicator {
   }
 
   @Override
-  public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
+  public boolean isSellSignal(EvaluationContext context, double entryPrice,
+      StrategyParameters params) {
+    var data = context.getBars();
     var macd = calculateMovingAverageDivergence(data, params);
     var macdSignal = calculateMacdSignal(data, params);
     var endIndex = macd.getBarSeries().getEndIndex();

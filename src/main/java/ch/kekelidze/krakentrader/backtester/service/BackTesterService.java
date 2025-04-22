@@ -3,10 +3,12 @@ package ch.kekelidze.krakentrader.backtester.service;
 import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
 import ch.kekelidze.krakentrader.backtester.util.TimeFrameAdjustmentUtils;
 import ch.kekelidze.krakentrader.indicator.analyser.AtrAnalyser;
-import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.service.SentimentDataService;
+import ch.kekelidze.krakentrader.indicator.settings.StrategyParameters;
 import ch.kekelidze.krakentrader.optimize.util.StrategySelector;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ public class BackTesterService {
 
   private final StrategySelector strategySelector;
   private final AtrAnalyser atrAnalyser;
+  private final SentimentDataService sentimentDataService;
 
   public BacktestResult runSimulation(EvaluationContext context, double initialCapital) {
     Strategy strategy = strategySelector.getBestStrategyForCoin(context.getSymbol());
@@ -54,6 +57,7 @@ public class BackTesterService {
     // For drawdown calculation
     List<Double> equityCurve = new ArrayList<>();
     var adjustedParameters = TimeFrameAdjustmentUtils.adjustTimeFrame(params, context.getPeriod());
+    preloadSentimentData(context);
 
     var data = context.getBars();
     var minBars = adjustedParameters.minimumCandles();
@@ -71,7 +75,7 @@ public class BackTesterService {
         trades++;
         entryPrice = currentPrice;
         inPosition = true;
-        positionSize = calculateAdaptivePositionSize(sublist, entryPrice, currentCapital,
+        positionSize = calculateAdaptivePositionSize(context, entryPrice, currentCapital,
             adjustedParameters);
         currentCapital -= positionSize * entryPrice;
         log.debug("BUY {} at: {} on {}", positionSize, entryPrice, data.get(i).getEndTime());
@@ -117,38 +121,83 @@ public class BackTesterService {
   }
 
   /**
+   * Preloads sentiment data for the entire backtest period to avoid API calls during simulation
+   */
+  private void preloadSentimentData(EvaluationContext context) {
+    List<Bar> data = context.getBars();
+    if (data.isEmpty()) return;
+
+    // Get time range for the backtest
+    long startTime = data.getFirst().getEndTime().toEpochSecond();
+    long endTime = data.getLast().getEndTime().toEpochSecond();
+
+    // Calculate interval between 5-min candles in seconds
+    long intervalSeconds = 5 * 60;
+
+    log.info("Preloading sentiment data for {} from {} to {}",
+        context.getSymbol(),
+        Instant.ofEpochSecond(startTime),
+        Instant.ofEpochSecond(endTime));
+
+    // Load sentiment data for the entire backtest period
+    sentimentDataService.loadHistoricalSentimentData(
+        context.getSymbol(), startTime, endTime, intervalSeconds);
+  }
+
+
+  /**
    * Calculates position size as a percentage of capital based on market volatility
    *
-   * @param data             Recent price bars
+   * @param context          with recent price bars
    * @param availableCapital Available capital for position
    * @param params           Strategy parameters
    * @return Recommended position size as percentage of capital
    */
-  public double calculateAdaptivePositionSize(List<Bar> data, double entryPrice,
+  private double calculateAdaptivePositionSize(EvaluationContext context, double entryPrice,
       double availableCapital, StrategyParameters params) {
-    // Calculate ATR as percentage of price
+    var data = context.getBars();
+    // Calculate ATR
     double atr = atrAnalyser.calculateATR(data, params.atrPeriod());
-    double currentPrice = data.getLast().getClosePrice().doubleValue();
-    double atrPercent = (atr / currentPrice) * 100;
-    var lowerBound = 2.0;
-    var upperBound = 12.0;
 
-    // Base position size (percentage of capital)
-    double basePositionSize = 0.5; // Default 60% of capital
+    // Risk percentage based on volatility
+    double riskPercent;
+    double normalizedAtr = atr / entryPrice * 100; // ATR as percentage of price
 
-    double capitalPercentage;
-    // Adjust position size based on volatility
-    if (atrPercent < lowerBound) {
-      // Low volatility - can take larger position
-      capitalPercentage = Math.min(basePositionSize * 1.5, 1.0);
-    } else if (atrPercent > upperBound) {
-      // High volatility - reduce position size
-      capitalPercentage = basePositionSize * 0.5;
+    if (normalizedAtr < params.lowVolatilityThreshold()) {
+      riskPercent = 3.0; // Higher risk in low volatility
+    } else if (normalizedAtr > params.highVolatilityThreshold()) {
+      riskPercent = 1.0; // Lower risk in high volatility
     } else {
-      // Normal volatility - use base size
-      capitalPercentage = basePositionSize;
+      riskPercent = 2.0; // Default risk
     }
-    return availableCapital * capitalPercentage / entryPrice;
+
+    // Apply sentiment adjustment to risk if available
+    if (!data.isEmpty()) {
+      Bar lastBar = data.getLast();
+      long timestamp = lastBar.getEndTime().toEpochSecond();
+
+      // Get sentiment score for entry point (-100 to +100)
+      double sentiment = sentimentDataService.getSentimentScore(context.getSymbol(), timestamp);
+
+      // Adjust risk based on sentiment
+      // Higher confidence (more positive sentiment) = higher position size
+      double sentimentFactor = 1.0 + (sentiment / 200.0); // Range 0.5 to 1.5
+      riskPercent *= sentimentFactor;
+    }
+
+    // Calculate risk amount and position size
+    double riskAmount = availableCapital * (riskPercent / 100.0);
+    double stopLossDistance = atr * 2; // Stop 2 ATR away from entry
+
+    // Ensure we don't risk more than 2% of capital per trade regardless of adjustments
+    double maxRiskAmount = availableCapital * 0.02;
+    riskAmount = Math.min(riskAmount, maxRiskAmount);
+
+    // Calculate position size in asset units
+    double positionSize = riskAmount / stopLossDistance;
+
+    // Ensure position size doesn't exceed available capital
+    return Math.min(positionSize, availableCapital / entryPrice);
   }
 
   /**

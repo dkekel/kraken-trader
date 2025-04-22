@@ -1,12 +1,10 @@
 package ch.kekelidze.krakentrader.indicator;
 
-import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.settings.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.ta4j.core.Bar;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.BaseBarSeriesBuilder;
 import org.ta4j.core.indicators.adx.ADXIndicator;
@@ -34,13 +32,15 @@ public class AdxIndicator implements Indicator {
 
   /**
    * Ignore sell signals if ADX > 30 (trend likely to continue).
-   * @param data price data
+   * @param context context with price data
    * @param entryPrice asset entry price
    * @param params strategy params
    * @return true if the asset should be sold
    */
   @Override
-  public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
+  public boolean isSellSignal(EvaluationContext context, double entryPrice,
+      StrategyParameters params) {
+    var data = context.getBars();
     BarSeries series = new BaseBarSeriesBuilder().withBars(data).build();
     double adx = calculateADX(series, params.adxPeriod());
     log.debug("ADX: {}, Sell threshold: {}, Closing time: {}", adx, params.adxBearishThreshold(),

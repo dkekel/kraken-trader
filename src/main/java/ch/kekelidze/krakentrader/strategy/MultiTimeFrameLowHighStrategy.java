@@ -4,7 +4,7 @@ import ch.kekelidze.krakentrader.api.HistoricalDataService;
 import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
 import ch.kekelidze.krakentrader.indicator.RiskManagementIndicator;
 import ch.kekelidze.krakentrader.indicator.RsiIndicator;
-import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.settings.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -70,10 +70,10 @@ public class MultiTimeFrameLowHighStrategy implements Strategy {
   public boolean shouldSell(EvaluationContext context, double entryPrice,
       StrategyParameters params) {
     var data = context.getBars();
-    var rsiSignal = rsiIndicator.isSellSignal(data, entryPrice, params);
+    var rsiSignal = rsiIndicator.isSellSignal(context, entryPrice, params);
     var maSignal = calculateMovingAverage(context.getSymbol(), data.getLast().getEndTime(), params);
     var endIndex = maSignal.endIndex();
-    var riskManagementSignal = riskManagementIndicator.isSellSignal(data, entryPrice, params);
+    var riskManagementSignal = riskManagementIndicator.isSellSignal(context, entryPrice, params);
     var maSellSignal = maSignal.maShort().getValue(endIndex)
         .isGreaterThan(data.getLast().getClosePrice());
     log.debug("RSI sell signal: {}, MA sell signal: {}, Risk sell signal: {}", rsiSignal,

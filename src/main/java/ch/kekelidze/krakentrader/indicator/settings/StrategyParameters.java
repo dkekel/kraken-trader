@@ -1,4 +1,4 @@
-package ch.kekelidze.krakentrader.indicator.configuration;
+package ch.kekelidze.krakentrader.indicator.settings;
 
 import lombok.Builder;
 
@@ -27,9 +27,13 @@ public record StrategyParameters(int movingAverageBuyShortPeriod, int movingAver
                                  int mfiOverboughtThreshold, int mfiOversoldThreshold,
                                  int mfiPeriod, int atrPeriod, int atrThreshold, int lookbackPeriod,
                                  int supportResistancePeriod, double supportResistanceThreshold,
+                                 double sentimentBuyThreshold, double sentimentSellThreshold,
+                                 boolean useSentimentForBuy, boolean useSentimentForSell,
+                                 int sentimentLookbackPeriod, boolean useSentimentDivergence,
                                  int minimumCandles)
     implements MovingAverageParameters, RsiParameters, MacdParameters, VolumeParameters,
     LossProfitParameters, AdxParameters, VolatilityParameters,
-    MfiParameters, AtrParameters, SupportResistanceParameters, MarketSidewayParameters {
+    MfiParameters, AtrParameters, SupportResistanceParameters, MarketSidewayParameters,
+    SentimentParameters {
 
 }

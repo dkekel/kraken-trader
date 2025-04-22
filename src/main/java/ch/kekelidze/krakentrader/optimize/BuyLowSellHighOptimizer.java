@@ -1,7 +1,7 @@
 package ch.kekelidze.krakentrader.optimize;
 
 import ch.kekelidze.krakentrader.backtester.service.BackTesterService;
-import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.settings.StrategyParameters;
 import io.jenetics.Genotype;
 import io.jenetics.IntegerChromosome;
 import io.jenetics.IntegerGene;

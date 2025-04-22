@@ -1,4 +1,4 @@
-package ch.kekelidze.krakentrader.indicator.configuration;
+package ch.kekelidze.krakentrader.indicator.settings;
 
 public interface AtrParameters {
     int atrPeriod();

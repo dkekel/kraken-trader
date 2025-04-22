@@ -1,12 +1,10 @@
 package ch.kekelidze.krakentrader.indicator;
 
 import ch.kekelidze.krakentrader.indicator.analyser.AtrAnalyser;
-import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.indicator.settings.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import org.ta4j.core.Bar;
 
 @Component
 @RequiredArgsConstructor
@@ -23,7 +21,9 @@ public class VolatilityIndicator implements Indicator {
   }
 
   @Override
-  public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
+  public boolean isSellSignal(EvaluationContext context, double entryPrice,
+      StrategyParameters params) {
+    var data = context.getBars();
     double atr = atrAnalyser.calculateATR(data, params.atrPeriod());
     double currentPrice = data.getLast().getClosePrice().doubleValue();
 
