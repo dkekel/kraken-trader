@@ -12,3 +12,10 @@ services:
     command: [ "multiIndexMomentum", "DOGE/USD,XRP/USD,ETH/USD,HONEY/USD,PEPE/USD,FLR/USD,SGB/USD", "2000" ]
     volumes:
       - ./logs/multiIndexMomentum:/app/logs
+
+#  Buy low sell high strategy
+  kraken-trader-buy-low-sell-high:
+    image: kraken-trader:latest
+    command: [ "buyLowSellHighStrategy", "DOGE/USD,ETH/USD,HONEY/USD,PEPE/USD,FLR/USD,SGB/USD", "2000" ]
+    volumes:
+      - ./logs/buyLowSellHighStrategy:/app/logs
