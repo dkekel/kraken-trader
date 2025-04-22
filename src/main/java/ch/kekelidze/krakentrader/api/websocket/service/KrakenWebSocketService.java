@@ -37,8 +37,9 @@ public class KrakenWebSocketService implements DisposableBean {
     try {
       var strategy = applicationContext.getBean(args[0], Strategy.class);
       var coinPairs = args[1].split(",");
+      var capital = Double.parseDouble(args[2]);
       tradeService.setStrategy(strategy);
-      portfolio.setTotalCapital(2000);
+      portfolio.setTotalCapital(capital);
 
       // Initialize the WebSocket client with Spring-managed dependencies
       KrakenWebSocketClient.initialize(tradeService, responseConverterUtils, krakenApiService,
