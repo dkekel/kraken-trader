@@ -91,17 +91,34 @@ public class BuyLowSellHighStrategy implements Strategy {
     return riskManagementIndicator.isSellSignal(context.getBars(), entryPrice, params);
   }
 
+  //TODO Q4 market
+//  @Override
+//  public StrategyParameters getStrategyParameters() {
+//    return StrategyParameters.builder()
+//        .movingAverageBuyShortPeriod(21).movingAverageBuyLongPeriod(75)
+//        .rsiBuyThreshold(48).rsiSellThreshold(79).rsiPeriod(17).lookbackPeriod(6)
+//        .macdFastPeriod(11).macdSlowPeriod(25).macdSignalPeriod(7)
+//        .atrPeriod(15).lowVolatilityThreshold(0.87).highVolatilityThreshold(1.3)
+//        .volumePeriod(27).aboveAverageThreshold(23)
+//        .lossPercent(3.1).profitPercent(8.9)
+//        .contractionThreshold(3.4)
+//        .minimumCandles(225)
+//        .build();
+//  }
+
+  //TODO Q3
   @Override
   public StrategyParameters getStrategyParameters() {
     return StrategyParameters.builder()
-        .movingAverageBuyShortPeriod(20).movingAverageBuyLongPeriod(50)
-        .rsiBuyThreshold(45).rsiSellThreshold(70).rsiPeriod(14).lookbackPeriod(5)
-        .macdFastPeriod(12).macdSlowPeriod(26).macdSignalPeriod(9)
-        .atrPeriod(14).lowVolatilityThreshold(0.9).highVolatilityThreshold(1.5)
-        .volumePeriod(24).aboveAverageThreshold(20)
-        .lossPercent(3).profitPercent(15)
-        .contractionThreshold(3.0)
-        .minimumCandles(150)
+        .movingAverageBuyShortPeriod(15).movingAverageBuyLongPeriod(53)
+        .rsiPeriod(13).rsiBuyThreshold(42).rsiSellThreshold(66)
+        .macdFastPeriod(13).macdSlowPeriod(20).macdSignalPeriod(8)
+        .volumePeriod(24).aboveAverageThreshold(39)
+        .lossPercent(2).profitPercent(17.8)
+        .contractionThreshold(4.1)
+        .atrPeriod(17).lookbackPeriod(7)
+        .lowVolatilityThreshold(0.87).highVolatilityThreshold(1.32)
+        .minimumCandles(159)
         .build();
   }
 }
