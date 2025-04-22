@@ -15,7 +15,7 @@ public class StrategyConfig {
 
   private final Strategy defaultStrategy;
 
-  public StrategyConfig(@Qualifier("buyLowSellHighStrategy") Strategy defaultStrategy) {
+  public StrategyConfig(@Qualifier("XRPMovingAverageScalper") Strategy defaultStrategy) {
     this.defaultStrategy = defaultStrategy;
   }
 
