@@ -63,14 +63,14 @@ public class DogeMovingAverageScalper implements Strategy {
   @Override
   public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
     var data = context.getBars();
-    var maSignal = movingAverageIndicator.isBuySignal(data, params);
+    var maSignal = movingAverageIndicator.isBuySignal(context, params);
     var ma50below100 = movingAverageIndicator.isMa50Below100(data);
     var ma100Ma200 = movingAverageIndicator.calculateMovingAverage(data, 100, 200);
 
     // Check if the market is range-bound
     boolean isRangeBound = volatilityAnalyser.isLowVolatility(context, params) ||
         volatilityAnalyser.isInDefinedRange(context);
-    boolean rsiSignal = rsiIndicator.isBuySignal(data, params);
+    boolean rsiSignal = rsiIndicator.isBuySignal(context, params);
 
     boolean ma100AndMa200Close = movingAverageIndicator.areMovingAveragesWithinThreshold(ma100Ma200,
         1.5);

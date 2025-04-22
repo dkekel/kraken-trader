@@ -95,7 +95,7 @@ public class MovingAverageScalperOptimizer extends GeneticOptimizer {
               .rsiSellThreshold(gt.get(6).get(0).allele())
               .lossPercent(gt.get(7).get(0).allele())
               .profitPercent(gt.get(8).get(0).allele())
-              .volatilityThreshold(gt.get(9).get(0).allele());
+              .highVolatilityThreshold(gt.get(9).get(0).allele());
 
           // Set reasonable defaults for other parameters not being optimized
           setDefaultParameters(builder);
@@ -114,7 +114,6 @@ public class MovingAverageScalperOptimizer extends GeneticOptimizer {
         .macdSignalPeriod(9)
         .volumePeriod(20)
         .aboveAverageThreshold(1.5)
-        .weightedAgreementThreshold(0.6)
         .adxPeriod(14)
         .adxBullishThreshold(25)
         .adxBearishThreshold(25)

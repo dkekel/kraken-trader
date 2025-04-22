@@ -5,5 +5,4 @@ public interface VolatilityParameters {
     double lowVolatilityThreshold();
     double highVolatilityThreshold();
     int lookbackPeriod();
-    double volatilityThreshold();
 }

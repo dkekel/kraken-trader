@@ -70,10 +70,10 @@ public class MovingAverageScalper implements Strategy {
     // Check if the market is range-bound
     boolean isRangeBound = volatilityAnalyser.isLowVolatility(context, params) ||
         volatilityAnalyser.isInDefinedRange(context);
-    boolean rsiSignal = rsiIndicator.isBuySignal(data, params);
+    boolean rsiSignal = rsiIndicator.isBuySignal(context, params);
 
     boolean ma100AndMa200Close = movingAverageIndicator.areMovingAveragesWithinThreshold(ma100Ma200,
-        params.volatilityThreshold());
+        params.highVolatilityThreshold());
 
     // Different strategies based on market conditions
     boolean buySignal;
@@ -171,7 +171,7 @@ public class MovingAverageScalper implements Strategy {
         .rsiBuyThreshold(28).rsiSellThreshold(66).rsiPeriod(8)
         .lossPercent(2).profitPercent(14)
         .atrPeriod(3).atrThreshold(3)
-        .volatilityThreshold(2)
+        .highVolatilityThreshold(2)
         .minimumCandles(300)
         .build();
   }

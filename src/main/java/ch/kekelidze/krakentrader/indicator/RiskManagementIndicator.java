@@ -37,11 +37,11 @@ public class RiskManagementIndicator implements Indicator {
     return currentPrice - (params.highVolatilityThreshold() * atr);
   }
 
-  private boolean shouldStopLoss(double entryPrice, double currentPrice, double lossPercent) {
+  public boolean shouldStopLoss(double entryPrice, double currentPrice, double lossPercent) {
     return currentPrice <= entryPrice * (1 - lossPercent / 100);
   }
 
-  private boolean shouldTakeProfit(double entryPrice, double currentPrice,
+  public boolean shouldTakeProfit(double entryPrice, double currentPrice,
       double profitPercent) {
     return currentPrice >= entryPrice * (1 + profitPercent / 100);
   }

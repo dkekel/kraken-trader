@@ -36,7 +36,7 @@ public class KrakenParameterOptimizerApplication {
     var krakenCsvService = application.getBean(CsvFileService.class);
     var optimizer = application.getBean("movingAverageScalperOptimizer", Optimizer.class);
     var backtestService = application.getBean(BackTesterService.class);
-    var historicalData = krakenCsvService.queryHistoricalData(List.of(coin), period);
+    var historicalData = krakenCsvService.queryHistoricalData(List.of(coin), period).get(coin);
     var evaluationContext = EvaluationContext.builder().symbol(getValidCoinName(coin))
         .period(period).bars(historicalData).build();
     var optimizeParameters = optimizer.optimizeParameters(evaluationContext);
