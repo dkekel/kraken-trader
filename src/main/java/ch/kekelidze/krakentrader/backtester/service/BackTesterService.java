@@ -124,7 +124,7 @@ public class BackTesterService {
    * @param params           Strategy parameters
    * @return Recommended position size as percentage of capital
    */
-  public double calculateAdaptivePositionSize(List<Bar> data, double entryPrice,
+  private double calculateAdaptivePositionSize(List<Bar> data, double entryPrice,
       double availableCapital, StrategyParameters params) {
     // Calculate ATR as percentage of price
     double atr = atrAnalyser.calculateATR(data, params.atrPeriod());
