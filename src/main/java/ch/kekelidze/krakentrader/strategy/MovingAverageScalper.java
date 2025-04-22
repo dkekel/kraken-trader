@@ -115,7 +115,7 @@ public class MovingAverageScalper implements Strategy {
         .rsiBuyThreshold(35).rsiSellThreshold(70).rsiPeriod(14)
         .lossPercent(3).profitPercent(15)
         .atrPeriod(14).atrThreshold(3)
-        .minimumCandles(300)
+        .minimumCandles(600)
         .build();
   }
 
