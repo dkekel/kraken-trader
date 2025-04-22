@@ -4,6 +4,10 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
+/data/
+/logs/
+/results/
+*.h5
 
 ### STS ###
 .apt_generated
