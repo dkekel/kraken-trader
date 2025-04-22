@@ -6,6 +6,7 @@ import ch.kekelidze.krakentrader.backtester.service.BackTesterService;
 import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
+import io.jenetics.EliteSelector;
 import io.jenetics.Genotype;
 import io.jenetics.IntegerChromosome;
 import io.jenetics.IntegerGene;
@@ -13,6 +14,7 @@ import io.jenetics.Mutator;
 import io.jenetics.Optimize;
 import io.jenetics.Phenotype;
 import io.jenetics.SinglePointCrossover;
+import io.jenetics.TournamentSelector;
 import io.jenetics.engine.Codec;
 import io.jenetics.engine.Engine;
 import io.jenetics.engine.EvolutionResult;
@@ -20,16 +22,17 @@ import io.jenetics.engine.EvolutionStatistics;
 import io.jenetics.stat.DoubleMomentStatistics;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 
 @Slf4j
-@Component
+@Component("genericOptimizer")
 public class GeneticOptimizer implements Optimizer {
 
   private static List<Bar> historicalData;
-  private static final double initialBalance = 10000;
+  private static final double initialBalance = 100;
 
   protected static BackTesterService backTesterService;
 
@@ -44,12 +47,14 @@ public class GeneticOptimizer implements Optimizer {
 
     log.debug("Starting genetic optimization for {}", coinPair);
 
-    Codec<StrategyParameters, IntegerGene> codec = createParameterCodec(coinPair);
+    Codec<StrategyParameters, IntegerGene> codec = createParameterCodec();
 
     Engine<IntegerGene, Double> engine = Engine.builder(
-            genotype -> fitness(context.getSymbol(), genotype), codec)
+            genotype -> fitness(context.getSymbol(), context.getPeriod(), genotype), codec)
         .populationSize(50) // Increase population size
         .optimize(Optimize.MAXIMUM)
+        .offspringSelector(new TournamentSelector<>(5))
+        .survivorsSelector(new EliteSelector<>())
         .alterers(
             new Mutator<>(0.2), // Add Mutator for genetic diversity
             new SinglePointCrossover<>(0.7) // Include crossover for better exploration
@@ -61,7 +66,7 @@ public class GeneticOptimizer implements Optimizer {
 
     Phenotype<IntegerGene, Double> best = engine.stream()
         .limit(bySteadyFitness(10))
-        .limit(50)
+        .limit(30)
         .peek(evolutionResult -> {
           statistics.accept(evolutionResult);
           log.debug("Statistics: {}", statistics);
@@ -77,7 +82,7 @@ public class GeneticOptimizer implements Optimizer {
   }
 
   // Default implementation of parameter codec creation - can be overridden by subclasses
-  protected Codec<StrategyParameters, IntegerGene> createParameterCodec(String coinPair) {
+  protected Codec<StrategyParameters, IntegerGene> createParameterCodec() {
     // Create chromosome for each parameter with min/max values
     IntegerChromosome maBuyShortChromosome = IntegerChromosome.of(5, 20);
     IntegerChromosome maBuyLongChromosome = IntegerChromosome.of(20, 80);
@@ -108,7 +113,6 @@ public class GeneticOptimizer implements Optimizer {
     );
   }
 
-  // Default parameter decoding logic - may be referenced by subclasses
   protected StrategyParameters decodeParameters(Genotype<IntegerGene> genotype) {
     return StrategyParameters.builder()
         .movingAverageBuyShortPeriod(genotype.get(0).get(0).allele())
@@ -142,19 +146,27 @@ public class GeneticOptimizer implements Optimizer {
         .build();
   }
 
-
   // Fitness function (Sharpe Ratio)
-  private static Double fitness(String coinPair, StrategyParameters params) {
-    var evaluationContext = EvaluationContext.builder().symbol(coinPair).bars(historicalData)
-        .build();
+  private static Double fitness(String coinPair, int period, StrategyParameters params) {
+    UUID uuid = UUID.randomUUID();
+    var evaluationContext = EvaluationContext.builder().symbol(coinPair + "_" + uuid).period(period)
+        .bars(historicalData).build();
     try {
       BacktestResult result = backTesterService.runSimulation(evaluationContext, params,
           initialBalance);
 
+      // Ensure win rate is above 30%, otherwise apply penalty
+      var targetWinRate = 0.3;
+      if (result.winRate() >= targetWinRate) {
+        log.debug("Win rate for {} is {}. Using Sharpe ratio: {}", coinPair, result.winRate(),
+            result.sharpeRatio());
+        log.debug("Parameters: {}", params);
+      }
+
       // Use Sharpe ratio as fitness measure
-      return result.sharpeRatio();
+      return result.sharpeRatio() * (1 + result.winRate());
     } catch (Exception e) {
-      log.error("Error in fitness evaluation: {}", e.getMessage());
+      log.error("Error in fitness evaluation: {}", e.getMessage(), e);
       return -1.0; // Penalty for errors
     }
   }
