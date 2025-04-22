@@ -27,6 +27,7 @@ public class TimeFrameAdjustmentUtils {
         .macdFastPeriod(parameters.macdFastPeriod() * timeFrameMultiplier)
         .macdSignalPeriod(parameters.macdSignalPeriod() * timeFrameMultiplier)
         .atrPeriod(parameters.atrPeriod() * timeFrameMultiplier)
+        .atrThreshold(parameters.atrThreshold())
         .rsiPeriod(parameters.rsiPeriod() * timeFrameMultiplier)
         .rsiBuyThreshold(parameters.rsiBuyThreshold())
         .rsiSellThreshold(parameters.rsiSellThreshold())
