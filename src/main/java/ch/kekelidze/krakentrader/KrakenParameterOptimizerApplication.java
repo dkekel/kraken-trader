@@ -34,7 +34,7 @@ public class KrakenParameterOptimizerApplication {
       throws IOException {
     var fileName = coin + "_" + period;
     var krakenCsvService = application.getBean(CsvFileService.class);
-    var optimizer = application.getBean("movingAverageScalperOptimizer", Optimizer.class);
+    var optimizer = application.getBean("buyLowSellHighOptimizer", Optimizer.class);
     var backtestService = application.getBean(BackTesterService.class);
     var historicalData = krakenCsvService.readCsvFile("data/Q4/" + fileName + ".csv");
     var evaluationContext = EvaluationContext.builder().symbol(getValidCoinName(coin))
