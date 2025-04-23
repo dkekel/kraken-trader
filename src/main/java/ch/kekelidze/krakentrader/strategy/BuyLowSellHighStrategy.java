@@ -1,5 +1,7 @@
 package ch.kekelidze.krakentrader.strategy;
 
+import static ch.kekelidze.krakentrader.trade.util.CoinNameUtils.getValidCoinName;
+
 import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
 import ch.kekelidze.krakentrader.indicator.MovingTrendIndicator;
 import ch.kekelidze.krakentrader.indicator.RiskManagementIndicator;
@@ -41,8 +43,8 @@ public class BuyLowSellHighStrategy implements Strategy {
     this.volumeIndicator = volumeIndicator;
     this.movingTrendIndicator = movingTrendIndicator;
     this.strategyParametersMap = Map.of(
-        "ETH", getETHStrategyParameters(),
-        "XRP", getXRPStrategyParameters()
+        "ETH/USD", getETHStrategyParameters(),
+        "XRP/USD", getXRPStrategyParameters()
     );
   }
 
@@ -188,8 +190,9 @@ public class BuyLowSellHighStrategy implements Strategy {
 
   @Override
   public StrategyParameters getStrategyParameters(String coinPair) {
-    if (strategyParametersMap.containsKey(coinPair)) {
-      return strategyParametersMap.get(coinPair);
+    var validCoinName = getValidCoinName(coinPair);
+    if (strategyParametersMap.containsKey(validCoinName)) {
+      return strategyParametersMap.get(validCoinName);
     }
     return getStrategyParameters();
   }

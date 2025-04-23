@@ -1,5 +1,7 @@
 package ch.kekelidze.krakentrader;
 
+import static ch.kekelidze.krakentrader.trade.util.CoinNameUtils.getValidCoinName;
+
 import ch.kekelidze.krakentrader.api.rest.service.KrakenApiService;
 import ch.kekelidze.krakentrader.api.file.service.CsvFileService;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
@@ -47,13 +49,5 @@ public class KrakenParameterOptimizerApplication {
     var result = backtestService.runSimulation(evaluationContextWithValidation, optimizeParameters,
         INITIAL_CAPITAL);
     log.info("Trade result: {}", result);
-  }
-
-  private static String getValidCoinName(String coinPair) {
-    if (coinPair != null && coinPair.endsWith("USD")) {
-      return coinPair.substring(0, coinPair.length() - 3) + "/" + coinPair.substring(
-          coinPair.length() - 3);
-    }
-    return coinPair;
   }
 }
