@@ -37,4 +37,3 @@ COPY model*.h5 /app/
 
 # Set the entry point
 ENTRYPOINT ["java", "-jar", "/app/KrakenTraderApplication.jar"]
-CMD ["movingAverageScalper"]
