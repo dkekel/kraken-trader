@@ -21,3 +21,14 @@ services:
       TZ: Europe/Zurich
     volumes:
       - ./logs/buyLowSellHighStrategy:/app/logs
+
+
+  # StrategyOptimizationRunner
+  strategy-optimizer:
+    image: strategy-optimizer:latest
+    environment:
+      TZ: Europe/Zurich
+    volumes:
+      - ./logs/optimizer:/app/logs
+      - ./data:/app/data
+    command: [ "XDGUSD,ETHUSD,SOLUSD,XRPUSD,LTCUSD,FLRUSD,HONEYUSD,PEPEUSD,SGBUSD", "5" ]

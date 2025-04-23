@@ -18,6 +18,22 @@ application {
     mainClass = 'ch.kekelidze.krakentrader.KrakenTraderApplication'
 }
 
+// Define multiple bootJar tasks for different main classes
+tasks.register('bootJarTrader', org.springframework.boot.gradle.tasks.bundling.BootJar) {
+    archiveBaseName = 'kraken-trader'
+    mainClass = 'ch.kekelidze.krakentrader.KrakenTraderApplication'
+}
+
+tasks.register('bootJarOptimizer', org.springframework.boot.gradle.tasks.bundling.BootJar) {
+    archiveBaseName = 'strategy-optimizer'
+    mainClass = 'ch.kekelidze.krakentrader.StrategyOptimizationRunner'
+}
+
+tasks.register('bootJarParameterOptimizer', org.springframework.boot.gradle.tasks.bundling.BootJar) {
+    archiveBaseName = 'parameter-optimizer'
+    mainClass = 'ch.kekelidze.krakentrader.KrakenParameterOptimizerApplication'
+}
+
 configurations {
     compileOnly {
         extendsFrom annotationProcessor
