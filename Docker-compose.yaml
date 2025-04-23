@@ -31,4 +31,5 @@ services:
     volumes:
       - ./logs/optimizer:/app/logs
       - ./data:/app/data
+      - ./model_v4.h5:/app/model_v4.h5
     command: [ "XDGUSD,ETHUSD,SOLUSD,XRPUSD,LTCUSD,FLRUSD,HONEYUSD,PEPEUSD,SGBUSD", "5" ]
