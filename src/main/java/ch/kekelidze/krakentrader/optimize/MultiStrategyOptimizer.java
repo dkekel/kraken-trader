@@ -38,9 +38,9 @@ public class MultiStrategyOptimizer implements Optimizer {
   private final StrategySelector strategySelector;
   private final HistoricalDataService historicalDataService;
 
-  private static final double initialBalance = 10000;
+  private static final double initialBalance = 1000;
   private static final int STEADY_FITNESS_GENERATIONS = 10;
-  private static final int MAX_GENERATIONS = 50;
+  private static final int MAX_GENERATIONS = 15;
 
   // Available strategies to test
   private final List<String> availableStrategies = List.of(
@@ -66,8 +66,8 @@ public class MultiStrategyOptimizer implements Optimizer {
       // Create a fitness function specific to this strategy
       Engine<DoubleGene, Double> engine = Engine
           .builder(
-              (Genotype<DoubleGene> genotype) -> fitnessFunction(coinPair, strategyName,
-                  context.getBars(), genotype),
+              (Genotype<DoubleGene> genotype) -> fitnessFunction(coinPair, context.getPeriod(),
+                  strategyName, context.getBars(), genotype),
               createGenotypeFactory())
           .populationSize(50)
           .selector(new TournamentSelector<>(3))
@@ -119,7 +119,7 @@ public class MultiStrategyOptimizer implements Optimizer {
     }
   }
 
-  private double fitnessFunction(String coinPair, String strategyName, List<Bar> data, 
+  private double fitnessFunction(String coinPair, int period, String strategyName, List<Bar> data,
       Genotype<DoubleGene> genotype) {
     // Extract parameters from genotype
     StrategyParameters params = getStrategyParameters(genotype);
@@ -128,6 +128,7 @@ public class MultiStrategyOptimizer implements Optimizer {
       // Create context with appropriate data for this coin pair
       EvaluationContext context = EvaluationContext.builder()
           .symbol(coinPair)
+          .period(period)
           .bars(data)
           .build();
 

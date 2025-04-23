@@ -36,16 +36,13 @@ public class StrategyOptimizationRunner {
       return;
     }
 
-    // Create optimization service
+    int period = Integer.parseInt(args[1]);
+
     StrategyOptimizationService optimizationService = application.getBean(
         StrategyOptimizationService.class);
 
     // Run optimization
-    log.info("Starting Strategy Optimization");
-    optimizationService.optimizeCoinPairs(coins);
-
-    // Print results
-    log.info("Best Strategies: {}", optimizationService.getBestStrategiesMap());
-    log.info("Optimized Parameters: {}", optimizationService.getOptimizedParametersMap());
+    log.info("Starting Strategy Optimization for {}", coins);
+    optimizationService.optimizeCoinPairs(coins, period);
   }
 }
