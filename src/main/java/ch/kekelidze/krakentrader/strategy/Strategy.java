@@ -42,6 +42,10 @@ public interface Strategy {
         .build();
   }
 
+  default StrategyParameters getStrategyParameters(String coinPair) {
+    return getStrategyParameters();
+  }
+
   default int getPeriod() {
     return 60;
   }

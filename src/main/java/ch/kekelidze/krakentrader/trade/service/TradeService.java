@@ -30,7 +30,7 @@ public class TradeService {
   }
 
   public void executeStrategy(String coinPair, List<Bar> data) {
-    executeSelectedStrategy(coinPair, data, strategy.getStrategyParameters(), strategy);
+    executeSelectedStrategy(coinPair, data, strategy.getStrategyParameters(coinPair), strategy);
   }
 
   private void executeSelectedStrategy(String coinPair, List<Bar> data, StrategyParameters params,
