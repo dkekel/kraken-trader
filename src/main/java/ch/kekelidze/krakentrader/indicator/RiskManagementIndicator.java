@@ -26,8 +26,9 @@ public class RiskManagementIndicator implements Indicator {
     var currentPrice = calculateDynamicStopLossPrice(data, params);
     var stopLossTakeProfit = shouldStopLoss(entryPrice, currentPrice, params.lossPercent())
         || shouldTakeProfit(entryPrice, currentPrice, params.profitPercent());
-    log.debug("Shot stop loss/take profit: {} | Closing time: {}", stopLossTakeProfit,
-        data.getLast().getEndTime());
+    log.debug(
+        "Dynamic price: {}, Entry price: {} | Should stop loss/take profit: {} | Closing time: {}",
+        currentPrice, entryPrice, stopLossTakeProfit, data.getLast().getEndTime());
     return stopLossTakeProfit;
   }
 

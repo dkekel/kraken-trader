@@ -2,9 +2,11 @@ package ch.kekelidze.krakentrader.indicator.analyser;
 
 import java.util.ArrayList;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 
+@Slf4j
 @Component
 public class BollingerContractionAnalyser {
 
@@ -55,6 +57,7 @@ public class BollingerContractionAnalyser {
     // Check if current bandwidth is below threshold
     double currentBandwidth = recentBandwidths.getLast();
 
+    log.debug("Current bandwidth: {}, Threshold: {}", currentBandwidth, contractionThreshold);
     return currentBandwidth < contractionThreshold;
   }
 }

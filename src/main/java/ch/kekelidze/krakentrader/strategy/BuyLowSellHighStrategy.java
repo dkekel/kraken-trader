@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 
+@Slf4j
 @Component("buyLowSellHighStrategy")
 public class BuyLowSellHighStrategy implements Strategy {
 
@@ -47,21 +48,27 @@ public class BuyLowSellHighStrategy implements Strategy {
 
   @Override
   public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
-    var bars = context.getBars();
     boolean volatilityOK = volatilityIndicator.isBuySignal(context, params);
     boolean macdConfirmed = macdIndicator.isBuySignal(context, params);
-    boolean downtrend = isDowntrend(bars, params);
+    boolean downtrend = isDowntrend(context, params);
     boolean bullishSignal = isBullishSignal(context, params);
     boolean movingTrend = movingTrendIndicator.isBuySignal(context, params);
+
+    log.debug(
+        "Buy '{}' signals - Volatility: {}, MACD: {}, Downtrend: {}, Bullish: {}, MovingTrend: {}",
+        context.getSymbol(), volatilityOK, macdConfirmed, downtrend, bullishSignal, movingTrend);
+
     return downtrend && bullishSignal && volatilityOK && macdConfirmed && movingTrend;
   }
 
-  private boolean isDowntrend(List<Bar> data, StrategyParameters params) {
+  private boolean isDowntrend(EvaluationContext context, StrategyParameters params) {
+    var data = context.getBars();
     var ma20ma50 = movingAverageIndicator.calculateMovingAverage(data,
         params.movingAverageBuyShortPeriod(), params.movingAverageBuyLongPeriod());
     var endIndex = ma20ma50.endIndex();
     var ma20 = ma20ma50.maShort().getValue(endIndex);
     var ma50 = ma20ma50.maLong().getValue(endIndex);
+    log.debug("Downtrend '{}' - MA20: {}, MA50: {}", context.getSymbol(), ma20, ma50);
     return ma20.isLessThan(ma50);
   }
 
@@ -70,6 +77,10 @@ public class BuyLowSellHighStrategy implements Strategy {
     boolean volumeConfirmation = volumeIndicator.isBuySignal(context, params);
     var data = context.getBars();
     boolean hasBullishSequence = hasBullishSequence(data, params);
+
+    log.debug("Bullish '{}' signal evaluation - RSI: {}, Volume: {}, Bullish Sequence: {}",
+        context.getSymbol(), rsiBuySignal, volumeConfirmation, hasBullishSequence);
+
     return (rsiBuySignal || volumeConfirmation) && hasBullishSequence;
   }
 
@@ -107,7 +118,10 @@ public class BuyLowSellHighStrategy implements Strategy {
   @Override
   public boolean shouldSell(EvaluationContext context, double entryPrice,
       StrategyParameters params) {
-    return riskManagementIndicator.isSellSignal(context.getBars(), entryPrice, params);
+    boolean riskSignal = riskManagementIndicator.isSellSignal(context.getBars(), entryPrice,
+        params);
+    log.debug("Sell '{}' signals - Risk: {}", context.getSymbol(), riskSignal);
+    return riskSignal;
   }
 
   //TODO Q3 ETH

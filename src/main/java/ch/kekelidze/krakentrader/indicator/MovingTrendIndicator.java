@@ -5,9 +5,11 @@ import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class MovingTrendIndicator implements Indicator {
@@ -38,7 +40,12 @@ public class MovingTrendIndicator implements Indicator {
     boolean bollingerContraction = bollingerContractionAnalyser.hasBollingerContraction(data,
         parameters.movingAverageBuyShortPeriod(), parameters.contractionThreshold());
 
-    return !(sidewaysChannel && bollingerContraction);
+    var movingTrend = !(sidewaysChannel && bollingerContraction);
+    log.debug(
+        "Market moving result: {}, calculated using sidewaysChannel={} and bollingerContraction={}",
+        movingTrend, sidewaysChannel, bollingerContraction);
+
+    return movingTrend;
   }
 
   /**
@@ -74,6 +81,7 @@ public class MovingTrendIndicator implements Indicator {
     double percentRange = ((highestHigh - lowestLow) / avgPrice) * 100;
 
     // If the range is less than the threshold, consider it sideways
+    log.debug("Sideways channel: {} < {}", percentRange, channelThreshold);
     return percentRange < channelThreshold;
   }
 }
