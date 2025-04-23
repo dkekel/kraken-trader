@@ -17,5 +17,7 @@ services:
   kraken-trader-buy-low-sell-high:
     image: kraken-trader:latest
     command: [ "buyLowSellHighStrategy", "DOGE/USD,ETH/USD,HONEY/USD,PEPE/USD,FLR/USD,SGB/USD", "2000" ]
+    environment:
+      TZ: Europe/Zurich
     volumes:
       - ./logs/buyLowSellHighStrategy:/app/logs
