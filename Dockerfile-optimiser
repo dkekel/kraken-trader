@@ -14,7 +14,7 @@ COPY src /app/src
 RUN chmod +x ./gradlew
 
 # Build the optimizer application
-RUN ./gradlew bootJarOptimizer --no-daemon
+RUN ./gradlew buildAll --no-daemon
 
 # Final runtime image
 FROM eclipse-temurin:21

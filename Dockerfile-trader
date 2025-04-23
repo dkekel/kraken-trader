@@ -17,7 +17,7 @@ COPY src /app/src
 RUN chmod +x ./gradlew
 
 # Build the application using Gradle
-RUN ./gradlew bootJarTrader --no-daemon
+RUN ./gradlew buildAll --no-daemon
 
 # Final runtime image
 FROM eclipse-temurin:21

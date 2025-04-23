@@ -20,35 +20,46 @@ application {
 
 bootJar {
     mainClass = 'ch.kekelidze.krakentrader.KrakenTraderApplication'
+    archiveBaseName = 'kraken-trader'
+    archiveFileName = "kraken-trader-${version}.jar"
 }
 
-tasks.register('bootJarTrader', org.springframework.boot.gradle.tasks.bundling.BootJar) {
-    description = 'Builds a boot JAR for the trader application'
-    group = 'build'
+def createBootJarTask(String taskName, String mainClassName, String jarName) {
+    return tasks.register(taskName, org.springframework.boot.gradle.tasks.bundling.BootJar) {
+        dependsOn(compileJava)
 
-    mainClass.set('ch.kekelidze.krakentrader.KrakenTraderApplication')
-    archiveBaseName.set('kraken-trader')
-    archiveFileName.set("kraken-trader-${version}.jar")
+        mainClass.set(mainClassName)
+        archiveBaseName.set(jarName)
+        archiveFileName.set("${jarName}-${version}.jar")
 
-    classpath = sourceSets.main.runtimeClasspath
-    targetJavaVersion = JavaVersion.VERSION_21
+        classpath = sourceSets.main.runtimeClasspath
+        targetJavaVersion = JavaVersion.VERSION_21
 
-    from(sourceSets.main.output)
+        launchScript()
+    }
 }
 
-// Register task for creating the optimizer application jar
-tasks.register('bootJarOptimizer', org.springframework.boot.gradle.tasks.bundling.BootJar) {
-    description = 'Builds a boot JAR for the strategy optimization application'
-    group = 'build'
+def traderJar = createBootJarTask(
+        'bootJarTrader',
+        'ch.kekelidze.krakentrader.KrakenTraderApplication',
+        'kraken-trader'
+)
 
-    mainClass.set('ch.kekelidze.krakentrader.StrategyOptimizationRunner')
-    archiveBaseName.set('strategy-optimizer')
-    archiveFileName.set("strategy-optimizer-${version}.jar")
+def optimizerJar = createBootJarTask(
+        'bootJarOptimizer',
+        'ch.kekelidze.krakentrader.StrategyOptimizationRunner',
+        'strategy-optimizer'
+)
 
-    classpath = sourceSets.main.runtimeClasspath
-    targetJavaVersion = JavaVersion.VERSION_21
+tasks.register('buildAll') {
+    description = 'Builds both trader and optimizer applications'
+    dependsOn traderJar, optimizerJar
 
-    from(sourceSets.main.output)
+    doLast {
+        println "Both application JARs built successfully"
+        println "Trader JAR: ${traderJar.get().archiveFile.get().asFile}"
+        println "Optimizer JAR: ${optimizerJar.get().archiveFile.get().asFile}"
+    }
 }
 
 configurations {
