@@ -6,6 +6,20 @@ spring:
       enabled: false
   application:
     name: "kraken-trader"
+  datasource:
+    url: jdbc:h2:file:./data/strategydb;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: password
+    driver-class-name: org.h2.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
 kraken:
   api:
     key: ABC
