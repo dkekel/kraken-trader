@@ -1,6 +1,6 @@
 package ch.kekelidze.krakentrader.strategy;
 
-import static ch.kekelidze.krakentrader.trade.util.CoinNameUtils.getValidCoinName;
+import static ch.kekelidze.krakentrader.strategy.service.StrategyParametersService.getValidCoinName;
 
 import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
 import ch.kekelidze.krakentrader.indicator.MovingTrendIndicator;
@@ -11,8 +11,8 @@ import ch.kekelidze.krakentrader.indicator.VolatilityIndicator;
 import ch.kekelidze.krakentrader.indicator.VolumeIndicator;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
+import ch.kekelidze.krakentrader.strategy.service.StrategyParametersService;
 import java.util.List;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
@@ -28,13 +28,13 @@ public class BuyLowSellHighStrategy implements Strategy {
   private final SimpleMovingAverageDivergenceIndicator macdIndicator;
   private final VolumeIndicator volumeIndicator;
   private final MovingTrendIndicator movingTrendIndicator;
-
-  private final Map<String, StrategyParameters> strategyParametersMap;
+  private final StrategyParametersService strategyParametersService;
 
   public BuyLowSellHighStrategy(MovingAverageIndicator movingAverageIndicator,
       RsiRangeIndicator rsiIndicator, RiskManagementIndicator riskManagementIndicator,
       VolatilityIndicator volatilityIndicator, SimpleMovingAverageDivergenceIndicator macdIndicator,
-      VolumeIndicator volumeIndicator, MovingTrendIndicator movingTrendIndicator) {
+      VolumeIndicator volumeIndicator, MovingTrendIndicator movingTrendIndicator,
+      StrategyParametersService strategyParametersService) {
     this.movingAverageIndicator = movingAverageIndicator;
     this.rsiIndicator = rsiIndicator;
     this.riskManagementIndicator = riskManagementIndicator;
@@ -42,10 +42,7 @@ public class BuyLowSellHighStrategy implements Strategy {
     this.macdIndicator = macdIndicator;
     this.volumeIndicator = volumeIndicator;
     this.movingTrendIndicator = movingTrendIndicator;
-    this.strategyParametersMap = Map.of(
-        "ETH/USD", getETHStrategyParameters(),
-        "XRP/USD", getXRPStrategyParameters()
-    );
+    this.strategyParametersService = strategyParametersService;
   }
 
   @Override
@@ -191,9 +188,7 @@ public class BuyLowSellHighStrategy implements Strategy {
   @Override
   public StrategyParameters getStrategyParameters(String coinPair) {
     var validCoinName = getValidCoinName(coinPair);
-    if (strategyParametersMap.containsKey(validCoinName)) {
-      return strategyParametersMap.get(validCoinName);
-    }
-    return getStrategyParameters();
+    return strategyParametersService.getStrategyParameters(validCoinName)
+        .orElseGet(this::getStrategyParameters);
   }
 }
