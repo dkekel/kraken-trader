@@ -66,7 +66,7 @@ public class GeneticOptimizer implements Optimizer {
 
     Phenotype<IntegerGene, Double> best = engine.stream()
         .limit(bySteadyFitness(10))
-        .limit(30)
+        .limit(15)
         .peek(evolutionResult -> {
           statistics.accept(evolutionResult);
           log.debug("Statistics: {}", statistics);
