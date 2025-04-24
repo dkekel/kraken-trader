@@ -48,7 +48,7 @@ public class MultiStrategyOptimizer implements Optimizer {
       "movingAverageScalper",
       "multiTimeFrameLowHigh",
       "supportResistanceConsolidation",
-      "weightedAgreement"
+      "buyLowSellHighStrategy"
   );
 
   private final Map<String, OptimizationResult> bestResultsPerCoin = new ConcurrentHashMap<>();
@@ -143,12 +143,6 @@ public class MultiStrategyOptimizer implements Optimizer {
           coinPair, strategyName, e.getMessage());
       return -100.0; // Severely penalize failed evaluations
     }
-  }
-
-  private List<Bar> getHistoricalDataForCoin(String coinPair, int period) {
-    // Implementation to get historical data for a specific coin
-    // This could be retrieved from a database or external service
-    return historicalDataService.queryHistoricalData(List.of(coinPair), period).get(coinPair);
   }
 
   // Create a genotype factory for parameter optimization

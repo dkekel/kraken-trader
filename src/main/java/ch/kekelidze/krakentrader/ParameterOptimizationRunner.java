@@ -1,11 +1,11 @@
 package ch.kekelidze.krakentrader;
 
+import ch.kekelidze.krakentrader.api.file.service.CsvFileService;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import ch.kekelidze.krakentrader.backtester.service.BackTesterService;
 import ch.kekelidze.krakentrader.indicator.Indicator;
 import ch.kekelidze.krakentrader.optimize.Optimizer;
-import ch.kekelidze.krakentrader.api.file.service.CsvFileService;
-import ch.kekelidze.krakentrader.optimize.service.StrategyOptimizationService;
+import ch.kekelidze.krakentrader.optimize.service.ParameterOptimizationService;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import java.util.Arrays;
 import java.util.List;
@@ -18,10 +18,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
     scanBasePackageClasses = {CsvFileService.class, ResponseConverterUtils.class,
         BackTesterService.class, Indicator.class, Strategy.class, Optimizer.class}
 )
-public class StrategyOptimizationRunner {
+public class ParameterOptimizationRunner {
 
   public static void main(String[] args) {
-    var application = SpringApplication.run(StrategyOptimizationRunner.class, args);
+    var application = SpringApplication.run(ParameterOptimizationRunner.class, args);
 
     // Parse coins from command-line arguments
     if (args.length == 0 || args[0].isBlank()) {
@@ -38,15 +38,10 @@ public class StrategyOptimizationRunner {
 
     int period = Integer.parseInt(args[1]);
 
-    // Create optimization service
-    var optimizationService = application.getBean(StrategyOptimizationService.class);
+    var optimizationService = application.getBean(ParameterOptimizationService.class);
 
     // Run optimization
-    log.info("Starting Strategy Optimization");
+    log.info("Starting Strategy Optimization for {}", coins);
     optimizationService.optimizeCoinPairs(coins, period);
-
-    // Print results
-    log.info("Best Strategies: {}", optimizationService.getBestStrategiesMap());
-    log.info("Optimized Parameters: {}", optimizationService.getOptimizedParametersMap());
   }
 }
