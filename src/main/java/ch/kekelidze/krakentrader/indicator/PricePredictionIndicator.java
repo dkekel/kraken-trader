@@ -9,12 +9,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 import org.ta4j.core.num.Num;
 
 @Slf4j
 @Component
+@Conditional(PredictionModelExistCondition.class)
 public class PricePredictionIndicator implements Indicator {
 
   private final MultiLayerNetwork model;
