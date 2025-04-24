@@ -36,7 +36,6 @@ public class MultiStrategyOptimizer implements Optimizer {
 
   private final BackTesterService backTesterService;
   private final StrategySelector strategySelector;
-  private final HistoricalDataService historicalDataService;
 
   private static final double initialBalance = 1000;
   private static final int STEADY_FITNESS_GENERATIONS = 10;
@@ -96,7 +95,7 @@ public class MultiStrategyOptimizer implements Optimizer {
       BacktestResult backtestResult = backTesterService.runSimulation(
           context, strategyName, params, initialBalance);
 
-      double fitness = backtestResult.sharpeRatio();
+      double fitness = backtestResult.sharpeRatio() * (1 + backtestResult.winRate());
 
       // Check if this strategy is better than previous ones
       if (bestResult == null || fitness > bestResult.fitness()) {
