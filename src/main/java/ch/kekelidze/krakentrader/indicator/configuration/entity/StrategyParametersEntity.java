@@ -31,6 +31,9 @@ public class StrategyParametersEntity {
   @Column(name = "coin_pair", nullable = false, unique = true)
   private String coinPair;
 
+  @Column(name = "strategy_name")
+  private String strategyName;
+
   @Column(name = "moving_average_buy_short_period")
   private int movingAverageBuyShortPeriod;
 
@@ -162,16 +165,18 @@ public class StrategyParametersEntity {
   }
 
   /**
-   * Creates a new entity from a StrategyParameters record and a coin pair.
+   * Creates a new entity from a StrategyParameters record, a coin pair, and a strategy name.
    *
-   * @param coinPair   the coin pair for which these parameters are valid
-   * @param parameters the strategy parameters
+   * @param coinPair     the coin pair for which these parameters are valid
+   * @param strategyName the name of the strategy to use for this coin pair
+   * @param parameters   the strategy parameters
    * @return a new StrategyParametersEntity
    */
   public static StrategyParametersEntity fromStrategyParameters(String coinPair,
-      StrategyParameters parameters) {
+      String strategyName, StrategyParameters parameters) {
     return StrategyParametersEntity.builder()
         .coinPair(coinPair)
+        .strategyName(strategyName)
         .movingAverageBuyShortPeriod(parameters.movingAverageBuyShortPeriod())
         .movingAverageBuyLongPeriod(parameters.movingAverageBuyLongPeriod())
         .movingAverageSellShortPeriod(parameters.movingAverageSellShortPeriod())

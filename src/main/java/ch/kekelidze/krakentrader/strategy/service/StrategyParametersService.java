@@ -35,6 +35,32 @@ public class StrategyParametersService {
   }
 
   /**
+   * Gets the strategy name for a specific coin pair.
+   *
+   * @param coinPair the coin pair to get the strategy name for
+   * @return an Optional containing the strategy name if found, or empty if not found
+   */
+  public Optional<String> getStrategyName(String coinPair) {
+    log.debug("Getting strategy name for coin pair: {}", coinPair);
+    var validCoinPair = getValidCoinName(coinPair);
+    return repository.findByCoinPair(validCoinPair)
+        .map(StrategyParametersEntity::getStrategyName);
+  }
+
+  /**
+   * Gets all coin pairs that use a specific strategy.
+   *
+   * @param strategyName the strategy name to find coin pairs for
+   * @return a list of coin pairs that use the specified strategy
+   */
+  public List<String> getCoinPairsByStrategy(String strategyName) {
+    log.debug("Getting coin pairs for strategy: {}", strategyName);
+    return repository.findByStrategyName(strategyName).stream()
+        .map(StrategyParametersEntity::getCoinPair)
+        .collect(Collectors.toList());
+  }
+
+  /**
    * Saves strategy parameters for a specific coin pair. If parameters already exist for the coin
    * pair, they will be updated.
    *
@@ -44,7 +70,23 @@ public class StrategyParametersService {
    */
   @Transactional
   public StrategyParameters saveStrategyParameters(String coinPair, StrategyParameters parameters) {
-    log.debug("Saving strategy parameters for coin pair: {}", coinPair);
+    return saveStrategyParameters(coinPair, null, parameters);
+  }
+
+  /**
+   * Saves strategy parameters for a specific coin pair with a specified strategy name. If
+   * parameters already exist for the coin pair, they will be updated.
+   *
+   * @param coinPair     the coin pair to save parameters for
+   * @param strategyName the name of the strategy to use for this coin pair
+   * @param parameters   the parameters to save
+   * @return the saved parameters
+   */
+  @Transactional
+  public StrategyParameters saveStrategyParameters(String coinPair, String strategyName,
+      StrategyParameters parameters) {
+    log.debug("Saving strategy parameters for coin pair: {} with strategy: {}", coinPair,
+        strategyName);
     var validCoinPair = getValidCoinName(coinPair);
 
     StrategyParametersEntity entity;
@@ -52,8 +94,13 @@ public class StrategyParametersService {
       entity = repository.findByCoinPair(validCoinPair).orElseThrow();
       // Update existing entity with new parameters
       entity = updateEntityFromParameters(entity, parameters);
+      // Update strategy name if provided
+      if (strategyName != null) {
+        entity.setStrategyName(strategyName);
+      }
     } else {
-      entity = StrategyParametersEntity.fromStrategyParameters(validCoinPair, parameters);
+      entity = StrategyParametersEntity.fromStrategyParameters(validCoinPair, strategyName,
+          parameters);
     }
 
     return repository.save(entity).toStrategyParameters();

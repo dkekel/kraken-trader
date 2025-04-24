@@ -1,6 +1,7 @@
 package ch.kekelidze.krakentrader.strategy.repository;
 
 import ch.kekelidze.krakentrader.indicator.configuration.entity.StrategyParametersEntity;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -27,4 +28,12 @@ public interface StrategyParametersRepository extends
    * @return true if parameters exist, false otherwise
    */
   boolean existsByCoinPair(String coinPair);
+
+  /**
+   * Finds all strategy parameters for a specific strategy.
+   *
+   * @param strategyName the strategy name to find parameters for
+   * @return a list of strategy parameters entities for the specified strategy
+   */
+  List<StrategyParametersEntity> findByStrategyName(String strategyName);
 }
