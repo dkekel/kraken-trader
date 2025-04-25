@@ -28,7 +28,7 @@ logging:
   level:
     ch.kekelidze.krakentrader.indicator.AdxIndicator: INFO
     ch.kekelidze.krakentrader.indicator.MovingAverageIndicator: info
-    ch.kekelidze.krakentrader.indicator.SimpleMovingAverageDivergenceIndicator: debug
+    ch.kekelidze.krakentrader.indicator.SimpleMovingAverageDivergenceIndicator: info
     ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceCrossOverIndicator: info
     ch.kekelidze.krakentrader.indicator.MFIIndicator: info
     ch.kekelidze.krakentrader.indicator.PricePredictionIndicator: INFO
@@ -44,17 +44,17 @@ logging:
     ch.kekelidze.krakentrader.strategy.PricePredictionStrategy: INFO
     ch.kekelidze.krakentrader.strategy.MovingAverageScalper: info
     ch.kekelidze.krakentrader.strategy.MultiIndexMomentumStrategy: info
-    ch.kekelidze.krakentrader.strategy.MultiTimeFrameLowHighStrategy: debug
+    ch.kekelidze.krakentrader.strategy.MultiTimeFrameLowHighStrategy: info
     ch.kekelidze.krakentrader.strategy.ConsolidationStrategy: info
     ch.kekelidze.krakentrader.strategy.BuyLowSellHighStrategy: info
 
-    ch.kekelidze.krakentrader.optimize.GeneticOptimizer: debug
-    ch.kekelidze.krakentrader.optimize.MultiStrategyOptimizer: debug
+    ch.kekelidze.krakentrader.optimize.GeneticOptimizer: info
+    ch.kekelidze.krakentrader.optimize.MultiStrategyOptimizer: info
 
-    ch.kekelidze.krakentrader.api.rest.service.KrakenAveragePriceService: debug
+    ch.kekelidze.krakentrader.api.rest.service.KrakenAveragePriceService: info
 
     ch.kekelidze.krakentrader.backtester.service.BackTesterService: info
-    ch.kekelidze.krakentrader.api.websocket.KrakenWebSocketClient: debug
+    ch.kekelidze.krakentrader.api.websocket.KrakenWebSocketClient: info
 
   file:
     name: logs/kraken-trader.log
