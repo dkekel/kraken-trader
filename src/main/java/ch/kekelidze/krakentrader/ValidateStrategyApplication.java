@@ -25,14 +25,14 @@ import org.springframework.context.ApplicationContext;
     scanBasePackageClasses = {CsvFileService.class, ResponseConverterUtils.class,
         BackTesterService.class, StrategyConfig.class, Indicator.class, Strategy.class}
 )
-public class KrakenValidateStrategyApplication {
+public class ValidateStrategyApplication {
 
   private static final double INITIAL_CAPITAL = 100;
 
   public static void main(String[] args) {
     List<String> coins = List.of(args[0].split(","));
     int period = Integer.parseInt(args[1]);
-    var application = SpringApplication.run(KrakenValidateStrategyApplication.class, args);
+    var application = SpringApplication.run(ValidateStrategyApplication.class, args);
     validateWithHistoricalData(application, coins, period);
     int exitCode = SpringApplication.exit(application, () -> 0);
     System.exit(exitCode);

@@ -14,12 +14,12 @@ import org.springframework.context.ApplicationContext;
 @SpringBootApplication(
     scanBasePackageClasses = {CsvFileService.class, LSTMModel.class, TestDataUtils.class}
 )
-public class KrakenModelTrainingApplication {
+public class ModelTrainingApplication {
 
   public static void main(String[] args) throws IOException {
     String coin = args[0];
     int trainingInterval = Integer.parseInt(args[1]);
-    var application = SpringApplication.run(KrakenModelTrainingApplication.class, args);
+    var application = SpringApplication.run(ModelTrainingApplication.class, args);
     optimizeMLModel(application, coin, trainingInterval);
   }
 
