@@ -123,7 +123,6 @@ public class BuyLowSellHighStrategy implements Strategy {
     return riskSignal;
   }
 
-  //TODO Q3 ETH
   @Override
   public StrategyParameters getStrategyParameters() {
     return StrategyParameters.builder()
@@ -136,52 +135,6 @@ public class BuyLowSellHighStrategy implements Strategy {
         .atrPeriod(17).lookbackPeriod(7)
         .lowVolatilityThreshold(0.87).highVolatilityThreshold(1.32)
         .minimumCandles(159)
-        .build();
-  }
-
-  /**
-   * Retrieves the strategy parameters specifically configured for Ethereum-based trading (Q4 2024).
-   * These parameters define the rules and thresholds for various technical indicators
-   * such as moving averages, RSI, MACD, ATR, and volume metrics, which are used to analyze
-   * market data for Ethereum trading decisions.
-   *
-   * @return a {@code StrategyParameters} instance containing predefined indicator
-   *         configuration values tailored for Ethereum trading.
-   */
-  private StrategyParameters getETHStrategyParameters() {
-    return StrategyParameters.builder()
-        .movingAverageBuyShortPeriod(21).movingAverageBuyLongPeriod(75)
-        .rsiBuyThreshold(48).rsiSellThreshold(79).rsiPeriod(17).lookbackPeriod(6)
-        .macdFastPeriod(11).macdSlowPeriod(25).macdSignalPeriod(7)
-        .atrPeriod(15).lowVolatilityThreshold(0.87).highVolatilityThreshold(1.3)
-        .volumePeriod(27).aboveAverageThreshold(23)
-        .lossPercent(3.1).profitPercent(8.9)
-        .contractionThreshold(3.4)
-        .minimumCandles(225)
-        .build();
-  }
-
-  /**
-   * Retrieves the strategy parameters specifically tailored for XRP trading (optimized Q4 2024).
-   * <p>
-   * The parameters include configurations for various trading indicators such as moving averages,
-   * RSI, MACD, volume analysis, ATR, and volatility thresholds. These parameters are used to guide
-   * decision-making in the XRP trading strategy.
-   *
-   * @return an instance of {@code StrategyParameters} containing predefined settings for XRP
-   * trading strategy
-   */
-  private StrategyParameters getXRPStrategyParameters() {
-    return StrategyParameters.builder()
-        .movingAverageBuyShortPeriod(24).movingAverageBuyLongPeriod(50)
-        .rsiPeriod(12).rsiBuyThreshold(43).rsiSellThreshold(78)
-        .macdFastPeriod(9).macdSlowPeriod(31).macdSignalPeriod(7)
-        .volumePeriod(18).aboveAverageThreshold(18)
-        .lossPercent(4.8).profitPercent(11.8)
-        .contractionThreshold(4.5)
-        .atrPeriod(16).lookbackPeriod(7)
-        .lowVolatilityThreshold(0.73).highVolatilityThreshold(1.6)
-        .minimumCandles(150)
         .build();
   }
 
