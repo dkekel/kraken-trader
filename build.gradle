@@ -51,14 +51,21 @@ def optimizerJar = createBootJarTask(
         'strategy-optimizer'
 )
 
+def buyLowSellHighOptimizerJar =  createBootJarTask(
+        "bootBuyLowSellHighOptimizer",
+        "ch.kekelidze.krakentrader.BuyLowSellHighParameterOptimizationRunner",
+        "buy-low-sell-high-param-optimizer"
+)
+
 tasks.register('buildAll') {
     description = 'Builds both trader and optimizer applications'
-    dependsOn traderJar, optimizerJar
+    dependsOn traderJar, optimizerJar, buyLowSellHighOptimizerJar
 
     doLast {
         println "Both application JARs built successfully"
         println "Trader JAR: ${traderJar.get().archiveFile.get().asFile}"
         println "Optimizer JAR: ${optimizerJar.get().archiveFile.get().asFile}"
+        println "Buy Low Sell High Optimizer JAR: ${buyLowSellHighOptimizerJar.get().archiveFile.get().asFile}"
     }
 }
 

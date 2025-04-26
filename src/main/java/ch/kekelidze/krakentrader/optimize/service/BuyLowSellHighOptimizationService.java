@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ParameterOptimizationService {
+public class BuyLowSellHighOptimizationService {
 
   private final BuyLowSellHighOptimizer optimizer;
   private final HistoricalDataService historicalDataService;
@@ -34,7 +34,7 @@ public class ParameterOptimizationService {
 
       // Optimize strategy for this coin
       StrategyParameters params = optimizer.optimizeParameters(context);
-      strategyParametersService.saveStrategyParameters(coinPair, params);
+      strategyParametersService.saveStrategyParameters(coinPair, "buyLowSellHighStrategy", params);
       log.info("Optimization completed for {}. Best fit: {}", coinPair, params.toString());
     }
   }

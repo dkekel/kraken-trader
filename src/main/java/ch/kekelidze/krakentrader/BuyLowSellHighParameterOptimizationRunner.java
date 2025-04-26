@@ -5,7 +5,7 @@ import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import ch.kekelidze.krakentrader.backtester.service.BackTesterService;
 import ch.kekelidze.krakentrader.indicator.Indicator;
 import ch.kekelidze.krakentrader.optimize.Optimizer;
-import ch.kekelidze.krakentrader.optimize.service.ParameterOptimizationService;
+import ch.kekelidze.krakentrader.optimize.service.BuyLowSellHighOptimizationService;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import java.util.Arrays;
 import java.util.List;
@@ -18,10 +18,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
     scanBasePackageClasses = {CsvFileService.class, ResponseConverterUtils.class,
         BackTesterService.class, Indicator.class, Strategy.class, Optimizer.class}
 )
-public class ParameterOptimizationRunner {
+public class BuyLowSellHighParameterOptimizationRunner {
 
   public static void main(String[] args) {
-    var application = SpringApplication.run(ParameterOptimizationRunner.class, args);
+    var application = SpringApplication.run(BuyLowSellHighParameterOptimizationRunner.class, args);
 
     // Parse coins from command-line arguments
     if (args.length == 0 || args[0].isBlank()) {
@@ -38,7 +38,7 @@ public class ParameterOptimizationRunner {
 
     int period = Integer.parseInt(args[1]);
 
-    var optimizationService = application.getBean(ParameterOptimizationService.class);
+    var optimizationService = application.getBean(BuyLowSellHighOptimizationService.class);
 
     // Run optimization
     log.info("Starting Strategy Optimization for {}", coins);
