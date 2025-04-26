@@ -44,7 +44,8 @@ public class BuyLowSellHighStrategy implements Strategy {
     this.movingTrendIndicator = movingTrendIndicator;
     this.strategyParametersMap = Map.of(
         "ETH/USD", getETHStrategyParameters(),
-        "XRP/USD", getXRPStrategyParameters()
+        "XRP/USD", getXRPStrategyParameters(),
+        "DOGE/USD", getDOGEStrategyParameters()
     );
   }
 
@@ -185,6 +186,20 @@ public class BuyLowSellHighStrategy implements Strategy {
         .atrPeriod(16).lookbackPeriod(7)
         .lowVolatilityThreshold(0.73).highVolatilityThreshold(1.6)
         .minimumCandles(150)
+        .build();
+  }
+
+  private StrategyParameters getDOGEStrategyParameters() {
+    return StrategyParameters.builder()
+        .movingAverageBuyShortPeriod(21).movingAverageBuyLongPeriod(65)
+        .rsiPeriod(15).rsiBuyThreshold(38).rsiSellThreshold(78)
+        .macdFastPeriod(13).macdSlowPeriod(28).macdSignalPeriod(8)
+        .volumePeriod(20).aboveAverageThreshold(22)
+        .lossPercent(2.6).profitPercent(8.7)
+        .contractionThreshold(4.0)
+        .atrPeriod(15).lookbackPeriod(7)
+        .lowVolatilityThreshold(0.76).highVolatilityThreshold(1.45)
+        .minimumCandles(195)
         .build();
   }
 
