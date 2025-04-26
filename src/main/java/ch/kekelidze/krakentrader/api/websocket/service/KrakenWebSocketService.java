@@ -8,11 +8,16 @@ import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.trade.Portfolio;
 import ch.kekelidze.krakentrader.trade.service.TradeService;
 import jakarta.websocket.ContainerProvider;
+import jakarta.websocket.DeploymentException;
 import jakarta.websocket.Session;
 import jakarta.websocket.WebSocketContainer;
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
@@ -25,7 +30,11 @@ import org.springframework.stereotype.Service;
 public class KrakenWebSocketService implements DisposableBean {
 
   private static final String WS_URL = "wss://ws.kraken.com/v2";
+  private static final int RECONNECT_DELAY_MS = 2000;
+  private static final int SEND_TIMEOUT_MS = 10000;
+  private static final int SESSION_IDLE_TIMEOUT_MS = 30000;
   private final List<Session> activeSessions = new ArrayList<>();
+  private final Map<KrakenWebSocketClient, String> clientToCoinPairMap = new HashMap<>();
 
   private final Portfolio portfolio;
   private final TradeService tradeService;
@@ -44,16 +53,12 @@ public class KrakenWebSocketService implements DisposableBean {
 
       // Initialize the WebSocket client with Spring-managed dependencies
       KrakenWebSocketClient.initialize(tradeService, responseConverterUtils, krakenApiService,
-          coinPairs);
+          coinPairs, this);
 
       // Connect to WebSocket server
-      WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+      var container = getWebSocketContainer();
       for (String coinPair : coinPairs) {
-        var session = container.connectToServer(
-            new SinglePairWebSocketClient(coinPair),
-            URI.create(WS_URL)
-        );
-        activeSessions.add(session);
+        createClientForCoinPair(coinPair, container);
         log.info("WebSocket client started and connected for coin pair: {}", coinPair);
       }
 
@@ -79,7 +84,82 @@ public class KrakenWebSocketService implements DisposableBean {
       }
     }
     activeSessions.clear();
+    clientToCoinPairMap.clear();
     log.info("All WebSocket connections closed");
   }
 
+  /**
+   * Reconnects a client that has detected a connection issue.
+   * 
+   * @param client The client that needs to be reconnected
+   */
+  public void reconnectClient(KrakenWebSocketClient client) {
+    String coinPair = clientToCoinPairMap.get(client);
+    if (coinPair == null) {
+      log.error("Cannot reconnect client: no coin pair found for client {}", client);
+      return;
+    }
+
+    log.info("Reconnecting client for coin pair: {}", coinPair);
+
+    Session existingSession = null;
+    for (Session session : new ArrayList<>(activeSessions)) {
+      if (session.getUserProperties().get("client") == client) {
+        existingSession = session;
+        break;
+      }
+    }
+
+    if (existingSession != null) {
+      try {
+        activeSessions.remove(existingSession);
+        if (existingSession.isOpen()) {
+          existingSession.close();
+        }
+      } catch (Exception e) {
+        log.error("Error closing existing session for coin pair {}: {}", coinPair, e.getMessage(), e);
+      }
+    }
+
+    clientToCoinPairMap.remove(client);
+    client.destroy();
+
+    CompletableFuture.runAsync(() -> {
+      try {
+        // Add a small delay before reconnection to avoid rapid reconnection attempts
+        Thread.sleep(RECONNECT_DELAY_MS);
+
+        var container = getWebSocketContainer();
+        createClientForCoinPair(coinPair, container);
+        log.info("Client reconnected for coin pair: {}", coinPair);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        log.error("Reconnection interrupted for coin pair {}: {}", coinPair, e.getMessage());
+      } catch (Exception e) {
+        log.error("Error reconnecting client for coin pair {}: {}", coinPair, e.getMessage(), e);
+        // TODO: schedule another reconnect attempt with exponential backoff
+      }
+    });
+  }
+
+  private WebSocketContainer getWebSocketContainer() {
+    WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+    container.setAsyncSendTimeout(SEND_TIMEOUT_MS);
+    container.setDefaultMaxSessionIdleTimeout(SESSION_IDLE_TIMEOUT_MS);
+    return container;
+  }
+
+  private void createClientForCoinPair(String coinPair,
+      WebSocketContainer container) throws DeploymentException, IOException {
+    var newClient = new SinglePairWebSocketClient(coinPair);
+    var session = container.connectToServer(
+        newClient,
+        URI.create(WS_URL)
+    );
+
+    session.getUserProperties().put("client", newClient);
+
+    activeSessions.add(session);
+    clientToCoinPairMap.put(newClient, coinPair);
+  }
 }

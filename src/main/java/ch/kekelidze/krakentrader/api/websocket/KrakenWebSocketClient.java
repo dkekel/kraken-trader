@@ -2,18 +2,24 @@ package ch.kekelidze.krakentrader.api.websocket;
 
 import ch.kekelidze.krakentrader.api.rest.service.KrakenApiService;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
+import ch.kekelidze.krakentrader.api.websocket.service.KrakenWebSocketService;
 import ch.kekelidze.krakentrader.trade.service.TradeService;
 import jakarta.websocket.ClientEndpoint;
 import jakarta.websocket.OnError;
 import jakarta.websocket.OnMessage;
 import jakarta.websocket.OnOpen;
 import jakarta.websocket.Session;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -25,7 +31,11 @@ public class KrakenWebSocketClient {
 
   private static final String CHANNEL = "channel";
   private static final String STATUS = "status";
+  private static final String HEARTBEAT = "heartbeat";
   private static final String OHLC = "ohlc";
+  private static final String PING_MESSAGE = "{\"method\":\"ping\"}";
+  private static final long PING_INTERVAL_MS = 5000;
+  private static final long PING_TIMEOUT_MS = 2000;
 
   private static final int MAX_QUEUE_SIZE = 600;
   private static List<String> SYMBOLS;
@@ -36,12 +46,19 @@ public class KrakenWebSocketClient {
 
   private static TradeService tradeService;
   private static ResponseConverterUtils responseConverterUtils;
+  private static KrakenWebSocketService webSocketService;
+
+  protected Session session;
+  protected final AtomicLong lastMessageTimestamp = new AtomicLong(System.currentTimeMillis());
+  private ScheduledExecutorService heartbeatExecutor;
+  private boolean pingInProgress = false;
 
   // Method to set dependencies from Spring context
   public static void initialize(TradeService strategyService, ResponseConverterUtils converterUtils,
-      KrakenApiService krakenApiService, String[] symbols) {
+      KrakenApiService krakenApiService, String[] symbols, KrakenWebSocketService service) {
     tradeService = strategyService;
     responseConverterUtils = converterUtils;
+    webSocketService = service;
     SYMBOLS = List.of(symbols);
     PERIOD = tradeService.getStrategy().getPeriod();
     initializePriceQueue(krakenApiService);
@@ -61,9 +78,79 @@ public class KrakenWebSocketClient {
   @OnOpen
   public void onOpen(Session session) {
     log.info("Connected to Kraken WebSocket");
+    this.session = session;
+    lastMessageTimestamp.set(System.currentTimeMillis());
+
     var symbols = String.join(",", SYMBOLS.stream().map(s -> "\"" + s + "\"").toList());
     var subscribeMsg = getSubscribeMessage(symbols);
     session.getAsyncRemote().sendText(subscribeMsg);
+
+    startHeartbeat();
+  }
+
+  protected void startHeartbeat() {
+    if (heartbeatExecutor != null) {
+      heartbeatExecutor.shutdownNow();
+    }
+
+    heartbeatExecutor = Executors.newSingleThreadScheduledExecutor();
+    heartbeatExecutor.scheduleAtFixedRate(this::checkConnection, 
+        PING_INTERVAL_MS, PING_INTERVAL_MS, TimeUnit.MILLISECONDS);
+    log.info("Heartbeat mechanism started");
+  }
+
+  private void checkConnection() {
+    if (session == null || !session.isOpen()) {
+      log.warn("Session is null or closed, requesting reconnection");
+      stopHeartbeat();
+      requestReconnection();
+      return;
+    }
+
+    long timeSinceLastMessage = System.currentTimeMillis() - lastMessageTimestamp.get();
+    if (timeSinceLastMessage >= PING_INTERVAL_MS) {
+      if (pingInProgress) {
+        log.warn("Previous ping did not receive a response, requesting reconnection");
+        stopHeartbeat();
+        requestReconnection();
+        return;
+      }
+
+      try {
+        log.debug("Sending ping to keep connection alive");
+        pingInProgress = true;
+        session.getAsyncRemote().sendText(PING_MESSAGE);
+
+        // Schedule a task to check if ping was responded to
+        heartbeatExecutor.schedule(() -> {
+          if (pingInProgress) {
+            log.warn("Ping timeout, requesting reconnection");
+            stopHeartbeat();
+            requestReconnection();
+          }
+        }, PING_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+      } catch (Exception e) {
+        log.error("Error sending ping: {}", e.getMessage(), e);
+        stopHeartbeat();
+        requestReconnection();
+      }
+    }
+  }
+
+  private void stopHeartbeat() {
+    if (heartbeatExecutor != null) {
+      heartbeatExecutor.shutdownNow();
+      heartbeatExecutor = null;
+    }
+  }
+
+  private void requestReconnection() {
+    if (webSocketService != null) {
+      log.info("Requesting reconnection");
+      webSocketService.reconnectClient(this);
+    } else {
+      log.error("Cannot reconnect: webSocketService is null");
+    }
   }
 
   protected String getSubscribeMessage(String symbols) {
@@ -81,15 +168,22 @@ public class KrakenWebSocketClient {
 
   @OnMessage
   public void onMessage(String message) {
-    // Check if dependencies are set
     if (responseConverterUtils == null || tradeService == null) {
       throw new RuntimeException("Dependencies not set. Please call initialize() first.");
     }
 
+    lastMessageTimestamp.set(System.currentTimeMillis());
+
+    if (message.contains("\"method\":\"pong\"")) {
+      log.debug("Received pong response");
+      pingInProgress = false;
+      return;
+    }
+
     JSONObject json = new JSONObject(message);
     var channel = getChannel(json);
-    if (STATUS.equals(channel)) {
-      log.debug("Ignore heartbeat/status messages");
+    if (STATUS.equals(channel) || HEARTBEAT.equals(channel)) {
+      log.trace("Ignore heartbeat/status messages");
       return;
     }
 
@@ -145,5 +239,22 @@ public class KrakenWebSocketClient {
   @OnError
   public void onError(Session session, Throwable throwable) {
     log.error("WebSocket error: {}", throwable.getMessage(), throwable);
+    stopHeartbeat();
+    requestReconnection();
+  }
+
+  /**
+   * Cleans up resources when the client is destroyed.
+   * This should be called when the client is no longer needed.
+   */
+  public void destroy() {
+    stopHeartbeat();
+    if (session != null && session.isOpen()) {
+      try {
+        session.close();
+      } catch (IOException e) {
+        log.error("Error closing session: {}", e.getMessage(), e);
+      }
+    }
   }
 }

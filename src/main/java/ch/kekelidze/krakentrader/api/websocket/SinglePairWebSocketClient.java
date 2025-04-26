@@ -19,8 +19,11 @@ public class SinglePairWebSocketClient extends KrakenWebSocketClient {
   @Override
   public void onOpen(Session session) {
     try {
+      this.session = session;
+      lastMessageTimestamp.set(System.currentTimeMillis());
       var subscribeMsg = getSubscribeMessage("\"" + coinPair + "\"");
       session.getAsyncRemote().sendText(subscribeMsg);
+      startHeartbeat();
       log.info("Subscribed to {} OHLC data", coinPair);
     } catch (Exception e) {
       log.error("Error in onOpen for {}: {}", coinPair, e.getMessage(), e);
