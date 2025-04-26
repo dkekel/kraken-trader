@@ -144,97 +144,131 @@ public class MultiStrategyOptimizer implements Optimizer {
     }
   }
 
-  // Create a genotype factory for parameter optimization
   private Factory<Genotype<DoubleGene>> createGenotypeFactory() {
     return Genotype.of(
-        // Fast EMA period (5-50)
-        DoubleChromosome.of(5, 50),
+        // Moving average parameters
+        DoubleChromosome.of(5, 50),   // movingAverageBuyShortPeriod
+        DoubleChromosome.of(20, 200), // movingAverageBuyLongPeriod
+        DoubleChromosome.of(5, 50),   // movingAverageSellShortPeriod
+        DoubleChromosome.of(20, 200), // movingAverageSellLongPeriod
 
-        // Slow EMA period (20-200)
-        DoubleChromosome.of(20, 200),
+        // RSI parameters
+        DoubleChromosome.of(7, 30),   // rsiPeriod
+        DoubleChromosome.of(15, 35),  // rsiBuyThreshold
+        DoubleChromosome.of(65, 85),  // rsiSellThreshold
 
-        // RSI period (7-30)
-        DoubleChromosome.of(7, 30),
+        // MACD parameters
+        DoubleChromosome.of(8, 20),   // macdFastPeriod
+        DoubleChromosome.of(20, 40),  // macdSlowPeriod
+        DoubleChromosome.of(7, 18),   // macdSignalPeriod
 
-        // RSI overbought threshold (65-85)
-        DoubleChromosome.of(65, 85),
+        // Volume parameters
+        DoubleChromosome.of(10, 30),  // volumePeriod
+        DoubleChromosome.of(1.0, 3.0), // aboveAverageThreshold
 
-        // RSI oversold threshold (15-35)
-        DoubleChromosome.of(15, 35),
+        // Loss/profit parameters
+        DoubleChromosome.of(1, 10),   // lossPercent
+        DoubleChromosome.of(2, 20),   // profitPercent
 
-        // MACD fast period (8-20)
-        DoubleChromosome.of(8, 20),
+        // ADX parameters
+        DoubleChromosome.of(7, 30),   // adxPeriod
+        DoubleChromosome.of(15, 30),  // adxBullishThreshold
+        DoubleChromosome.of(15, 30),  // adxBearishThreshold
 
-        // MACD slow period (20-40)
-        DoubleChromosome.of(20, 40),
+        // Volatility parameters
+        DoubleChromosome.of(7, 30),   // volatilityPeriod
+        DoubleChromosome.of(0.01, 0.1), // contractionThreshold
+        DoubleChromosome.of(0.01, 0.1), // lowVolatilityThreshold
+        DoubleChromosome.of(0.1, 0.5),  // highVolatilityThreshold
 
-        // MACD signal period (7-18)
-        DoubleChromosome.of(7, 18),
+        // MFI parameters
+        DoubleChromosome.of(7, 30),   // mfiPeriod
+        DoubleChromosome.of(70, 90),  // mfiOverboughtThreshold
+        DoubleChromosome.of(10, 30),  // mfiOversoldThreshold
 
-        // ADX period (7-30)
-        DoubleChromosome.of(7, 30),
+        // ATR parameters
+        DoubleChromosome.of(7, 30),   // atrPeriod
+        DoubleChromosome.of(1, 10),   // atrThreshold
 
-        // ADX threshold (15-30)
-        DoubleChromosome.of(15, 30),
-
-        // Stop loss percentage (1-10, will be divided by 100)
-        DoubleChromosome.of(1, 10),
-
-        // Take profit percentage (2-20, will be divided by 100)
-        DoubleChromosome.of(2, 20),
-
-        // Volatility period (7-30)
-        DoubleChromosome.of(7, 30),
-
-        // Lookback period (10-100)
-        DoubleChromosome.of(10, 100),
-
-        // MFI period (7-30)
-        DoubleChromosome.of(7, 30),
-
-        // MFI overbought threshold (70-90)
-        DoubleChromosome.of(70, 90),
-
-        // MFI oversold threshold (10-30)
-        DoubleChromosome.of(10, 30),
-
-        // Support/Resistance period (20-200)
-        DoubleChromosome.of(20, 200),
-
-        // Support/Resistance threshold (0.01-0.05) [1% to 5%]
-        DoubleChromosome.of(0.01, 0.05)
+        // Other parameters
+        DoubleChromosome.of(10, 100), // lookbackPeriod
+        DoubleChromosome.of(20, 200), // supportResistancePeriod
+        DoubleChromosome.of(0.01, 0.05) // supportResistanceThreshold
     );
   }
 
   private StrategyParameters getStrategyParameters(Genotype<DoubleGene> genotype) {
+    // Extract all period values to find the max
+    int movingAverageBuyShortPeriod = genotype.get(0).get(0).intValue();
+    int movingAverageBuyLongPeriod = genotype.get(1).get(0).intValue();
+    int movingAverageSellShortPeriod = genotype.get(2).get(0).intValue();
+    int movingAverageSellLongPeriod = genotype.get(3).get(0).intValue();
+    int rsiPeriod = genotype.get(4).get(0).intValue();
+    int macdFastPeriod = genotype.get(7).get(0).intValue();
+    int macdSlowPeriod = genotype.get(8).get(0).intValue();
+    int macdSignalPeriod = genotype.get(9).get(0).intValue();
+    int volumePeriod = genotype.get(10).get(0).intValue();
+    int adxPeriod = genotype.get(14).get(0).intValue();
+    int volatilityPeriod = genotype.get(17).get(0).intValue();
+    int mfiPeriod = genotype.get(21).get(0).intValue();
+    int atrPeriod = genotype.get(24).get(0).intValue();
+    int lookbackPeriod = genotype.get(26).get(0).intValue();
+    int supportResistancePeriod = genotype.get(27).get(0).intValue();
+
+    // Find the maximum period
+    int maxPeriod = Math.max(
+        Math.max(
+            Math.max(
+                Math.max(
+                    Math.max(
+                        Math.max(movingAverageBuyLongPeriod, movingAverageSellLongPeriod),
+                        Math.max(rsiPeriod, macdSlowPeriod)
+                    ),
+                    Math.max(volumePeriod, adxPeriod)
+                ),
+                Math.max(volatilityPeriod, mfiPeriod)
+            ),
+            Math.max(atrPeriod, lookbackPeriod)
+        ),
+        supportResistancePeriod
+    );
+
+    int minimumCandles = Math.max(300, maxPeriod * 3);
+
     return StrategyParameters.builder()
-        .movingAverageBuyShortPeriod(genotype.get(0).get(0).intValue())
-        .movingAverageBuyLongPeriod(genotype.get(1).get(0).intValue())
-        .rsiPeriod(genotype.get(2).get(0).intValue())
-        .rsiBuyThreshold(genotype.get(3).get(0).doubleValue())
-        .rsiSellThreshold(genotype.get(4).get(0).doubleValue())
-        .macdFastPeriod(genotype.get(5).get(0).intValue())
-        .macdSlowPeriod(genotype.get(6).get(0).intValue())
-        .macdSignalPeriod(genotype.get(7).get(0).intValue())
-        .adxPeriod(genotype.get(8).get(0).intValue())
-        .adxBullishThreshold(genotype.get(9).get(0).intValue())
-        .adxBearishThreshold(genotype.get(9).get(0).intValue())
-        .lossPercent(genotype.get(10).get(0).doubleValue())
-        .profitPercent(genotype.get(11).get(0).doubleValue())
-        .volatilityPeriod(genotype.get(12).get(0).intValue())
-        .lookbackPeriod(genotype.get(13).get(0).intValue())
-        .mfiPeriod(genotype.get(14).get(0).intValue())
-        .mfiOverboughtThreshold(genotype.get(15).get(0).intValue())
-        .mfiOversoldThreshold(genotype.get(16).get(0).intValue())
-        .supportResistancePeriod(genotype.get(17).get(0).intValue())
-        .supportResistanceThreshold(genotype.get(18).get(0).doubleValue())
-        .aboveAverageThreshold(20)
-        .volumePeriod(20)
-        .minimumCandles(300)
+        .movingAverageBuyShortPeriod(movingAverageBuyShortPeriod)
+        .movingAverageBuyLongPeriod(movingAverageBuyLongPeriod)
+        .movingAverageSellShortPeriod(movingAverageSellShortPeriod)
+        .movingAverageSellLongPeriod(movingAverageSellLongPeriod)
+        .rsiPeriod(rsiPeriod)
+        .rsiBuyThreshold(genotype.get(5).get(0).doubleValue())
+        .rsiSellThreshold(genotype.get(6).get(0).doubleValue())
+        .macdFastPeriod(macdFastPeriod)
+        .macdSlowPeriod(macdSlowPeriod)
+        .macdSignalPeriod(macdSignalPeriod)
+        .volumePeriod(volumePeriod)
+        .aboveAverageThreshold(genotype.get(11).get(0).doubleValue())
+        .lossPercent(genotype.get(12).get(0).doubleValue())
+        .profitPercent(genotype.get(13).get(0).doubleValue())
+        .adxPeriod(adxPeriod)
+        .adxBullishThreshold(genotype.get(15).get(0).intValue())
+        .adxBearishThreshold(genotype.get(16).get(0).intValue())
+        .volatilityPeriod(volatilityPeriod)
+        .contractionThreshold(genotype.get(18).get(0).doubleValue())
+        .lowVolatilityThreshold(genotype.get(19).get(0).doubleValue())
+        .highVolatilityThreshold(genotype.get(20).get(0).doubleValue())
+        .mfiPeriod(mfiPeriod)
+        .mfiOverboughtThreshold(genotype.get(22).get(0).intValue())
+        .mfiOversoldThreshold(genotype.get(23).get(0).intValue())
+        .atrPeriod(atrPeriod)
+        .atrThreshold(genotype.get(25).get(0).intValue())
+        .lookbackPeriod(lookbackPeriod)
+        .supportResistancePeriod(supportResistancePeriod)
+        .supportResistanceThreshold(genotype.get(28).get(0).doubleValue())
+        .minimumCandles(minimumCandles)
         .build();
   }
 
-  // Helper record to store optimization results
   private record OptimizationResult(
       String strategyName,
       StrategyParameters parameters,
@@ -243,7 +277,6 @@ public class MultiStrategyOptimizer implements Optimizer {
 
   }
 
-  // Method to get a summary of best strategies for all coin pairs
   public Map<String, String> getBestStrategiesReport() {
     Map<String, String> report = new HashMap<>();
 
