@@ -90,7 +90,7 @@ public class ConsolidationStrategy implements Strategy {
         .macdFastPeriod(12).macdSlowPeriod(26).macdSignalPeriod(9)
         .volatilityPeriod(14)
         .lookbackPeriod(10)
-        .minimumCandles(150)
+        .minimumCandles(80)
         .build();
   }
 }

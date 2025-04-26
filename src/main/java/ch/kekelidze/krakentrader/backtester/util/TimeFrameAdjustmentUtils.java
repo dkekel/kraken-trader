@@ -40,6 +40,8 @@ public class TimeFrameAdjustmentUtils {
         .lossPercent(parameters.lossPercent())
         .profitPercent(parameters.profitPercent())
         .contractionThreshold(parameters.contractionThreshold())
+        .supportResistanceThreshold(parameters.supportResistanceThreshold())
+        .supportResistancePeriod(parameters.supportResistancePeriod() * timeFrameMultiplier)
         .minimumCandles(parameters.minimumCandles() * timeFrameMultiplier)
         .build();
 
