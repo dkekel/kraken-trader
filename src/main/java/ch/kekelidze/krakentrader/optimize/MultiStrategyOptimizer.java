@@ -136,7 +136,7 @@ public class MultiStrategyOptimizer implements Optimizer {
           context, strategyName, params, initialBalance);
 
       // Return Sharpe ratio as fitness
-      return result.sharpeRatio();
+      return result.sharpeRatio() * (1 + result.winRate());
     } catch (Exception e) {
       log.error("Error in fitness evaluation for {}, strategy {}: {}",
           coinPair, strategyName, e.getMessage());
