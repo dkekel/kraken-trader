@@ -154,14 +154,15 @@ public class BuyLowSellHighStrategy implements Strategy {
    */
   private StrategyParameters getETHStrategyParameters() {
     return StrategyParameters.builder()
-        .movingAverageBuyShortPeriod(21).movingAverageBuyLongPeriod(75)
-        .rsiBuyThreshold(48).rsiSellThreshold(79).rsiPeriod(17).lookbackPeriod(6)
-        .macdFastPeriod(11).macdSlowPeriod(25).macdSignalPeriod(7)
-        .atrPeriod(15).lowVolatilityThreshold(0.87).highVolatilityThreshold(1.3)
-        .volumePeriod(27).aboveAverageThreshold(23)
-        .lossPercent(3.1).profitPercent(8.9)
-        .contractionThreshold(3.4)
-        .minimumCandles(225)
+        .movingAverageBuyShortPeriod(14).movingAverageBuyLongPeriod(40)
+        .rsiPeriod(16).rsiBuyThreshold(39).rsiSellThreshold(76)
+        .macdFastPeriod(8).macdSlowPeriod(29).macdSignalPeriod(7)
+        .volumePeriod(28).aboveAverageThreshold(37)
+        .lossPercent(4.1).profitPercent(18.5)
+        .contractionThreshold(4.5)
+        .atrPeriod(15).lookbackPeriod(7)
+        .lowVolatilityThreshold(1.04).highVolatilityThreshold(1.61)
+        .minimumCandles(120)
         .build();
   }
 
