@@ -42,6 +42,8 @@ public class KrakenWebSocketService implements DisposableBean {
   private final KrakenApiService krakenApiService;
   private final ApplicationContext applicationContext;
 
+  private WebSocketContainer container;
+
   public void startWebSocketClient(String[] args) {
     try {
       var strategy = applicationContext.getBean(args[0], Strategy.class);
@@ -142,10 +144,12 @@ public class KrakenWebSocketService implements DisposableBean {
     });
   }
 
-  private WebSocketContainer getWebSocketContainer() {
-    WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-    container.setAsyncSendTimeout(SEND_TIMEOUT_MS);
-    container.setDefaultMaxSessionIdleTimeout(SESSION_IDLE_TIMEOUT_MS);
+  private synchronized WebSocketContainer getWebSocketContainer() {
+    if (container == null) {
+      container = ContainerProvider.getWebSocketContainer();
+      container.setAsyncSendTimeout(SEND_TIMEOUT_MS);
+      container.setDefaultMaxSessionIdleTimeout(SESSION_IDLE_TIMEOUT_MS);
+    }
     return container;
   }
 
