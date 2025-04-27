@@ -14,6 +14,7 @@ import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import ch.kekelidze.krakentrader.strategy.service.StrategyParametersService;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 
@@ -139,6 +140,7 @@ public class BuyLowSellHighStrategy implements Strategy {
   }
 
   @Override
+  @Cacheable(value = "strategyParameters", key = "#coinPair")
   public StrategyParameters getStrategyParameters(String coinPair) {
     var validCoinName = getValidCoinName(coinPair);
     return strategyParametersService.getStrategyParameters(validCoinName)
