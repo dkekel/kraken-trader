@@ -20,13 +20,16 @@ public class TradeService {
 
   private final AtrAnalyser atrAnalyser;
   private final Portfolio portfolio;
+  private final TradeStatePersistenceService tradeStatePersistenceService;
   @Getter
   @Setter
   private Strategy strategy;
 
-  public TradeService(AtrAnalyser atrAnalyser, Portfolio portfolio) {
+  public TradeService(AtrAnalyser atrAnalyser, Portfolio portfolio,
+      TradeStatePersistenceService tradeStatePersistenceService) {
     this.atrAnalyser = atrAnalyser;
     this.portfolio = portfolio;
+    this.tradeStatePersistenceService = tradeStatePersistenceService;
   }
 
   public void executeStrategy(String coinPair, List<Bar> data) {
@@ -52,6 +55,7 @@ public class TradeService {
       var positionSize = calculateAdaptivePositionSize(data, currentPrice, allocatedCapital,
           params);
       tradeState.setPositionSize(positionSize);
+      tradeStatePersistenceService.saveTradeState(tradeState);
       currentCapital = portfolio.addToTotalCapital(-tradeState.getPositionSize() * currentPrice);
       log.info("BUY {} {} at: {}", coinPair, tradeState.getPositionSize(),
           tradeState.getEntryPrice());
@@ -62,6 +66,7 @@ public class TradeService {
       double profit = (currentPrice - entryPrice) / entryPrice * 100;
       var totalProfit = tradeState.getTotalProfit();
       tradeState.setTotalProfit(totalProfit + profit);
+      tradeStatePersistenceService.saveTradeState(tradeState);
       currentCapital = portfolio.addToTotalCapital(tradeState.getPositionSize() * currentPrice);
       log.info("SELL {} {} at: {} | Profit: {}%", coinPair, tradeState.getPositionSize(),
           currentPrice, profit);

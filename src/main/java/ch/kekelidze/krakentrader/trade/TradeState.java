@@ -31,6 +31,10 @@ public class TradeState {
     return totalProfit;
   }
 
+  public synchronized String getCoinPair() {
+    return coinPair;
+  }
+
   public synchronized void setInTrade(boolean inTrade) {
     if (inTrade == this.inTrade) {
       log.warn("Tried to set trade state to the same value for {}", coinPair);
