@@ -34,8 +34,10 @@ logging:
     ch.kekelidze.krakentrader.indicator.PricePredictionIndicator: INFO
     ch.kekelidze.krakentrader.indicator.VolumeIndicator: INFO
     ch.kekelidze.krakentrader.indicator.RsiIndicator: info
+    ch.kekelidze.krakentrader.indicator.RsiRangeIndicator: info
     ch.kekelidze.krakentrader.indicator.RiskManagementIndicator: info
     ch.kekelidze.krakentrader.indicator.MovingTrendIndicator: info
+    ch.kekelidze.krakentrader.indicator.VolatilityIndicator: info
 
     ch.kekelidze.krakentrader.indicator.analyser.SupportResistanceAnalyser: info
     ch.kekelidze.krakentrader.indicator.analyser.VolatilityAnalyser: info
