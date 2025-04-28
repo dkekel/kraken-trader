@@ -127,15 +127,14 @@ public class BuyLowSellHighStrategy implements Strategy {
   @Override
   public StrategyParameters getStrategyParameters() {
     return StrategyParameters.builder()
-        .movingAverageBuyShortPeriod(15).movingAverageBuyLongPeriod(53)
-        .rsiPeriod(13).rsiBuyThreshold(42).rsiSellThreshold(66)
-        .macdFastPeriod(13).macdSlowPeriod(20).macdSignalPeriod(8)
-        .volumePeriod(24).aboveAverageThreshold(39)
-        .lossPercent(2).profitPercent(17.8)
-        .contractionThreshold(4.1)
-        .atrPeriod(17).lookbackPeriod(7)
-        .lowVolatilityThreshold(0.87).highVolatilityThreshold(1.32)
-        .minimumCandles(159)
+        .movingAverageBuyShortPeriod(20).movingAverageBuyLongPeriod(50)
+        .rsiBuyThreshold(45).rsiSellThreshold(70).rsiPeriod(14).lookbackPeriod(5)
+        .macdFastPeriod(12).macdSlowPeriod(26).macdSignalPeriod(9)
+        .atrPeriod(14).lowVolatilityThreshold(0.9).highVolatilityThreshold(1.5)
+        .volumePeriod(24).aboveAverageThreshold(20)
+        .lossPercent(3).profitPercent(15)
+        .contractionThreshold(3.0)
+        .minimumCandles(150)
         .build();
   }
 
