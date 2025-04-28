@@ -9,6 +9,9 @@ import ch.kekelidze.krakentrader.indicator.Indicator;
 import ch.kekelidze.krakentrader.optimize.config.StrategyConfig;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.time.LocalDateTime;
@@ -32,24 +35,34 @@ public class ValidateStrategyApplication {
   public static void main(String[] args) {
     List<String> coins = List.of(args[0].split(","));
     int period = Integer.parseInt(args[1]);
+    ZonedDateTime startDate = LocalDate.parse(args[2], DateTimeFormatter.ISO_DATE)
+        .atStartOfDay(ZoneId.systemDefault());
+    ZonedDateTime endDate = LocalDate.parse(args[3], DateTimeFormatter.ISO_DATE)
+        .atStartOfDay(ZoneId.systemDefault());
+
     var application = SpringApplication.run(ValidateStrategyApplication.class, args);
-    validateWithHistoricalData(application, coins, period);
+    validateWithHistoricalData(application, coins, period, startDate, endDate);
     int exitCode = SpringApplication.exit(application, () -> 0);
     System.exit(exitCode);
   }
 
   private static void validateWithHistoricalData(ApplicationContext application, List<String> coins,
-      int period) {
+      int period, ZonedDateTime startDate, ZonedDateTime endDate) {
     var historicalDataService = application.getBean(HistoricalDataService.class);
     var backtestService = application.getBean(BackTesterService.class);
     var historicalData = historicalDataService.queryHistoricalData(coins, period);
     var results = new java.util.HashMap<String, BacktestResult>();
 
     for (String coin : coins) {
+      log.info("Validating strategy for {} from {} to {}", coin, startDate, endDate);
       var evaluationContext = EvaluationContext.builder()
           .symbol(coin)
           .period(period)
-          .bars(historicalData.get(coin))
+          .bars(historicalData.get(coin).stream()
+              .filter(bar -> checkDateAfter(bar.getEndTime(), startDate))
+              .filter(bar -> checkDateBefore(bar.getEndTime(), endDate))
+              .toList()
+          )
           .build();
       var result = backtestService.runSimulation(evaluationContext, INITIAL_CAPITAL);
       results.put(coin, result);
@@ -59,6 +72,14 @@ public class ValidateStrategyApplication {
     var timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
     var filename = String.format("results/strategy_results_%s.md", timestamp);
     writeResultsToMarkdownFile(filename, results);
+  }
+  
+  private static boolean checkDateAfter(ZonedDateTime date, ZonedDateTime afterDate) {
+    return date.isAfter(afterDate) || date.isEqual(afterDate);
+  }
+  
+  private static boolean checkDateBefore(ZonedDateTime date, ZonedDateTime beforeDate) {
+    return date.isBefore(beforeDate) || date.isEqual(beforeDate);
   }
 
   private static void writeResultsToMarkdownFile(String filePath,
