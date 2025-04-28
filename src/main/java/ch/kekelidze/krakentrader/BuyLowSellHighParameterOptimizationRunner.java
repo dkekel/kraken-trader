@@ -7,6 +7,10 @@ import ch.kekelidze.krakentrader.indicator.Indicator;
 import ch.kekelidze.krakentrader.optimize.Optimizer;
 import ch.kekelidze.krakentrader.optimize.service.BuyLowSellHighOptimizationService;
 import ch.kekelidze.krakentrader.strategy.Strategy;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +26,7 @@ public class BuyLowSellHighParameterOptimizationRunner {
 
   public static void main(String[] args) {
     var application = SpringApplication.run(BuyLowSellHighParameterOptimizationRunner.class, args);
+    var optimizationService = application.getBean(BuyLowSellHighOptimizationService.class);
 
     // Parse coins from command-line arguments
     if (args.length == 0 || args[0].isBlank()) {
@@ -37,11 +42,13 @@ public class BuyLowSellHighParameterOptimizationRunner {
     }
 
     int period = Integer.parseInt(args[1]);
-
-    var optimizationService = application.getBean(BuyLowSellHighOptimizationService.class);
+    ZonedDateTime startDate = LocalDate.parse(args[2], DateTimeFormatter.ISO_DATE)
+        .atStartOfDay(ZoneId.systemDefault());
+    ZonedDateTime endDate = LocalDate.parse(args[3], DateTimeFormatter.ISO_DATE)
+        .atStartOfDay(ZoneId.systemDefault());
 
     // Run optimization
     log.info("Starting Strategy Optimization for {}", coins);
-    optimizationService.optimizeCoinPairs(coins, period);
+    optimizationService.optimizeCoinPairs(coins, period, startDate, endDate);
   }
 }

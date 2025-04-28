@@ -2,6 +2,7 @@ package ch.kekelidze.krakentrader.optimize;
 
 import ch.kekelidze.krakentrader.backtester.service.BackTesterService;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.optimize.service.DataMassageService;
 import io.jenetics.Genotype;
 import io.jenetics.IntegerChromosome;
 import io.jenetics.IntegerGene;
@@ -13,8 +14,9 @@ import org.springframework.stereotype.Component;
 @Component("buyLowSellHighOptimizer")
 public class BuyLowSellHighOptimizer extends GeneticOptimizer {
 
-  public BuyLowSellHighOptimizer(BackTesterService backTesterService) {
-    super(backTesterService);
+  public BuyLowSellHighOptimizer(BackTesterService backTesterService,
+      DataMassageService dataMassageService) {
+    super(backTesterService, dataMassageService);
   }
 
   protected Codec<StrategyParameters, IntegerGene> createParameterCodec() {

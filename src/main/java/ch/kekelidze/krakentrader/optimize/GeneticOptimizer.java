@@ -5,6 +5,7 @@ import static io.jenetics.engine.Limits.bySteadyFitness;
 import ch.kekelidze.krakentrader.backtester.service.BackTesterService;
 import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
+import ch.kekelidze.krakentrader.optimize.service.DataMassageService;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import io.jenetics.EliteSelector;
 import io.jenetics.Genotype;
@@ -22,7 +23,6 @@ import io.jenetics.engine.EvolutionStatistics;
 import io.jenetics.stat.DoubleMomentStatistics;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
@@ -33,14 +33,17 @@ public class GeneticOptimizer implements Optimizer {
 
   private static final double initialBalance = 1000;
   private static final int STEADY_FITNESS_GENERATIONS = 10;
-  private static final int MAX_GENERATIONS = 15;
+  private static final int MAX_GENERATIONS = 20;
 
   private static List<Bar> historicalData;
 
   protected static BackTesterService backTesterService;
+  protected static DataMassageService dataMassageService;
 
-  public GeneticOptimizer(BackTesterService backTesterService) {
+  public GeneticOptimizer(BackTesterService backTesterService,
+      DataMassageService dataMassageService) {
     GeneticOptimizer.backTesterService = backTesterService;
+    GeneticOptimizer.dataMassageService = dataMassageService;
   }
 
   @Override
@@ -151,26 +154,64 @@ public class GeneticOptimizer implements Optimizer {
 
   // Fitness function (Sharpe Ratio)
   private static Double fitness(String coinPair, int period, StrategyParameters params) {
-    UUID uuid = UUID.randomUUID();
-    var evaluationContext = EvaluationContext.builder().symbol(coinPair + "_" + uuid).period(period)
-        .bars(historicalData).build();
-    try {
-      BacktestResult result = backTesterService.runSimulation(evaluationContext, params,
-          initialBalance);
+    List<EvaluationContext> regimeContexts = dataMassageService.createMultiRegimeContexts(coinPair,
+        period, historicalData);
 
-      // Ensure win rate is above 30%, otherwise apply penalty
-      var targetWinRate = 0.3;
-      if (result.winRate() >= targetWinRate) {
-        log.debug("Win rate for {} is {}. Using Sharpe ratio: {}", coinPair, result.winRate(),
-            result.sharpeRatio());
-        log.debug("Parameters: {}", params);
+    // Store results for each regime
+    double totalFitness = 0;
+    double worstFitness = Double.MAX_VALUE;
+
+    for (EvaluationContext context : regimeContexts) {
+      try {
+        // Run simulation for this regime
+        BacktestResult result = backTesterService.runSimulation(context, params, initialBalance);
+
+        // Calculate fitness for this regime
+        double regimeFitness = calculateFitness(result);
+
+        // Track worst-performing regime
+        worstFitness = Math.min(worstFitness, regimeFitness);
+        totalFitness += regimeFitness;
+
+        log.debug("Regime {} fitness: {}",
+            context.getMetadata().getOrDefault("regimeType", "unknown"),
+            regimeFitness);
+      } catch (Exception e) {
+        log.error("Error in fitness evaluation for regime {}: {}",
+            context.getSymbol(), e.getMessage());
+        return -100.0; // Penalty for failed evaluations
       }
-
-      // Use Sharpe ratio as fitness measure
-      return result.sharpeRatio() * (1 + result.winRate());
-    } catch (Exception e) {
-      log.error("Error in fitness evaluation: {}", e.getMessage(), e);
-      return -1.0; // Penalty for errors
     }
+
+    // Reward parameters that work well across all regimes
+    // Weighted average: 60% average performance, 40% worst-case performance
+    double averageFitness = totalFitness / regimeContexts.size();
+    double combinedFitness = (averageFitness * 0.6) + (worstFitness * 0.4);
+
+    log.debug("Parameters fitness summary - Average: {}, Worst: {}, Combined: {}",
+        averageFitness, worstFitness, combinedFitness);
+
+    return combinedFitness;
   }
+
+  private static double calculateFitness(BacktestResult result) {
+    // Sharpe ratio is a good base metric
+    double fitness = result.sharpeRatio();
+
+    // Penalize strategies with very low win rates
+    if (result.winRate() < 0.2) {
+      fitness *= 0.5;
+    } else {
+      // Otherwise reward higher win rates
+      fitness *= (1 + result.winRate());
+    }
+
+    // Penalize strategies with very few trades
+    if (result.totalTrades() < 5) {
+      fitness *= 0.5;
+    }
+
+    return fitness;
+  }
+
 }
