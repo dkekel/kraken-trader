@@ -1,7 +1,5 @@
 package ch.kekelidze.krakentrader.strategy;
 
-import static ch.kekelidze.krakentrader.strategy.service.StrategyParametersService.getValidCoinName;
-
 import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
 import ch.kekelidze.krakentrader.indicator.MovingTrendIndicator;
 import ch.kekelidze.krakentrader.indicator.RiskManagementIndicator;
@@ -141,8 +139,7 @@ public class BuyLowSellHighStrategy implements Strategy {
   @Override
   @Cacheable(value = "strategyParameters", key = "#coinPair")
   public StrategyParameters getStrategyParameters(String coinPair) {
-    var validCoinName = getValidCoinName(coinPair);
-    return strategyParametersService.getStrategyParameters(validCoinName)
+    return strategyParametersService.getStrategyParameters(coinPair)
         .orElseGet(this::getStrategyParameters);
   }
 }
