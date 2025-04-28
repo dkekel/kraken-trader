@@ -31,8 +31,11 @@ import org.ta4j.core.Bar;
 @Component("genericOptimizer")
 public class GeneticOptimizer implements Optimizer {
 
+  private static final double initialBalance = 1000;
+  private static final int STEADY_FITNESS_GENERATIONS = 10;
+  private static final int MAX_GENERATIONS = 15;
+
   private static List<Bar> historicalData;
-  private static final double initialBalance = 100;
 
   protected static BackTesterService backTesterService;
 
@@ -51,7 +54,7 @@ public class GeneticOptimizer implements Optimizer {
 
     Engine<IntegerGene, Double> engine = Engine.builder(
             genotype -> fitness(context.getSymbol(), context.getPeriod(), genotype), codec)
-        .populationSize(50) // Increase population size
+        .populationSize(50)
         .optimize(Optimize.MAXIMUM)
         .offspringSelector(new TournamentSelector<>(5))
         .survivorsSelector(new EliteSelector<>())
@@ -65,8 +68,8 @@ public class GeneticOptimizer implements Optimizer {
         EvolutionStatistics.ofNumber();
 
     Phenotype<IntegerGene, Double> best = engine.stream()
-        .limit(bySteadyFitness(10))
-        .limit(15)
+        .limit(bySteadyFitness(STEADY_FITNESS_GENERATIONS))
+        .limit(MAX_GENERATIONS)
         .peek(evolutionResult -> {
           statistics.accept(evolutionResult);
           log.debug("Statistics: {}", statistics);

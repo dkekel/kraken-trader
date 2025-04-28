@@ -25,8 +25,9 @@ public class BackTesterService {
   private final AtrAnalyser atrAnalyser;
 
   public BacktestResult runSimulation(EvaluationContext context, double initialCapital) {
-    Strategy strategy = strategySelector.getBestStrategyForCoin(context.getSymbol());
-    return runSimulation(context, strategy, strategy.getStrategyParameters(), initialCapital);
+    var coin = context.getSymbol();
+    Strategy strategy = strategySelector.getBestStrategyForCoin(coin);
+    return runSimulation(context, strategy, strategy.getStrategyParameters(coin), initialCapital);
   }
 
   public BacktestResult runSimulation(EvaluationContext context,

@@ -9,8 +9,10 @@ import ch.kekelidze.krakentrader.trade.Portfolio;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cache.annotation.EnableCaching;
 
 @Slf4j
+@EnableCaching
 @SpringBootApplication(
     scanBasePackageClasses = {KrakenWebSocketRunner.class, KrakenApiService.class,
         ResponseConverterUtils.class, Indicator.class, Strategy.class, Portfolio.class}

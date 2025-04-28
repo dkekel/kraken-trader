@@ -18,6 +18,57 @@ application {
     mainClass = 'ch.kekelidze.krakentrader.KrakenTraderApplication'
 }
 
+bootJar {
+    mainClass = 'ch.kekelidze.krakentrader.KrakenTraderApplication'
+    archiveBaseName = 'kraken-trader'
+    archiveFileName = "kraken-trader-${version}.jar"
+}
+
+def createBootJarTask(String taskName, String mainClassName, String jarName) {
+    return tasks.register(taskName, org.springframework.boot.gradle.tasks.bundling.BootJar) {
+        dependsOn(compileJava)
+
+        mainClass.set(mainClassName)
+        archiveBaseName.set(jarName)
+        archiveFileName.set("${jarName}-${version}.jar")
+
+        classpath = sourceSets.main.runtimeClasspath
+        targetJavaVersion = JavaVersion.VERSION_21
+
+        launchScript()
+    }
+}
+
+def traderJar = createBootJarTask(
+        'bootJarTrader',
+        'ch.kekelidze.krakentrader.KrakenTraderApplication',
+        'kraken-trader'
+)
+
+def optimizerJar = createBootJarTask(
+        'bootJarOptimizer',
+        'ch.kekelidze.krakentrader.StrategyOptimizationRunner',
+        'strategy-optimizer'
+)
+
+def buyLowSellHighOptimizerJar =  createBootJarTask(
+        "bootBuyLowSellHighOptimizer",
+        "ch.kekelidze.krakentrader.BuyLowSellHighParameterOptimizationRunner",
+        "buy-low-sell-high-param-optimizer"
+)
+
+tasks.register('buildAll') {
+    description = 'Builds both trader and optimizer applications'
+    dependsOn traderJar, optimizerJar, buyLowSellHighOptimizerJar
+
+    doLast {
+        println "Both application JARs built successfully"
+        println "Trader JAR: ${traderJar.get().archiveFile.get().asFile}"
+        println "Optimizer JAR: ${optimizerJar.get().archiveFile.get().asFile}"
+        println "Buy Low Sell High Optimizer JAR: ${buyLowSellHighOptimizerJar.get().archiveFile.get().asFile}"
+    }
+}
+
 configurations {
     compileOnly {
         extendsFrom annotationProcessor
@@ -35,6 +86,7 @@ ext {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-batch'
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     implementation 'org.springframework.boot:spring-boot-starter-quartz'
     implementation 'org.glassfish.tyrus.bundles:tyrus-standalone-client:2.1.3'

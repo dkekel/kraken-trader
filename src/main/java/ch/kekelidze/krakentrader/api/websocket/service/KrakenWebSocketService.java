@@ -6,6 +6,7 @@ import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import ch.kekelidze.krakentrader.api.websocket.SinglePairWebSocketClient;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.trade.Portfolio;
+import ch.kekelidze.krakentrader.trade.service.PortfolioPersistenceService;
 import ch.kekelidze.krakentrader.trade.service.TradeService;
 import jakarta.websocket.ContainerProvider;
 import jakarta.websocket.DeploymentException;
@@ -37,6 +38,7 @@ public class KrakenWebSocketService implements DisposableBean {
   private final Map<KrakenWebSocketClient, String> clientToCoinPairMap = new HashMap<>();
 
   private final Portfolio portfolio;
+  private final PortfolioPersistenceService portfolioPersistenceService;
   private final TradeService tradeService;
   private final ResponseConverterUtils responseConverterUtils;
   private final KrakenApiService krakenApiService;
@@ -51,7 +53,9 @@ public class KrakenWebSocketService implements DisposableBean {
       var capital = Double.parseDouble(args[2]);
       log.info("Starting WebSocket client for strategy: {} and capital: {}", strategy, capital);
       tradeService.setStrategy(strategy);
-      portfolio.setTotalCapital(capital);
+      if (!portfolioPersistenceService.isPortfolioExists()) {
+        portfolio.setTotalCapital(capital);
+      }
 
       // Initialize the WebSocket client with Spring-managed dependencies
       KrakenWebSocketClient.initialize(tradeService, responseConverterUtils, krakenApiService,
