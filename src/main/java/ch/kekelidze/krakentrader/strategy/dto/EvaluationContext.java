@@ -1,5 +1,6 @@
 package ch.kekelidze.krakentrader.strategy.dto;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.Builder;
@@ -13,5 +14,6 @@ public class EvaluationContext {
   private String symbol;
   private int period;
   private List<Bar> bars;
-  private Map<String, String> metadata;
+  @Builder.Default
+  private Map<String, String> metadata = new HashMap<>();
 }
