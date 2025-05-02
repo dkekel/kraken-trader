@@ -23,7 +23,24 @@ public class VolumeIndicator implements Indicator {
   @Override
   public boolean isBuySignal(EvaluationContext context, StrategyParameters params) {
     var data = context.getBars();
-    return isVolumeAboveAverage(data, params) && hasIncreasingVolume(data, params.volumePeriod());
+    boolean volumeAboveAverage = isVolumeAboveAverage(data, params);
+    boolean volumeIncreasing = hasIncreasingVolume(data, params.volumePeriod());
+
+    // Calculate the recent price action (last 3 bars)
+    int size = data.size();
+    double recentPriceChange = 0;
+    if (size >= 3) {
+      double current = data.get(size-1).getClosePrice().doubleValue();
+      double previous = data.get(size-3).getClosePrice().doubleValue();
+      recentPriceChange = ((current / previous) - 1) * 100;
+    }
+
+    // During strong price increases, be more lenient with volume requirements
+    boolean isStrongPriceChange = recentPriceChange > 0.5; // 0.5% in recent bars
+
+    // Standard case OR strong price action case
+    return (volumeAboveAverage && volumeIncreasing) ||
+        (isStrongPriceChange && (volumeAboveAverage || volumeIncreasing));
   }
 
   private boolean hasIncreasingVolume(List<Bar> data, int lookbackPeriod) {
@@ -96,7 +113,8 @@ public class VolumeIndicator implements Indicator {
    */
   @Override
   public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
-    return isVolumeAboveAverage(data, params);
+    boolean hasDecreasingVolume = hasDecreasingVolume(data, params.volumePeriod());
+    return isVolumeAboveAverage(data, params) || hasDecreasingVolume;
   }
 
   private boolean isVolumeAboveAverage(List<Bar> data, VolumeParameters params) {
@@ -111,7 +129,66 @@ public class VolumeIndicator implements Indicator {
     return currentVolume > avgVolume * (1 + params.aboveAverageThreshold() / 100);
   }
 
+  /**
+   * Checks if volume is decreasing, which may indicate weakening bullish momentum
+   * This is the reverse of hasIncreasingVolume used for buy signals
+   *
+   * @param data Price bar data
+   * @param lookbackPeriod Period to analyze
+   * @return true if volume trend is decreasing
+   */
+  private boolean hasDecreasingVolume(List<Bar> data, int lookbackPeriod) {
+    if (data.size() <= lookbackPeriod) {
+      return false;
+    }
+
+    // Get recent volume values
+    List<Double> recentVolumes = new ArrayList<>();
+    for (int i = data.size() - lookbackPeriod; i < data.size(); i++) {
+      recentVolumes.add(data.get(i).getVolume().doubleValue());
+    }
+
+    // Check if volume is trending downward
+    double volumeSlope = calculateTrendSlope(recentVolumes);
+
+    // Negative slope indicates decreasing volume
+    return volumeSlope < 0;
+  }
+
   private double calculateAverage(List<Bar> bars) {
     return bars.stream().mapToDouble(bar -> bar.getVolume().doubleValue()).average().orElse(0.0);
+  }
+
+  /**
+   * Detects unusually high volume that often precedes major price movements in crypto
+   * @param data Price bar data
+   * @param params Strategy parameters
+   * @return true if there's a significant volume surge
+   */
+  public boolean hasVolumeSurge(List<Bar> data, StrategyParameters params) {
+    if (data.size() < params.volumePeriod()) return false;
+
+    int size = data.size();
+    double currentVolume = data.getLast().getVolume().doubleValue();
+
+    // Calculate average volume excluding the current bar
+    double sumVolume = 0;
+    for (int i = size - params.volumePeriod(); i < size - 1; i++) {
+      sumVolume += data.get(i).getVolume().doubleValue();
+    }
+    double avgVolume = sumVolume / (params.volumePeriod() - 1);
+
+    // Check if current volume is significantly higher (2x average)
+    double volumeRatio = currentVolume / avgVolume;
+
+    // Check price direction on volume surge (more bearish if price drops on high volume)
+    boolean isPriceDown = data.getLast().getClosePrice().doubleValue() <
+        data.get(size - 2).getClosePrice().doubleValue();
+
+    log.debug("Volume analysis - Current/Avg ratio: {}, Price down: {}", volumeRatio, isPriceDown);
+
+    // Volume surge with price drop is strongly bearish (1.5x volume)
+    // Volume surge with price up needs to be more extreme to be considered bearish (2x volume)
+    return (isPriceDown && volumeRatio > 1.5) || volumeRatio > 3.0;
   }
 }
