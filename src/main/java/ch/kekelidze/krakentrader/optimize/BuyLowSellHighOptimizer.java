@@ -49,6 +49,8 @@ public class BuyLowSellHighOptimizer extends GeneticOptimizer {
             // Volume parameters
             IntegerChromosome.of(12, 36),      // Volume period (12-36)
             IntegerChromosome.of(10, 40),      // Above average threshold (10-40%)
+            IntegerChromosome.of(10, 40),      // Bearish surge threshold
+            IntegerChromosome.of(30, 50),      // Extreme bearish surge threshold
 
             // Risk parameters
             IntegerChromosome.of(15, 50),      // Loss percent * 10 (1.5-5.0%)
@@ -83,11 +85,13 @@ public class BuyLowSellHighOptimizer extends GeneticOptimizer {
 
     int volumePeriod = genotype.get(12).get(0).intValue();
     int aboveAverageThreshold = genotype.get(13).get(0).intValue();
+    double bearishSurgeThreshold = genotype.get(14).get(0).intValue() / 10.0;
+    double extremeBearishSurgeThreshold = genotype.get(15).get(0).intValue() / 10.0;
 
-    double lossPercent = genotype.get(14).get(0).intValue() / 10.0;
-    double profitPercent = genotype.get(15).get(0).intValue() / 10.0;
+    double lossPercent = genotype.get(16).get(0).intValue() / 10.0;
+    double profitPercent = genotype.get(17).get(0).intValue() / 10.0;
 
-    double contractionThreshold = genotype.get(16).get(0).intValue() / 10.0;
+    double contractionThreshold = genotype.get(18).get(0).intValue() / 10.0;
 
     // 5. Calculate minimum candles as 3x the maximum period
     int maxPeriod = Math.max(
@@ -114,6 +118,8 @@ public class BuyLowSellHighOptimizer extends GeneticOptimizer {
         .highVolatilityThreshold(highVolatilityThreshold)
         .volumePeriod(volumePeriod)
         .aboveAverageThreshold(aboveAverageThreshold)
+        .volumeSurgeBearishThreshold(bearishSurgeThreshold)
+        .volumeSurgeExtremeBearishThreshold(extremeBearishSurgeThreshold)
         .lossPercent(lossPercent)
         .profitPercent(profitPercent)
         .contractionThreshold(contractionThreshold)
