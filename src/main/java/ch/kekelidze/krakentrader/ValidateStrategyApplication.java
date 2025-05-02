@@ -35,10 +35,13 @@ public class ValidateStrategyApplication {
   public static void main(String[] args) {
     List<String> coins = List.of(args[0].split(","));
     int period = Integer.parseInt(args[1]);
-    ZonedDateTime startDate = LocalDate.parse(args[2], DateTimeFormatter.ISO_DATE)
-        .atStartOfDay(ZoneId.systemDefault());
-    ZonedDateTime endDate = LocalDate.parse(args[3], DateTimeFormatter.ISO_DATE)
-        .atStartOfDay(ZoneId.systemDefault());
+
+    ZonedDateTime startDate = args.length > 2
+        ? LocalDate.parse(args[2], DateTimeFormatter.ISO_DATE).atStartOfDay(ZoneId.systemDefault())
+        : LocalDate.of(2000, 1, 1).atStartOfDay(ZoneId.systemDefault());
+    ZonedDateTime endDate = args.length > 3
+        ? LocalDate.parse(args[3], DateTimeFormatter.ISO_DATE).atStartOfDay(ZoneId.systemDefault())
+        : LocalDate.now().atStartOfDay(ZoneId.systemDefault());
 
     var application = SpringApplication.run(ValidateStrategyApplication.class, args);
     validateWithHistoricalData(application, coins, period, startDate, endDate);
