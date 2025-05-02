@@ -49,7 +49,7 @@ public class TrendAnalyser {
   public boolean hasBullishDivergence(EvaluationContext context, StrategyParameters params) {
     var data = context.getBars();
     int size = data.size();
-    int lookback = 5; // 24 hours of data
+    int lookback = params.lookbackPeriod(); // 24 hours of data
 
     // Need enough data
     if (size < lookback + params.rsiPeriod()) {
@@ -202,7 +202,7 @@ public class TrendAnalyser {
   public boolean hasBearishDivergence(EvaluationContext context, StrategyParameters params) {
     var data = context.getBars();
     int size = data.size();
-    int lookback = 5; // 24 hours of data
+    int lookback = params.lookbackPeriod();
 
     // Need enough data
     if (size < lookback + params.rsiPeriod()) {

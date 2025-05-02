@@ -31,7 +31,7 @@ public class TimeFrameAdjustmentUtils {
         .rsiPeriod(parameters.rsiPeriod() * timeFrameMultiplier)
         .rsiBuyThreshold(parameters.rsiBuyThreshold())
         .rsiSellThreshold(parameters.rsiSellThreshold())
-        .lookbackPeriod(parameters.lookbackPeriod())
+        .lookbackPeriod(parameters.lookbackPeriod() * timeFrameMultiplier)
         .volumePeriod(parameters.volumePeriod() * timeFrameMultiplier)
         .aboveAverageThreshold(parameters.aboveAverageThreshold())
         .volumeSurgeBearishThreshold(parameters.volumeSurgeBearishThreshold())
