@@ -2,20 +2,23 @@ package ch.kekelidze.krakentrader.strategy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
 import ch.kekelidze.krakentrader.indicator.MovingTrendIndicator;
 import ch.kekelidze.krakentrader.indicator.RiskManagementIndicator;
-import ch.kekelidze.krakentrader.indicator.RsiRangeIndicator;
 import ch.kekelidze.krakentrader.indicator.SimpleMovingAverageDivergenceIndicator;
 import ch.kekelidze.krakentrader.indicator.VolatilityIndicator;
 import ch.kekelidze.krakentrader.indicator.VolumeIndicator;
+import ch.kekelidze.krakentrader.indicator.analyser.TrendAnalyser;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.config.CacheConfig;
 import ch.kekelidze.krakentrader.strategy.service.StrategyParametersService;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -24,7 +27,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(SpringExtension.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -35,13 +37,8 @@ public class BuyLowSellHighStrategyTest {
     @EnableCaching
     static class TestConfig {
         @Bean
-        public MovingAverageIndicator movingAverageIndicator() {
-            return mock(MovingAverageIndicator.class);
-        }
-
-        @Bean
-        public RsiRangeIndicator rsiIndicator() {
-            return mock(RsiRangeIndicator.class);
+        public TrendAnalyser trendAnalyser() {
+            return mock(TrendAnalyser.class);
         }
 
         @Bean
@@ -76,8 +73,7 @@ public class BuyLowSellHighStrategyTest {
 
         @Bean
         public BuyLowSellHighStrategy buyLowSellHighStrategy(
-                MovingAverageIndicator movingAverageIndicator,
-                RsiRangeIndicator rsiIndicator,
+                TrendAnalyser trendAnalyser,
                 RiskManagementIndicator riskManagementIndicator,
                 VolatilityIndicator volatilityIndicator,
                 SimpleMovingAverageDivergenceIndicator macdIndicator,
@@ -85,8 +81,7 @@ public class BuyLowSellHighStrategyTest {
                 MovingTrendIndicator movingTrendIndicator,
                 StrategyParametersService strategyParametersService) {
             return new BuyLowSellHighStrategy(
-                movingAverageIndicator,
-                rsiIndicator,
+                trendAnalyser,
                 riskManagementIndicator,
                 volatilityIndicator,
                 macdIndicator,

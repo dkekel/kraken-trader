@@ -1,27 +1,23 @@
 package ch.kekelidze.krakentrader.strategy;
 
-import ch.kekelidze.krakentrader.indicator.MovingAverageIndicator;
 import ch.kekelidze.krakentrader.indicator.MovingTrendIndicator;
 import ch.kekelidze.krakentrader.indicator.RiskManagementIndicator;
-import ch.kekelidze.krakentrader.indicator.RsiRangeIndicator;
 import ch.kekelidze.krakentrader.indicator.SimpleMovingAverageDivergenceIndicator;
 import ch.kekelidze.krakentrader.indicator.VolatilityIndicator;
 import ch.kekelidze.krakentrader.indicator.VolumeIndicator;
+import ch.kekelidze.krakentrader.indicator.analyser.TrendAnalyser;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import ch.kekelidze.krakentrader.strategy.service.StrategyParametersService;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
-import org.ta4j.core.Bar;
 
 @Slf4j
 @Component("buyLowSellHighStrategy")
 public class BuyLowSellHighStrategy implements Strategy {
 
-  private final MovingAverageIndicator movingAverageIndicator;
-  private final RsiRangeIndicator rsiIndicator;
+  private final TrendAnalyser trendAnalyser;
   private final RiskManagementIndicator riskManagementIndicator;
   private final VolatilityIndicator volatilityIndicator;
   private final SimpleMovingAverageDivergenceIndicator macdIndicator;
@@ -29,13 +25,12 @@ public class BuyLowSellHighStrategy implements Strategy {
   private final MovingTrendIndicator movingTrendIndicator;
   private final StrategyParametersService strategyParametersService;
 
-  public BuyLowSellHighStrategy(MovingAverageIndicator movingAverageIndicator,
-      RsiRangeIndicator rsiIndicator, RiskManagementIndicator riskManagementIndicator,
+  public BuyLowSellHighStrategy(TrendAnalyser trendAnalyser,
+      RiskManagementIndicator riskManagementIndicator,
       VolatilityIndicator volatilityIndicator, SimpleMovingAverageDivergenceIndicator macdIndicator,
       VolumeIndicator volumeIndicator, MovingTrendIndicator movingTrendIndicator,
       StrategyParametersService strategyParametersService) {
-    this.movingAverageIndicator = movingAverageIndicator;
-    this.rsiIndicator = rsiIndicator;
+    this.trendAnalyser = trendAnalyser;
     this.riskManagementIndicator = riskManagementIndicator;
     this.volatilityIndicator = volatilityIndicator;
     this.macdIndicator = macdIndicator;
@@ -48,78 +43,77 @@ public class BuyLowSellHighStrategy implements Strategy {
   public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
     boolean volatilityOK = volatilityIndicator.isBuySignal(context, params);
     boolean macdConfirmed = macdIndicator.isBuySignal(context, params);
-    boolean downtrend = isDowntrend(context, params);
-    boolean bullishSignal = isBullishSignal(context, params);
+    var data = context.getBars();
+    var historicalData = data.subList(0, Math.min(data.size(), data.size() - 5));
+    boolean wasInDowntrend = trendAnalyser.isDowntrend(historicalData, context.getSymbol(), params);
+    boolean bullishSignal = trendAnalyser.isBullishSignal(context, params);
+    boolean hasDivergence = trendAnalyser.hasBullishDivergence(context, params);
+
     boolean movingTrend = movingTrendIndicator.isBuySignal(context, params);
 
     log.debug(
         "Buy '{}' signals - Volatility: {}, MACD: {}, Downtrend: {}, Bullish: {}, MovingTrend: {}",
-        context.getSymbol(), volatilityOK, macdConfirmed, downtrend, bullishSignal, movingTrend);
+        context.getSymbol(), volatilityOK, macdConfirmed, wasInDowntrend, bullishSignal, movingTrend);
 
-    return downtrend && bullishSignal && volatilityOK && macdConfirmed && movingTrend;
-  }
-
-  private boolean isDowntrend(EvaluationContext context, StrategyParameters params) {
-    var data = context.getBars();
-    var ma20ma50 = movingAverageIndicator.calculateMovingAverage(data,
-        params.movingAverageBuyShortPeriod(), params.movingAverageBuyLongPeriod());
-    var endIndex = ma20ma50.endIndex();
-    var ma20 = ma20ma50.maShort().getValue(endIndex);
-    var ma50 = ma20ma50.maLong().getValue(endIndex);
-    log.debug("Downtrend '{}' - MA20: {}, MA50: {}", context.getSymbol(), ma20, ma50);
-    return ma20.isLessThan(ma50);
-  }
-
-  private boolean isBullishSignal(EvaluationContext context, StrategyParameters params) {
-    boolean rsiBuySignal = rsiIndicator.isBuySignal(context, params);
-    boolean volumeConfirmation = volumeIndicator.isBuySignal(context, params);
-    var data = context.getBars();
-    boolean hasBullishSequence = hasBullishSequence(data, params);
-
-    log.debug("Bullish '{}' signal evaluation - RSI: {}, Volume: {}, Bullish Sequence: {}",
-        context.getSymbol(), rsiBuySignal, volumeConfirmation, hasBullishSequence);
-
-    return (rsiBuySignal || volumeConfirmation) && hasBullishSequence;
-  }
-
-  private boolean hasBullishSequence(List<Bar> data, StrategyParameters params) {
-    int bullishCount = 0;
-
-    // Ensure we have enough bars to analyze
-    int lookback = params.lookbackPeriod();
-    if (data.size() < lookback) {
-      return false;
-    }
-
-    // Count the number of bullish candles in the lookback period
-    for (int i = data.size() - lookback; i < data.size(); i++) {
-      if (isBullishCandle(data.get(i))) {
-        bullishCount++;
-      }
-    }
-
-    return bullishCount >= (int) Math.ceil(0.6 * lookback);
-  }
-
-  private boolean isBullishCandle(Bar bar) {
-    double closePrice = bar.getClosePrice().doubleValue();
-    double openPrice = bar.getOpenPrice().doubleValue();
-    double highPrice = bar.getHighPrice().doubleValue();
-    double lowPrice = bar.getLowPrice().doubleValue();
-
-    // Define bullish candle criteria
-    return closePrice > openPrice &&
-        (highPrice - closePrice) < 0.1 * (highPrice - lowPrice) &&
-        (closePrice - openPrice) > 0.3 * (highPrice - lowPrice);
+    return wasInDowntrend && (bullishSignal || hasDivergence) && volatilityOK && macdConfirmed && movingTrend;
   }
 
   @Override
   public boolean shouldSell(EvaluationContext context, double entryPrice,
       StrategyParameters params) {
-    boolean riskSignal = riskManagementIndicator.isSellSignal(context.getBars(), entryPrice,
-        params);
-    log.debug("Sell '{}' signals - Risk: {}", context.getSymbol(), riskSignal);
-    return riskSignal;
+    var data = context.getBars();
+
+    // Risk management signal (stop loss/take profit) - this always takes precedence
+    boolean riskSignal = riskManagementIndicator.isSellSignal(context, entryPrice, params);
+
+    boolean isInDowntrend = trendAnalyser.isDowntrend(data, context.getSymbol(), params);
+
+    boolean hasBearishPattern = trendAnalyser.hasBearishDivergence(context, params);
+    boolean bearishSignal = trendAnalyser.isBearishSignal(context, params);
+
+    // Check for consecutive lower highs or lower lows (a strong bearish pattern)
+    boolean hasConsecutiveLowerHighs = trendAnalyser.hasConsecutiveLowerHighsOrLows(data, 3);
+
+    // Check for volume spike (often precedes major moves in crypto)
+    boolean hasVolumeSurge = volumeIndicator.hasVolumeSurge(data, params);
+
+    var bearishSequence = trendAnalyser.getBearishTrendSequence(context, params);
+    boolean hasModerateDowntrend = bearishSequence.isHasModerateDowntrend();
+    boolean hasStrongDowntrend = bearishSequence.isHasStrongDowntrend();
+    boolean priceConfirmation = bearishSequence.isPriceConfirmation();
+
+    // Log all signals for debugging
+    log.debug("Sell '{}' signals - Risk: {}, Downtrend: {}, Moderate: {}, Strong: {}, " +
+            "Bearish Pattern: {}, Bearish Signal: {}, Lower Highs: {}, Volume Surge: {}",
+        context.getSymbol(), riskSignal, isInDowntrend, hasModerateDowntrend,
+        hasStrongDowntrend, hasBearishPattern, bearishSignal, hasConsecutiveLowerHighs,
+        hasVolumeSurge);
+
+    // Tiered decision logic based on downtrend strength:
+    boolean technicalSellSignal;
+
+    if (hasStrongDowntrend && priceConfirmation) {
+      // For very strong downtrends, minimal confirmation needed
+      technicalSellSignal = true;
+    } else if (hasModerateDowntrend && priceConfirmation) {
+      // For moderate downtrends, require one additional confirmation signal
+      technicalSellSignal =
+          hasBearishPattern || bearishSignal || hasConsecutiveLowerHighs || hasVolumeSurge;
+    } else if (isInDowntrend) {
+      // For mild downtrends, require multiple confirmation signals
+      int confirmationCount = (hasBearishPattern ? 1 : 0) +
+          (bearishSignal ? 1 : 0) +
+          (hasConsecutiveLowerHighs ? 1 : 0) +
+          (hasVolumeSurge ? 1 : 0);
+      technicalSellSignal = confirmationCount >= 2;
+    } else {
+      // Not in downtrend - need very strong bearish signals to sell
+      technicalSellSignal = hasBearishPattern && bearishSignal && hasConsecutiveLowerHighs;
+    }
+
+    log.debug("Sell '{}' - Final decision: {}", context.getSymbol(), (riskSignal || technicalSellSignal));
+
+    return riskSignal || technicalSellSignal;
   }
 
   @Override
