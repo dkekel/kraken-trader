@@ -20,6 +20,8 @@ public record StrategyParameters(int movingAverageBuyShortPeriod, int movingAver
                                  int rsiPeriod, double rsiBuyThreshold, double rsiSellThreshold,
                                  int macdFastPeriod, int macdSlowPeriod, int macdSignalPeriod,
                                  int volumePeriod, double aboveAverageThreshold,
+                                 double volumeSurgeBearishThreshold,
+                                 double volumeSurgeExtremeBearishThreshold,
                                  double lossPercent, double profitPercent,
                                  int adxPeriod, int adxBullishThreshold, int adxBearishThreshold,
                                  int volatilityPeriod, double contractionThreshold,

@@ -70,6 +70,12 @@ public class StrategyParametersEntity {
   @Column(name = "above_average_threshold")
   private double aboveAverageThreshold;
 
+  @Column(name = "volume_surge_bearish_threshold")
+  private double volumeSurgeBearishThreshold;
+
+  @Column(name = "volume_surge_ext_bearish_threshold")
+  private double volumeSurgeExtremeBearishThreshold;
+
   @Column(name = "loss_percent")
   private double lossPercent;
 
@@ -143,6 +149,8 @@ public class StrategyParametersEntity {
         .macdSignalPeriod(macdSignalPeriod)
         .volumePeriod(volumePeriod)
         .aboveAverageThreshold(aboveAverageThreshold)
+        .volumeSurgeBearishThreshold(volumeSurgeBearishThreshold)
+        .volumeSurgeExtremeBearishThreshold(volumeSurgeExtremeBearishThreshold)
         .lossPercent(lossPercent)
         .profitPercent(profitPercent)
         .adxPeriod(adxPeriod)
@@ -189,6 +197,8 @@ public class StrategyParametersEntity {
         .macdSignalPeriod(parameters.macdSignalPeriod())
         .volumePeriod(parameters.volumePeriod())
         .aboveAverageThreshold(parameters.aboveAverageThreshold())
+        .volumeSurgeBearishThreshold(parameters.volumeSurgeBearishThreshold())
+        .volumeSurgeExtremeBearishThreshold(parameters.volumeSurgeExtremeBearishThreshold())
         .lossPercent(parameters.lossPercent())
         .profitPercent(parameters.profitPercent())
         .adxPeriod(parameters.adxPeriod())

@@ -168,7 +168,7 @@ public class VolumeIndicator implements Indicator {
    * @param params Strategy parameters
    * @return true if there's a significant volume surge
    */
-  public boolean hasVolumeSurge(List<Bar> data, StrategyParameters params) {
+  public boolean hasVolumeSurge(List<Bar> data, VolumeParameters params) {
     if (data.size() < params.volumePeriod()) return false;
 
     int size = data.size();
