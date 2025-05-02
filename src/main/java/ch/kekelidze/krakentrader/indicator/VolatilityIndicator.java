@@ -24,7 +24,9 @@ public class VolatilityIndicator implements Indicator {
   }
 
   @Override
-  public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
+  public boolean isSellSignal(EvaluationContext context, double entryPrice,
+      StrategyParameters params) {
+    var data = context.getBars();
     double volatilityPercentage = calculateVolatilityPercentage(data, params);
     return volatilityPercentage > params.highVolatilityThreshold();
   }

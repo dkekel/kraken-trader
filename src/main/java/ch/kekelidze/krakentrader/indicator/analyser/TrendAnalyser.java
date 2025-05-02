@@ -348,8 +348,8 @@ public class TrendAnalyser {
    * @return true if bearish signals are detected, false otherwise
    */
   public boolean isBearishSignal(EvaluationContext context, StrategyParameters params) {
-    boolean rsiSellSignal = rsiIndicator.isSellSignal(context.getBars(), 0, params);
-    boolean volumeConfirmation = volumeIndicator.isSellSignal(context.getBars(), 0, params);
+    boolean rsiSellSignal = rsiIndicator.isSellSignal(context, 0, params);
+    boolean volumeConfirmation = volumeIndicator.isSellSignal(context, 0, params);
 
     var bearishSequence = getBearishTrendSequence(context, params);
     boolean hasBearishSequence = bearishSequence.hasBearishSequence;

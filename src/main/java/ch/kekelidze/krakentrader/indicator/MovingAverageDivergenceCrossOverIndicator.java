@@ -35,7 +35,9 @@ public class MovingAverageDivergenceCrossOverIndicator implements Indicator {
   }
 
   @Override
-  public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
+  public boolean isSellSignal(EvaluationContext context, double entryPrice,
+      StrategyParameters params) {
+    var data = context.getBars();
     var macd = calculateMovingAverageDivergence(data, params);
     var macdSignal = calculateMacdSignal(data, params);
     var endIndex = macd.getBarSeries().getEndIndex();

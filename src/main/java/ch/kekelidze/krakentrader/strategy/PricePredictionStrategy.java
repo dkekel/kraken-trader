@@ -23,7 +23,6 @@ public class PricePredictionStrategy implements Strategy {
   @Override
   public boolean shouldSell(EvaluationContext context, double entryPrice,
       StrategyParameters params) {
-    var data = context.getBars();
-    return pricePredictionIndicator.isSellSignal(data, entryPrice, params);
+    return pricePredictionIndicator.isSellSignal(context, entryPrice, params);
   }
 }

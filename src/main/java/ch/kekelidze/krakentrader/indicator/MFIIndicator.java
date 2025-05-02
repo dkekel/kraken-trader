@@ -21,7 +21,9 @@ public class MFIIndicator implements Indicator {
   }
 
   @Override
-  public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
+  public boolean isSellSignal(EvaluationContext context, double entryPrice,
+      StrategyParameters params) {
+    var data = context.getBars();
     double mfi = calculateMFI(data, params.mfiPeriod());
     log.debug("MFI: {}, Sell threshold: {}, Closing time: {}", mfi, params.mfiOverboughtThreshold(),
         data.getLast().getEndTime());

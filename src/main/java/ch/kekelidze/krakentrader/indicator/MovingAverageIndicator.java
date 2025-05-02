@@ -46,7 +46,9 @@ public class MovingAverageIndicator implements Indicator {
   }
 
   @Override
-  public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
+  public boolean isSellSignal(EvaluationContext context, double entryPrice,
+      StrategyParameters params) {
+    var data = context.getBars();
     var movingAverage = calculateMovingAverage(data, params.movingAverageSellShortPeriod(),
         params.movingAverageSellLongPeriod());
     var maShort = movingAverage.maShort();

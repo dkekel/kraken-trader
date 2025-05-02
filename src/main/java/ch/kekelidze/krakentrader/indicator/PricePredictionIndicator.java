@@ -41,7 +41,9 @@ public class PricePredictionIndicator implements Indicator {
   }
 
   @Override
-  public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
+  public boolean isSellSignal(EvaluationContext context, double entryPrice,
+      StrategyParameters params) {
+    var data = context.getBars();
     var prediction = calculatePrediction(data);
     var previousPrice = data.getLast().getClosePrice().doubleValue();
     log.debug("Prediction: {}, Previous Price: {}, Closing Time: {}", prediction, previousPrice,

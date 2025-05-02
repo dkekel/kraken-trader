@@ -110,11 +110,55 @@ public class RsiRangeIndicator implements Indicator {
   }
 
   @Override
-  public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
-    double rsi = calculateRSI(data, params.rsiPeriod());
-    log.debug("RSI: {}, Sell threshold: {}, Closing time: {}", rsi, params.rsiSellThreshold(),
-        data.getLast().getEndTime());
-    return rsi > params.rsiSellThreshold();
+  public boolean isSellSignal(EvaluationContext context, double entryPrice,
+      StrategyParameters params) {
+    var data = context.getBars();
+    var symbol = context.getSymbol();
+    return hasConsistentRsiDeterioration(data, symbol, params);
+  }
+
+  /**
+   * Checks if RSI is consistently deteriorating (climbing) over recent bars
+   * This indicates weakening bullish momentum and potential for a reversal
+   *
+   * @param data List of price bars
+   * @param coinPair Trading pair symbol
+   * @param params Strategy parameters
+   * @return true if RSI is consistently deteriorating and in the danger zone
+   */
+  private boolean hasConsistentRsiDeterioration(List<Bar> data, String coinPair,
+      StrategyParameters params) {
+    // Get RSI values for the last few bars
+    List<Double> rsiValues = calculateLastNRsiValues(data, coinPair, params.lookbackPeriod(),
+        params.rsiPeriod());
+
+    // Check if RSI is consistently increasing (deteriorating momentum)
+    boolean isDeteriorating = true;
+    for (int i = 1; i < rsiValues.size(); i++) {
+      if (rsiValues.get(i) <= rsiValues.get(i-1)) {
+        isDeteriorating = false;
+        break;
+      }
+    }
+
+    // Define danger zone for RSI: approaching overbought territory
+    // This is the inverse of the buy logic where we look for RSI between buy and sell thresholds
+    double dangerZoneStart = params.rsiSellThreshold() - 15; // Start warning 15 points before sell threshold
+    boolean isInDangerZone = rsiValues.getLast() > dangerZoneStart &&
+        rsiValues.getLast() <= params.rsiSellThreshold();
+
+    // Also consider case where RSI is already overbought but still climbing
+    boolean isClimbingOverbought = rsiValues.getLast() > params.rsiSellThreshold() && isDeteriorating;
+
+    log.debug(
+        "RSI deterioration: {}, in danger zone: {}, climbing while overbought: {}, RSI values: {}, " +
+            "Danger zone start: {}, Sell threshold: {}",
+        isDeteriorating, isInDangerZone, isClimbingOverbought, rsiValues,
+        dangerZoneStart, params.rsiSellThreshold());
+
+    // Signal if RSI is deteriorating and either in the danger zone approaching overbought
+    // or already overbought and still climbing
+    return isDeteriorating && (isInDangerZone || isClimbingOverbought);
   }
 
   private double calculateRSI(List<Bar> pricePeriods, int periods) {

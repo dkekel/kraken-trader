@@ -91,9 +91,9 @@ public class MovingAverageScalper implements Strategy {
       log.debug("Volatility not acceptable");
       return false;
     }
-    var maSignal = movingAverageIndicator.isSellSignal(data, entryPrice, params);
-    var riskSellSignal = riskManagementIndicator.isSellSignal(data, entryPrice, params);
-    var rsiSignal = rsiIndicator.isSellSignal(data, entryPrice, params);
+    var maSignal = movingAverageIndicator.isSellSignal(context, entryPrice, params);
+    var riskSellSignal = riskManagementIndicator.isSellSignal(context, entryPrice, params);
+    var rsiSignal = rsiIndicator.isSellSignal(context, entryPrice, params);
     var ma50greaterThan100 = movingAverageIndicator.isMa50GreaterThan100(data);
     var ma100greaterThan200 = movingAverageIndicator.isMa100GreaterThan200(data);
 
