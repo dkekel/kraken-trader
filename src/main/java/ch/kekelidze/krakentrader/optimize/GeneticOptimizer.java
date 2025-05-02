@@ -199,7 +199,7 @@ public class GeneticOptimizer implements Optimizer {
     double fitness = result.sharpeRatio();
 
     // Penalize strategies with very low win rates
-    if (result.winRate() < 0.2) {
+    if (result.winRate() < 0.3) {
       fitness *= 0.5;
     } else {
       // Otherwise reward higher win rates
