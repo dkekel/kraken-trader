@@ -5,9 +5,11 @@ import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.Bar;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class VolatilityIndicator implements Indicator {
@@ -17,18 +19,23 @@ public class VolatilityIndicator implements Indicator {
   @Override
   public boolean isBuySignal(EvaluationContext context, StrategyParameters params) {
     var data = context.getBars();
-    double atr = atrAnalyser.calculateATR(data, params.atrPeriod());
-    double currentPrice = data.getLast().getClosePrice().doubleValue();
-    return (atr / currentPrice) * 100 < params.lowVolatilityThreshold();
+    double volatilityPercentage = calculateVolatilityPercentage(data, params);
+    return volatilityPercentage < params.lowVolatilityThreshold();
   }
 
   @Override
   public boolean isSellSignal(List<Bar> data, double entryPrice, StrategyParameters params) {
-    double atr = atrAnalyser.calculateATR(data, params.atrPeriod());
+    double volatilityPercentage = calculateVolatilityPercentage(data, params);
+    return volatilityPercentage > params.highVolatilityThreshold();
+  }
+
+  private double calculateVolatilityPercentage(List<Bar> data, StrategyParameters parameters) {
+    double atr = atrAnalyser.calculateATR(data, parameters.atrPeriod());
     double currentPrice = data.getLast().getClosePrice().doubleValue();
-
-    // Sell when volatility is high (above a higher threshold)
-    return (atr / currentPrice) * 100 > params.highVolatilityThreshold();
-
+    double volatilityPercentage = (atr / currentPrice) * 100;
+    log.debug(
+        "Volatility calculation - ATR: {}, Current price: {}, Volatility: {}%, Threshold: {}%",
+        atr, currentPrice, volatilityPercentage, parameters.lowVolatilityThreshold());
+    return volatilityPercentage;
   }
 }
