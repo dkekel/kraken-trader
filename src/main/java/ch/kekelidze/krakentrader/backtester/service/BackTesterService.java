@@ -54,7 +54,9 @@ public class BackTesterService {
 
     // For drawdown calculation
     List<Double> equityCurve = new ArrayList<>();
+    log.debug("{} optimized parameters: {}", context.getSymbol(), params);
     var adjustedParameters = TimeFrameAdjustmentUtils.adjustTimeFrame(params, context.getPeriod());
+    log.debug("{} adjusted parameters: {}", context.getSymbol(), adjustedParameters);
 
     var data = context.getBars();
     var minBars = adjustedParameters.minimumCandles();
