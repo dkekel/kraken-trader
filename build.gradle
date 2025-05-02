@@ -65,7 +65,7 @@ def buyLowSellHighOptimizerJar =  createBootJarTask(
 
 tasks.register('buildAll') {
     description = 'Builds both trader and optimizer applications'
-    dependsOn traderJar, optimizerJar, buyLowSellHighOptimizerJar
+    dependsOn traderJar, optimizerJar, buyLowSellHighOptimizerJar, validatorJar
 
     doLast {
         println "All application JARs built successfully"
