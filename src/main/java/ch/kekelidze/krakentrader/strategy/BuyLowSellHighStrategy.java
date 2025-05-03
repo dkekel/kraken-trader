@@ -41,22 +41,52 @@ public class BuyLowSellHighStrategy implements Strategy {
 
   @Override
   public boolean shouldBuy(EvaluationContext context, StrategyParameters params) {
-    boolean volatilityOK = volatilityIndicator.isBuySignal(context, params);
     boolean macdConfirmed = macdIndicator.isBuySignal(context, params);
     var data = context.getBars();
-    var historicalData = data.subList(0, Math.min(data.size(), data.size() - 5));
+    var historicalData = data.subList(0,
+        Math.min(data.size(), data.size() - params.lookbackPeriod()));
     boolean wasInDowntrend = trendAnalyser.isDowntrend(historicalData, context.getSymbol(), params);
     boolean bullishSignal = trendAnalyser.isBullishSignal(context, params);
     boolean hasDivergence = trendAnalyser.hasBullishDivergence(context, params);
 
     boolean movingTrend = movingTrendIndicator.isBuySignal(context, params);
 
-    log.debug(
-        "Buy '{}' signals at {} - Volatility: {}, MACD: {}, Downtrend: {}, Bullish: {}, MovingTrend: {}",
-        context.getSymbol(), context.getBars().getLast().getEndTime(),
-        volatilityOK, macdConfirmed, wasInDowntrend, bullishSignal, movingTrend);
+    // Check volatility
+    boolean volatilityOK = volatilityIndicator.isBuySignal(context, params);
 
-    return wasInDowntrend && (bullishSignal || hasDivergence) && volatilityOK && macdConfirmed && movingTrend;
+    // Pre-check if all other signals are strong
+    boolean otherSignalsStrong = wasInDowntrend &&
+        ((bullishSignal && hasDivergence) ||
+            (bullishSignal && macdConfirmed && movingTrend));
+
+    // If other signals are very strong but volatility is the only blocker, do a deeper check
+    boolean overrideVolatility = false;
+    if (!volatilityOK && otherSignalsStrong) {
+      // Call a more detailed volatility check method that considers trend strength
+      double currentVolatility = volatilityIndicator.calculateVolatilityPercentage(data, params);
+      double maxAcceptableVolatility = params.lowVolatilityThreshold() * 1.5; // Allow 50% higher volatility
+
+      // Check if we're only slightly over the threshold
+      if (currentVolatility < maxAcceptableVolatility) {
+        log.debug("Volatility override check - Current: {}%, Max acceptable: {}%",
+            currentVolatility, maxAcceptableVolatility);
+        overrideVolatility = true;
+      }
+    }
+
+    log.debug(
+        "Buy '{}' signals at {} - Volatility: {}{}, MACD: {}, Downtrend: {}, Bullish: {}, MovingTrend: {}",
+        context.getSymbol(), context.getBars().getLast().getEndTime(),
+        volatilityOK, overrideVolatility ? " (overridden)" : "",
+        macdConfirmed, wasInDowntrend, bullishSignal, movingTrend);
+
+
+    return wasInDowntrend &&
+        (bullishSignal || hasDivergence) &&
+        (volatilityOK || overrideVolatility) &&
+        macdConfirmed &&
+        movingTrend;
+
   }
 
   @Override

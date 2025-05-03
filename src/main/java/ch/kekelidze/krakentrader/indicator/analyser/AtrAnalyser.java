@@ -18,7 +18,7 @@ public class AtrAnalyser {
   public double calculateATR(List<Bar> data, int period) {
     // Get the initial ATR using SMA for the first 'period' bars
     double initialSum = 0;
-    for (int i = 1; i <= period; i++) {
+    for (int i = 1; i < period; i++) {
       Bar current = data.get(i);
       Bar previous = data.get(i - 1);
 
