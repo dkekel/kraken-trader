@@ -52,8 +52,9 @@ public class BuyLowSellHighStrategy implements Strategy {
     boolean movingTrend = movingTrendIndicator.isBuySignal(context, params);
 
     log.debug(
-        "Buy '{}' signals - Volatility: {}, MACD: {}, Downtrend: {}, Bullish: {}, MovingTrend: {}",
-        context.getSymbol(), volatilityOK, macdConfirmed, wasInDowntrend, bullishSignal, movingTrend);
+        "Buy '{}' signals at {} - Volatility: {}, MACD: {}, Downtrend: {}, Bullish: {}, MovingTrend: {}",
+        context.getSymbol(), context.getBars().getLast().getEndTime(),
+        volatilityOK, macdConfirmed, wasInDowntrend, bullishSignal, movingTrend);
 
     return wasInDowntrend && (bullishSignal || hasDivergence) && volatilityOK && macdConfirmed && movingTrend;
   }
@@ -83,9 +84,10 @@ public class BuyLowSellHighStrategy implements Strategy {
     boolean priceConfirmation = bearishSequence.isPriceConfirmation();
 
     // Log all signals for debugging
-    log.debug("Sell '{}' signals - Risk: {}, Downtrend: {}, Moderate: {}, Strong: {}, " +
+    log.debug("Sell '{}' signals at {} - Risk: {}, Downtrend: {}, Moderate: {}, Strong: {}, " +
             "Bearish Pattern: {}, Bearish Signal: {}, Lower Highs: {}, Volume Surge: {}",
-        context.getSymbol(), riskSignal, isInDowntrend, hasModerateDowntrend,
+        context.getSymbol(), context.getBars().getLast().getEndTime(),
+        riskSignal, isInDowntrend, hasModerateDowntrend,
         hasStrongDowntrend, hasBearishPattern, bearishSignal, hasConsecutiveLowerHighs,
         hasVolumeSurge);
 
@@ -111,7 +113,9 @@ public class BuyLowSellHighStrategy implements Strategy {
       technicalSellSignal = hasBearishPattern && bearishSignal && hasConsecutiveLowerHighs;
     }
 
-    log.debug("Sell '{}' - Final decision: {}", context.getSymbol(), (riskSignal || technicalSellSignal));
+    log.debug("Sell '{}' at {} - Final decision: {}", context.getSymbol(),
+        context.getBars().getLast().getEndTime(),
+        (riskSignal || technicalSellSignal));
 
     return riskSignal || technicalSellSignal;
   }
