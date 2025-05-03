@@ -36,6 +36,8 @@ public class TimeFrameAdjustmentUtils {
         .aboveAverageThreshold(parameters.aboveAverageThreshold())
         .volumeSurgeBearishThreshold(parameters.volumeSurgeBearishThreshold())
         .volumeSurgeExtremeBearishThreshold(parameters.volumeSurgeExtremeBearishThreshold())
+        .bearishPatternLookbackPeriod(
+            parameters.bearishPatternLookbackPeriod() * timeFrameMultiplier)
         .volatilityPeriod(parameters.volatilityPeriod() * timeFrameMultiplier)
         .lowVolatilityThreshold(parameters.lowVolatilityThreshold())
         .highVolatilityThreshold(parameters.highVolatilityThreshold())
