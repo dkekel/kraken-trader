@@ -192,6 +192,7 @@ public class VolumeIndicator implements Indicator {
 
     // Volume surge with price drop is strongly bearish (1.5x volume)
     // Volume surge with price up needs to be more extreme to be considered bearish (2x volume)
-    return (isPriceDown && volumeRatio > 1.5) || volumeRatio > 3.0;
+    return (isPriceDown && volumeRatio > params.volumeSurgeBearishThreshold())
+        || volumeRatio > params.volumeSurgeExtremeBearishThreshold();
   }
 }

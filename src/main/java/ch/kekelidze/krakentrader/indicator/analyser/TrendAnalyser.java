@@ -409,10 +409,11 @@ public class TrendAnalyser {
   /**
    * Checks for consecutive lower highs or lower lows, a bearish pattern
    * @param data Price bar data
-   * @param count Number of consecutive bars to check
+   * @param parameters Params containing the number of consecutive bars to check
    * @return true if found consecutive lower highs or lower lows
    */
-  public boolean hasConsecutiveLowerHighsOrLows(List<Bar> data, int count) {
+  public boolean hasConsecutiveLowerHighsOrLows(List<Bar> data, StrategyParameters parameters) {
+    var count = parameters.bearishPatternLookbackPeriod();
     if (data.size() < count + 1) return false;
 
     int size = data.size();

@@ -72,7 +72,7 @@ public class BuyLowSellHighStrategy implements Strategy {
     boolean bearishSignal = trendAnalyser.isBearishSignal(context, params);
 
     // Check for consecutive lower highs or lower lows (a strong bearish pattern)
-    boolean hasConsecutiveLowerHighs = trendAnalyser.hasConsecutiveLowerHighsOrLows(data, 3);
+    boolean hasConsecutiveLowerHighs = trendAnalyser.hasConsecutiveLowerHighsOrLows(data, params);
 
     // Check for volume spike (often precedes major moves in crypto)
     boolean hasVolumeSurge = volumeIndicator.hasVolumeSurge(data, params);

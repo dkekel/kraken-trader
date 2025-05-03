@@ -76,6 +76,9 @@ public class StrategyParametersEntity {
   @Column(name = "volume_surge_ext_bearish_threshold")
   private double volumeSurgeExtremeBearishThreshold;
 
+  @Column(name = "bearish_pattern_lookback_period")
+  private int bearishPatternLookbackPeriod;
+
   @Column(name = "loss_percent")
   private double lossPercent;
 
@@ -151,6 +154,7 @@ public class StrategyParametersEntity {
         .aboveAverageThreshold(aboveAverageThreshold)
         .volumeSurgeBearishThreshold(volumeSurgeBearishThreshold)
         .volumeSurgeExtremeBearishThreshold(volumeSurgeExtremeBearishThreshold)
+        .bearishPatternLookbackPeriod(bearishPatternLookbackPeriod)
         .lossPercent(lossPercent)
         .profitPercent(profitPercent)
         .adxPeriod(adxPeriod)
@@ -199,6 +203,7 @@ public class StrategyParametersEntity {
         .aboveAverageThreshold(parameters.aboveAverageThreshold())
         .volumeSurgeBearishThreshold(parameters.volumeSurgeBearishThreshold())
         .volumeSurgeExtremeBearishThreshold(parameters.volumeSurgeExtremeBearishThreshold())
+        .bearishPatternLookbackPeriod(parameters.bearishPatternLookbackPeriod())
         .lossPercent(parameters.lossPercent())
         .profitPercent(parameters.profitPercent())
         .adxPeriod(parameters.adxPeriod())
