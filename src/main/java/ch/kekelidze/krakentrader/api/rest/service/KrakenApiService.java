@@ -1,6 +1,7 @@
 package ch.kekelidze.krakentrader.api.rest.service;
 
 import ch.kekelidze.krakentrader.api.HistoricalDataService;
+import ch.kekelidze.krakentrader.api.dto.OrderResult;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import java.io.IOException;
 import java.net.URI;
@@ -107,10 +108,43 @@ public class KrakenApiService implements HistoricalDataService {
     return Base64.getEncoder().encodeToString(mac.doFinal());
   }
 
-  public void placeMarketOrder(String coin, double amount) throws Exception {
+  /**
+   * Places a market buy order
+   * 
+   * @param coin the trading pair (e.g., "XBTUSD")
+   * @param amount the amount to buy
+   * @return OrderResult containing order details including fees
+   * @throws Exception if the API call fails
+   */
+  public OrderResult placeMarketBuyOrder(String coin, double amount) throws Exception {
+    return placeMarketOrder(coin, amount, "buy");
+  }
+
+  /**
+   * Places a market sell order
+   * 
+   * @param coin the trading pair (e.g., "XBTUSD")
+   * @param amount the amount to sell
+   * @return OrderResult containing order details including fees
+   * @throws Exception if the API call fails
+   */
+  public OrderResult placeMarketSellOrder(String coin, double amount) throws Exception {
+    return placeMarketOrder(coin, amount, "sell");
+  }
+
+  /**
+   * Places a market order (buy or sell)
+   * 
+   * @param coin the trading pair (e.g., "XBTUSD")
+   * @param amount the amount to trade
+   * @param type the order type ("buy" or "sell")
+   * @return OrderResult containing order details including fees
+   * @throws Exception if the API call fails
+   */
+  private OrderResult placeMarketOrder(String coin, double amount, String type) throws Exception {
     String nonce = String.valueOf(System.currentTimeMillis());
     String postData =
-        "nonce=" + nonce + "&ordertype=market&pair=" + coin + "&type=buy&volume=" + amount;
+        "nonce=" + nonce + "&ordertype=market&pair=" + coin + "&type=" + type + "&volume=" + amount;
 
     var path = "/0/private/AddOrder";
     var signature = getApiSignature(path, nonce, postData);
@@ -127,6 +161,63 @@ public class KrakenApiService implements HistoricalDataService {
 
       HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
       log.info("Order Response: " + response.body());
+
+      // Parse the response to get order details
+      JSONObject responseJson = new JSONObject(response.body());
+
+      if (responseJson.has("error") && !responseJson.getJSONArray("error").isEmpty()) {
+        throw new RuntimeException("Kraken API error: "
+            + responseJson.getJSONArray("error").toString());
+      }
+
+      // Get the order ID from the result
+      JSONObject result = responseJson.getJSONObject("result");
+      String orderId = result.getJSONArray("txid").getString(0);
+
+      // Get order details including fees by querying the order status
+      return getOrderDetails(orderId);
+    }
+  }
+
+  /**
+   * Gets the details of an order, including fees and executed price
+   * 
+   * @param orderId the ID of the order
+   * @return OrderResult containing order details
+   * @throws Exception if the API call fails
+   */
+  private OrderResult getOrderDetails(String orderId) throws Exception {
+    String nonce = String.valueOf(System.currentTimeMillis());
+    String postData = "nonce=" + nonce + "&txid=" + orderId;
+
+    var path = "/0/private/QueryOrders";
+    var signature = getApiSignature(path, nonce, postData);
+
+    try (HttpClient client = HttpClient.newHttpClient()) {
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(URI.create("https://api.kraken.com" + path))
+          .header("API-Key", apiKey)
+          .header("API-Sign", signature)
+          .header("Content-Type", "application/x-www-form-urlencoded")
+          .POST(HttpRequest.BodyPublishers.ofString(postData))
+          .build();
+
+      HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+      JSONObject responseJson = new JSONObject(response.body());
+
+      if (responseJson.has("error") && !responseJson.getJSONArray("error").isEmpty()) {
+        throw new RuntimeException("Kraken API error: "
+            + responseJson.getJSONArray("error").toString());
+      }
+
+      JSONObject result = responseJson.getJSONObject("result");
+      JSONObject order = result.getJSONObject(orderId);
+
+      double fee = order.getDouble("fee");
+      double price = order.getDouble("price");
+      double volume = order.getDouble("vol_exec");
+
+      return new OrderResult(orderId, fee, price, volume);
     }
   }
 

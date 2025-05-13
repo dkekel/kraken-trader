@@ -1,5 +1,7 @@
 package ch.kekelidze.krakentrader.trade.service;
 
+import ch.kekelidze.krakentrader.api.rest.service.KrakenApiService;
+import ch.kekelidze.krakentrader.api.dto.OrderResult;
 import ch.kekelidze.krakentrader.indicator.analyser.AtrAnalyser;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.Strategy;
@@ -21,15 +23,18 @@ public class TradeService {
   private final AtrAnalyser atrAnalyser;
   private final Portfolio portfolio;
   private final TradeStatePersistenceService tradeStatePersistenceService;
+  private final KrakenApiService krakenApiService;
   @Getter
   @Setter
   private Strategy strategy;
 
   public TradeService(AtrAnalyser atrAnalyser, Portfolio portfolio,
-      TradeStatePersistenceService tradeStatePersistenceService) {
+      TradeStatePersistenceService tradeStatePersistenceService,
+      KrakenApiService krakenApiService) {
     this.atrAnalyser = atrAnalyser;
     this.portfolio = portfolio;
     this.tradeStatePersistenceService = tradeStatePersistenceService;
+    this.krakenApiService = krakenApiService;
   }
 
   public void executeStrategy(String coinPair, List<Bar> data) {
@@ -44,34 +49,86 @@ public class TradeService {
 
     if (currentCapital <= 0) {
       log.info("No capital available to trade {}", coinPair);
+      return;
     }
 
     var evaluationContext = EvaluationContext.builder().symbol(coinPair).bars(data).build();
     var inTrade = tradeState.isInTrade();
-    if (!inTrade && strategy.shouldBuy(evaluationContext, params)) {
-      var allocatedCapital = portfolio.getTotalCapital() * PORTFOLIO_ALLOCATION;
-      tradeState.setInTrade(true);
-      tradeState.setEntryPrice(currentPrice);
-      var positionSize = calculateAdaptivePositionSize(data, currentPrice, allocatedCapital,
-          params);
-      tradeState.setPositionSize(positionSize);
-      tradeStatePersistenceService.saveTradeState(tradeState);
-      currentCapital = portfolio.addToTotalCapital(-tradeState.getPositionSize() * currentPrice);
-      log.info("BUY {} {} at: {}", coinPair, tradeState.getPositionSize(),
-          tradeState.getEntryPrice());
-    } else if (inTrade && strategy.shouldSell(evaluationContext, tradeState.getEntryPrice(),
-        params)) {
-      tradeState.setInTrade(false);
-      var entryPrice = tradeState.getEntryPrice();
-      double profit = (currentPrice - entryPrice) / entryPrice * 100;
-      var totalProfit = tradeState.getTotalProfit();
-      tradeState.setTotalProfit(totalProfit + profit);
-      tradeStatePersistenceService.saveTradeState(tradeState);
-      currentCapital = portfolio.addToTotalCapital(tradeState.getPositionSize() * currentPrice);
-      log.info("SELL {} {} at: {} | Profit: {}%", coinPair, tradeState.getPositionSize(),
-          currentPrice, profit);
-      log.info("{} total Profit: {}%", coinPair, tradeState.getTotalProfit());
+
+    try {
+      if (!inTrade && strategy.shouldBuy(evaluationContext, params)) {
+        // Calculate position size based on allocated capital
+        var allocatedCapital = portfolio.getTotalCapital() * PORTFOLIO_ALLOCATION;
+        var positionSize = calculateAdaptivePositionSize(data, currentPrice, allocatedCapital, params);
+
+        // Place market buy order
+        OrderResult orderResult = krakenApiService.placeMarketBuyOrder(coinPair, positionSize);
+
+        // Set trade state with actual executed values
+        tradeState.setInTrade(true);
+
+        // Calculate entry price including fees
+        double totalCost = orderResult.getExecutedPrice() * orderResult.getVolume()
+            + orderResult.getFee();
+        double entryPriceWithFees = totalCost / orderResult.getVolume();
+        tradeState.setEntryPrice(entryPriceWithFees);
+
+        // Use actual executed volume from the order
+        tradeState.setPositionSize(orderResult.getVolume());
+        tradeStatePersistenceService.saveTradeState(tradeState);
+
+        // Update capital (deduct the total cost including fees)
+        currentCapital = portfolio.addToTotalCapital(-totalCost);
+
+        log.info("BUY {} {} at: {} (including fees: {}) | Fee: {}", 
+            coinPair, 
+            orderResult.getVolume(),
+            orderResult.getExecutedPrice(),
+            entryPriceWithFees,
+            orderResult.getFee());
+
+      } else if (inTrade && strategy.shouldSell(evaluationContext, tradeState.getEntryPrice(),
+          params)) {
+        // Place market sell order
+        OrderResult orderResult = krakenApiService.placeMarketSellOrder(coinPair,
+            tradeState.getPositionSize());
+
+        // Calculate actual proceeds (after fees)
+        double totalProceeds = orderResult.getExecutedPrice() * orderResult.getVolume()
+            - orderResult.getFee();
+
+        // Calculate profit
+        var entryPrice = tradeState.getEntryPrice();
+        double entryValue = entryPrice * tradeState.getPositionSize();
+        double profit = ((totalProceeds - entryValue) / entryValue) * 100;
+
+        // Update trade state
+        tradeState.setInTrade(false);
+        var totalProfit = tradeState.getTotalProfit();
+        tradeState.setTotalProfit(totalProfit + profit);
+        tradeStatePersistenceService.saveTradeState(tradeState);
+
+        // Update capital (add the proceeds after fees)
+        currentCapital = portfolio.addToTotalCapital(totalProceeds);
+
+        log.info("SELL {} {} at: {} | Fee: {} | Proceeds: {} | Profit: {}%", 
+            coinPair, 
+            orderResult.getVolume(),
+            orderResult.getExecutedPrice(),
+            orderResult.getFee(),
+            totalProceeds,
+            profit);
+        log.info("{} total Profit: {}%", coinPair, tradeState.getTotalProfit());
+      }
+    } catch (Exception e) {
+      log.error("Error executing trade for {}: {}", coinPair, e.getMessage(), e);
+      // If there was an error during buy, make sure we're not left in an inconsistent state
+      if (!inTrade && tradeState.isInTrade()) {
+        tradeState.setInTrade(false);
+        tradeStatePersistenceService.saveTradeState(tradeState);
+      }
     }
+
     log.info("Capital: {}", currentCapital);
   }
 
