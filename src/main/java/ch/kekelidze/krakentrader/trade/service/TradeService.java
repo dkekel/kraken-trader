@@ -18,7 +18,7 @@ import org.ta4j.core.Bar;
 @Service
 public class TradeService {
 
-  private static final double PORTFOLIO_ALLOCATION = 1/8d;
+  private double portfolioAllocation = 1/8d;
 
   private final AtrAnalyser atrAnalyser;
   private final Portfolio portfolio;
@@ -41,6 +41,21 @@ public class TradeService {
     executeSelectedStrategy(coinPair, data, strategy.getStrategyParameters(coinPair), strategy);
   }
 
+  /**
+   * Sets the portfolio allocation based on the number of coin pairs.
+   * Each coin pair gets an equal portion of the total portfolio capital.
+   *
+   * @param numberOfCoinPairs The number of coin pairs being traded
+   */
+  public void setPortfolioAllocation(int numberOfCoinPairs) {
+    if (numberOfCoinPairs <= 0) {
+      throw new IllegalArgumentException("Number of coin pairs must be greater than 0");
+    }
+    this.portfolioAllocation = 1.0 / numberOfCoinPairs;
+    log.info("Portfolio allocation set to 1/{} = {} for each coin pair",
+        numberOfCoinPairs, this.portfolioAllocation);
+  }
+
   private void executeSelectedStrategy(String coinPair, List<Bar> data, StrategyParameters params,
       Strategy strategy) {
     var tradeState = portfolio.getOrCreateTradeState(coinPair);
@@ -58,7 +73,7 @@ public class TradeService {
     try {
       if (!inTrade && strategy.shouldBuy(evaluationContext, params)) {
         // Calculate position size based on allocated capital
-        var allocatedCapital = portfolio.getTotalCapital() * PORTFOLIO_ALLOCATION;
+        var allocatedCapital = portfolio.getTotalCapital() * portfolioAllocation;
         var positionSize = calculateAdaptivePositionSize(data, currentPrice, allocatedCapital, params);
 
         // Place market buy order

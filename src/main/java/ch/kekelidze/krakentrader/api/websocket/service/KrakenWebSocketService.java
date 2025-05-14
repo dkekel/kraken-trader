@@ -63,6 +63,11 @@ public class KrakenWebSocketService implements DisposableBean {
 
       log.info("Starting WebSocket client for strategy: {} and capital: {}", strategy, capital);
       tradeService.setStrategy(strategy);
+
+      // Set portfolio allocation based on the number of coin pairs
+      tradeService.setPortfolioAllocation(coinPairs.length);
+      log.info("Set portfolio allocation for {} coin pairs", coinPairs.length);
+
       if (!portfolioPersistenceService.isPortfolioExists()) {
         portfolio.setTotalCapital(capital);
       }
