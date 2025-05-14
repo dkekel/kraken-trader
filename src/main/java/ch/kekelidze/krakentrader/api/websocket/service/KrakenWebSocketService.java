@@ -50,7 +50,17 @@ public class KrakenWebSocketService implements DisposableBean {
     try {
       var strategy = applicationContext.getBean(args[0], Strategy.class);
       var coinPairs = args[1].split(",");
-      var capital = Double.parseDouble(args[2]);
+
+      // Get capital from Kraken API instead of command line arguments
+      double capital;
+      try {
+        capital = krakenApiService.getAssetBalance("USD");
+        log.info("Retrieved capital from Kraken API: {}", capital);
+      } catch (Exception e) {
+        log.error("Failed to get account balance from Kraken API: {}", e.getMessage(), e);
+        throw new RuntimeException("Failed to get account balance from Kraken API", e);
+      }
+
       log.info("Starting WebSocket client for strategy: {} and capital: {}", strategy, capital);
       tradeService.setStrategy(strategy);
       if (!portfolioPersistenceService.isPortfolioExists()) {

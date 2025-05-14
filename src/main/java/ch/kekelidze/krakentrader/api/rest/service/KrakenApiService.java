@@ -84,6 +84,18 @@ public class KrakenApiService implements HistoricalDataService {
     }
   }
 
+  public Double getAssetBalance(String asset) throws Exception {
+    Map<String, Double> balances = getAccountBalance();
+    // Assuming ZUSD is the main currency for capital
+    // If ZUSD is not available, try USD, then sum all balances as a fallback
+    if (balances.containsKey("Z" + asset)) {
+      return balances.get("Z" + asset);
+    } else if (balances.containsKey(asset)) {
+      return balances.get(asset);
+    }
+    throw new RuntimeException("No balance for asset: " + asset);
+  }
+
   /**
    * Creates an API signature for private Kraken API calls.
    *
