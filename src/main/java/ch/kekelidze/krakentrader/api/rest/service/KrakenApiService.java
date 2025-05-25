@@ -360,44 +360,4 @@ public class KrakenApiService implements HistoricalDataService {
 
     return volumes;
   }
-
-  //  private void placeLimitOrder(String coin, double amount) {
-//    try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-//      String apiEndpoint = "https://api.kraken.com/0/private/AddOrder";
-//
-//      // Construct the request payload
-//      String body = "nonce=" + System.currentTimeMillis() +
-//          "&ordertype=limit" +
-//          "&type=buy" +
-//          "&pair=" + coin +
-//          "&volume=" + amount;
-//
-//      HttpPost post = new HttpPost(apiEndpoint);
-//      post.setEntity(new StringEntity(body, ContentType.APPLICATION_FORM_URLENCODED));
-//
-//      // Set the required headers (example placeholders, replace as needed)
-//      post.setHeader("API-Key", "<Your-API-Key>");
-//      post.setHeader("API-Sign", "<Your-API-Signature>");
-//
-//      try (CloseableHttpResponse response = httpClient.execute(post)) {
-//        if (response.getStatusLine().getStatusCode() == 200) {
-//          String jsonResponse = EntityUtils.toString(response.getEntity());
-//          ObjectMapper mapper = new ObjectMapper();
-//          JsonNode rootNode = mapper.readTree(jsonResponse);
-//
-//          if (!rootNode.path("error").isEmpty()) {
-//            throw new RuntimeException(
-//                "Kraken API returned error: " + rootNode.path("error").toString());
-//          }
-//
-//          System.out.println("Limit order placed successfully. Response: " + jsonResponse);
-//        } else {
-//          throw new RuntimeException(
-//              "API call failed with status code: " + response.getStatusLine().getStatusCode());
-//        }
-//      }
-//    } catch (Exception e) {
-//      throw new RuntimeException("Failed to place limit order: " + e.getMessage(), e);
-//    }
-//  }
 }
