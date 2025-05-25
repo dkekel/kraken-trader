@@ -22,8 +22,8 @@ spring:
       path: /h2-console
 kraken:
   api:
-    key: ABC
-    secret: ABC
+    key: ${API_KEY}
+    secret: ${API_SECRET}
 logging:
   level:
     ch.kekelidze.krakentrader.indicator.AdxIndicator: INFO
