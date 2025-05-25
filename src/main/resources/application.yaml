@@ -58,6 +58,7 @@ logging:
 
     ch.kekelidze.krakentrader.backtester.service.BackTesterService: info
     ch.kekelidze.krakentrader.api.websocket.KrakenWebSocketClient: info
+    ch.kekelidze.krakentrader.api.websocket.service.KrakenWebSocketService: info
 
     ch.kekelidze.krakentrader.trade.service.TradeService: debug
 
