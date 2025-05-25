@@ -145,22 +145,63 @@ public class KrakenWebSocketService implements DisposableBean {
     clientToCoinPairMap.remove(client);
     client.destroy();
 
-    CompletableFuture.runAsync(() -> {
-      try {
-        // Add a small delay before reconnection to avoid rapid reconnection attempts
-        Thread.sleep(RECONNECT_DELAY_MS);
+    CompletableFuture.runAsync(reconnectRunnable(coinPair, RECONNECT_DELAY_MS, 1));
+  }
 
+  /**
+   * Schedules a reconnection attempt with exponential backoff.
+   * 
+   * @param coinPair The coin pair to reconnect
+   * @param attempt The current attempt number (starting from 1)
+   */
+  private void scheduleReconnectWithBackoff(String coinPair, int attempt) {
+    // Maximum number of reconnection attempts
+    final int MAX_RECONNECT_ATTEMPTS = 10;
+
+    if (attempt > MAX_RECONNECT_ATTEMPTS) {
+      log.error("Maximum reconnection attempts ({}) reached for coin pair {}. Giving up.", 
+          MAX_RECONNECT_ATTEMPTS, coinPair);
+      return;
+    }
+
+    // Calculate delay with exponential backoff: base_delay * 2^(attempt-1)
+    // This gives: 2s, 4s, 8s, 16s, 32s, etc.
+    // Cap the maximum delay at 5 minutes
+    final long MAX_DELAY_MS = 5 * 60 * 1000;
+
+    // Calculate the final delay with jitter and capping
+    final long delayMs = Math.min(
+        RECONNECT_DELAY_MS * (long)Math.pow(2, attempt - 1) 
+            + (long)(RECONNECT_DELAY_MS * Math.pow(2, attempt - 1) * 0.1 * Math.random()),
+        MAX_DELAY_MS
+    );
+
+    log.info("Scheduling reconnection attempt {} for coin pair {} after {} ms", 
+        attempt, coinPair, delayMs);
+
+    CompletableFuture.runAsync(reconnectRunnable(coinPair, delayMs, attempt));
+  }
+
+  private Runnable reconnectRunnable(String coinPair, long delayMs, int attempt) {
+    return () -> {
+      try {
+        Thread.sleep(delayMs);
+
+        log.info("Attempting reconnection #{} for coin pair: {}", attempt, coinPair);
         var container = getWebSocketContainer();
         createClientForCoinPair(coinPair, container);
-        log.info("Client reconnected for coin pair: {}", coinPair);
+        log.info("Client successfully reconnected for coin pair: {} after {} attempts",
+            coinPair, attempt);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         log.error("Reconnection interrupted for coin pair {}: {}", coinPair, e.getMessage());
       } catch (Exception e) {
-        log.error("Error reconnecting client for coin pair {}: {}", coinPair, e.getMessage(), e);
-        // TODO: schedule another reconnect attempt with exponential backoff
+        log.error("Error during reconnection attempt {} for coin pair {}: {}",
+            attempt, coinPair, e.getMessage(), e);
+        // Schedule next attempt with increased backoff
+        scheduleReconnectWithBackoff(coinPair, attempt + 1);
       }
-    });
+    };
   }
 
   private synchronized WebSocketContainer getWebSocketContainer() {
