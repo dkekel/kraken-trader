@@ -1,5 +1,6 @@
 package ch.kekelidze.krakentrader;
 
+import ch.kekelidze.krakentrader.api.rest.configuration.CaffeineCacheManagerConfig;
 import ch.kekelidze.krakentrader.api.rest.service.KrakenApiService;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import ch.kekelidze.krakentrader.api.websocket.KrakenWebSocketRunner;
@@ -15,7 +16,8 @@ import org.springframework.cache.annotation.EnableCaching;
 @EnableCaching
 @SpringBootApplication(
     scanBasePackageClasses = {KrakenWebSocketRunner.class, KrakenApiService.class,
-        ResponseConverterUtils.class, Indicator.class, Strategy.class, Portfolio.class}
+        CaffeineCacheManagerConfig.class, ResponseConverterUtils.class, Indicator.class,
+        Strategy.class, Portfolio.class}
 )
 public class KrakenTraderApplication {
 

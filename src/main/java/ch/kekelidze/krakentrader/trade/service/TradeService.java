@@ -1,7 +1,7 @@
 package ch.kekelidze.krakentrader.trade.service;
 
-import ch.kekelidze.krakentrader.api.rest.service.KrakenApiService;
 import ch.kekelidze.krakentrader.api.dto.OrderResult;
+import ch.kekelidze.krakentrader.api.rest.service.KrakenApiService;
 import ch.kekelidze.krakentrader.indicator.analyser.AtrAnalyser;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.Strategy;
@@ -74,7 +74,8 @@ public class TradeService {
       if (!inTrade && strategy.shouldBuy(evaluationContext, params)) {
         // Calculate position size based on allocated capital
         var allocatedCapital = portfolio.getTotalCapital() * portfolioAllocation;
-        var positionSize = calculateAdaptivePositionSize(data, currentPrice, allocatedCapital, params);
+        var positionSize = calculateAdaptivePositionSize(coinPair, data, currentPrice,
+            allocatedCapital, params);
 
         // Place market buy order
         OrderResult orderResult = krakenApiService.placeMarketBuyOrder(coinPair, positionSize);
@@ -155,7 +156,7 @@ public class TradeService {
    * @param params           Strategy parameters
    * @return Recommended position size as percentage of capital
    */
-  private double calculateAdaptivePositionSize(List<Bar> data, double entryPrice,
+  private double calculateAdaptivePositionSize(String coinPair, List<Bar> data, double entryPrice,
       double availableCapital, StrategyParameters params) {
     // Calculate ATR as percentage of price
     double atr = atrAnalyser.calculateATR(data, params.atrPeriod());
@@ -165,12 +166,12 @@ public class TradeService {
     var upperBound = 12.0;
 
     // Base position size (percentage of capital)
-    double basePositionSize = 0.5; // Default 60% of capital
+    double basePositionSize = 0.5; // Default 50% of capital
 
     double capitalPercentage;
     // Adjust position size based on volatility
     if (atrPercent < lowerBound) {
-      // Low volatility - can take larger position
+      // Low volatility - can take a larger position
       capitalPercentage = Math.min(basePositionSize * 1.5, 1.0);
     } else if (atrPercent > upperBound) {
       // High volatility - reduce position size
@@ -179,6 +180,12 @@ public class TradeService {
       // Normal volatility - use base size
       capitalPercentage = basePositionSize;
     }
-    return availableCapital * capitalPercentage / entryPrice;
+
+    // Account for round-trip fees
+    double takerFeeRate = krakenApiService.getCoinTradingFee(coinPair);
+    double roundTripFeeImpact = takerFeeRate * 2 / 100; // Both buy and sell
+    double feeAdjustedCapitalPercentage = capitalPercentage * (1 - roundTripFeeImpact);
+
+    return availableCapital * feeAdjustedCapitalPercentage / entryPrice;
   }
 }

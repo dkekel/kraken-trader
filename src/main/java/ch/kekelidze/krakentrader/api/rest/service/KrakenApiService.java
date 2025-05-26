@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.ta4j.core.Bar;
 
@@ -32,6 +33,8 @@ import org.ta4j.core.Bar;
 @Service
 @RequiredArgsConstructor
 public class KrakenApiService implements HistoricalDataService {
+
+  private static final double FALLBACK_FEE_RATE = 0.004;
 
   @Value("${kraken.api.key}")
   private String apiKey;
@@ -357,5 +360,81 @@ public class KrakenApiService implements HistoricalDataService {
     }
 
     return volumes;
+  }
+
+  /**
+   * Retrieves the current fee information for the specified pair.
+   *
+   * @param pair Trading pair (e.g., "XBTUSD")
+   * @return A map containing fee information including maker and taker fees
+   */
+  @Cacheable(value = "feeInfo", key = "#pair", cacheManager = "tradingCacheManager")
+  public double getCoinTradingFee(String pair) {
+    double takerFeeRate = FALLBACK_FEE_RATE;
+
+    try {
+      // Get current fees from Kraken
+      var feeInfo = getTradingFees(pair);
+
+      // For market orders, we use the taker fee
+      takerFeeRate = feeInfo.get("takerFee");
+    } catch (Exception e) {
+      // If fee retrieval fails, fall back to a conservative estimate
+      log.warn("Failed to retrieve fees from Kraken API: {}. Falling back to default fee {}",
+          e.getMessage(), FALLBACK_FEE_RATE, e);
+    }
+
+    return takerFeeRate;
+  }
+
+  private Map<String, Double> getTradingFees(String pair) throws Exception {
+    String nonce = String.valueOf(System.currentTimeMillis());
+    String postData = "nonce=" + nonce + "&pair=" + pair + "&fee-info=true";
+
+    String path = "/0/private/TradeVolume";
+    String signature = getApiSignature(path, nonce, postData);
+
+    try (HttpClient client = HttpClient.newHttpClient()) {
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(URI.create("https://api.kraken.com" + path))
+          .header("API-Key", apiKey)
+          .header("API-Sign", signature)
+          .header("Content-Type", "application/x-www-form-urlencoded")
+          .POST(HttpRequest.BodyPublishers.ofString(postData))
+          .build();
+
+      HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+      JSONObject responseJson = new JSONObject(response.body());
+
+      if (responseJson.has("error") && !responseJson.getJSONArray("error").isEmpty()) {
+        throw new RuntimeException("Kraken API error: " + responseJson.getJSONArray("error").toString());
+      }
+
+      Map<String, Double> feeInfo = new HashMap<>();
+      JSONObject result = responseJson.getJSONObject("result");
+
+      // Extract current fee tier
+      if (result.has("fees")) {
+        JSONObject feesObj = result.getJSONObject("fees");
+        if (!feesObj.isEmpty()) {
+          // Get the first key from the fees object
+          String firstPairKey = feesObj.keys().next();
+          JSONObject pairFees = feesObj.getJSONObject(firstPairKey);
+
+          feeInfo.put("makerFee", pairFees.getDouble("fee"));
+          feeInfo.put("takerFee", pairFees.getDouble("fee"));
+
+          log.debug("Retrieved fee info for {} (using key {}): maker={}, taker={}",
+              pair, firstPairKey, feeInfo.get("makerFee"), feeInfo.get("takerFee"));
+        }
+      }
+
+      // Extract current 30-day volume if available
+      if (result.has("volume")) {
+        feeInfo.put("volume", result.getDouble("volume"));
+      }
+
+      return feeInfo;
+    }
   }
 }

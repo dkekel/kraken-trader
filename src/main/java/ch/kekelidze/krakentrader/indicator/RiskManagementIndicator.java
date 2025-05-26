@@ -1,5 +1,6 @@
 package ch.kekelidze.krakentrader.indicator;
 
+import ch.kekelidze.krakentrader.api.rest.service.KrakenApiService;
 import ch.kekelidze.krakentrader.indicator.analyser.AtrAnalyser;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
@@ -15,6 +16,7 @@ import org.ta4j.core.Bar;
 public class RiskManagementIndicator implements Indicator {
 
   private final AtrAnalyser atrAnalyser;
+  private final KrakenApiService krakenApiService;
 
   @Override
   public boolean isBuySignal(EvaluationContext context, StrategyParameters params) {
@@ -26,12 +28,20 @@ public class RiskManagementIndicator implements Indicator {
       StrategyParameters params) {
     var data = context.getBars();
     var currentPrice = calculateDynamicStopLossPrice(data, params);
-    var stopLossTakeProfit = shouldStopLoss(entryPrice, currentPrice, params.lossPercent())
-        || shouldTakeProfit(entryPrice, currentPrice, params.profitPercent());
+    var roundTripFeePercentage = calculateFeePercentage(context.getSymbol());
+    double adjustedLossPercent = params.lossPercent() - roundTripFeePercentage;
+    double adjustedProfitPercent = params.profitPercent() + roundTripFeePercentage;
+    var stopLossTakeProfit = shouldStopLoss(entryPrice, currentPrice, adjustedLossPercent)
+        || shouldTakeProfit(entryPrice, currentPrice, adjustedProfitPercent);
     log.debug(
         "Dynamic price: {}, Entry price: {} | Should stop loss/take profit: {} | Closing time: {}",
         currentPrice, entryPrice, stopLossTakeProfit, data.getLast().getEndTime());
     return stopLossTakeProfit;
+  }
+
+  private double calculateFeePercentage(String coinPair) {
+    double takerFeeRate = krakenApiService.getCoinTradingFee(coinPair);
+    return takerFeeRate * 2;
   }
 
   private double calculateDynamicStopLossPrice(List<Bar> candles, StrategyParameters params) {

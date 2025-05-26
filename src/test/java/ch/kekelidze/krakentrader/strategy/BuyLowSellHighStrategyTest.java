@@ -14,7 +14,7 @@ import ch.kekelidze.krakentrader.indicator.VolatilityIndicator;
 import ch.kekelidze.krakentrader.indicator.VolumeIndicator;
 import ch.kekelidze.krakentrader.indicator.analyser.TrendAnalyser;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
-import ch.kekelidze.krakentrader.strategy.config.CacheConfig;
+import ch.kekelidze.krakentrader.strategy.config.ConcurrentMapCacheConfig;
 import ch.kekelidze.krakentrader.strategy.service.StrategyParametersService;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -30,7 +30,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-@ContextConfiguration(classes = {BuyLowSellHighStrategyTest.TestConfig.class, CacheConfig.class})
+@ContextConfiguration(classes = {BuyLowSellHighStrategyTest.TestConfig.class,
+    ConcurrentMapCacheConfig.class})
 public class BuyLowSellHighStrategyTest {
 
     @TestConfiguration

@@ -51,6 +51,8 @@ public class KrakenWebSocketService implements DisposableBean {
       var strategy = applicationContext.getBean(args[0], Strategy.class);
       var coinPairs = args[1].split(",");
 
+      initFeesCache(coinPairs);
+
       // Get capital from Kraken API instead of command line arguments
       double capital;
       try {
@@ -85,6 +87,13 @@ public class KrakenWebSocketService implements DisposableBean {
 
     } catch (Exception e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  private void initFeesCache(String[] coinPairs) {
+    for (String coinPair : coinPairs) {
+      var coinFees = krakenApiService.getCoinTradingFee(coinPair);
+      log.info("Initialised trading fee cache for {}: {}", coinPair, coinFees);
     }
   }
 
