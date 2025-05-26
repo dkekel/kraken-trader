@@ -34,7 +34,7 @@ import org.ta4j.core.Bar;
 @RequiredArgsConstructor
 public class KrakenApiService implements HistoricalDataService {
 
-  private static final double FALLBACK_FEE_RATE = 0.004;
+  private static final double FALLBACK_FEE_RATE = 0.4;
 
   @Value("${kraken.api.key}")
   private String apiKey;
