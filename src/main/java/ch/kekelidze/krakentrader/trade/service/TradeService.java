@@ -8,6 +8,8 @@ import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import ch.kekelidze.krakentrader.trade.Portfolio;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +21,8 @@ import org.ta4j.core.Bar;
 public class TradeService {
 
   private double portfolioAllocation = 1/8d;
+
+  private final Map<String, Object> coinPairLocks = new ConcurrentHashMap<>();
 
   private final AtrAnalyser atrAnalyser;
   private final Portfolio portfolio;
@@ -38,7 +42,10 @@ public class TradeService {
   }
 
   public void executeStrategy(String coinPair, List<Bar> data) {
-    executeSelectedStrategy(coinPair, data, strategy.getStrategyParameters(coinPair), strategy);
+    Object lock = coinPairLocks.computeIfAbsent(coinPair, k -> new Object());
+    synchronized (lock) {
+      executeSelectedStrategy(coinPair, data, strategy.getStrategyParameters(coinPair), strategy);
+    }
   }
 
   /**
