@@ -27,7 +27,7 @@ public class KrakenAveragePriceService {
   @Value("${kraken.api.secret}")
   private String apiSecret;
 
-  private final KrakenApiService krakenApiService;
+  private final TradingApiService krakenApiService;
 
   // Asset name mappings (Kraken uses X prefix for many crypto assets)
   private static final Map<String, String> ASSET_MAPPINGS = Map.ofEntries(

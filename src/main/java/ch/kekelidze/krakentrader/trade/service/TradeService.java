@@ -1,11 +1,15 @@
 package ch.kekelidze.krakentrader.trade.service;
 
+import ch.kekelidze.krakentrader.api.dto.OrderResult;
+import ch.kekelidze.krakentrader.api.rest.service.TradingApiService;
 import ch.kekelidze.krakentrader.indicator.analyser.AtrAnalyser;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import ch.kekelidze.krakentrader.trade.Portfolio;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -16,24 +20,47 @@ import org.ta4j.core.Bar;
 @Service
 public class TradeService {
 
-  private static final double PORTFOLIO_ALLOCATION = 1/8d;
+  private double portfolioAllocation = 1/8d;
+
+  private final Map<String, Object> coinPairLocks = new ConcurrentHashMap<>();
 
   private final AtrAnalyser atrAnalyser;
   private final Portfolio portfolio;
   private final TradeStatePersistenceService tradeStatePersistenceService;
+  private final TradingApiService tradingApiService;
   @Getter
   @Setter
   private Strategy strategy;
 
   public TradeService(AtrAnalyser atrAnalyser, Portfolio portfolio,
-      TradeStatePersistenceService tradeStatePersistenceService) {
+      TradeStatePersistenceService tradeStatePersistenceService,
+      TradingApiService tradingApiService) {
     this.atrAnalyser = atrAnalyser;
     this.portfolio = portfolio;
     this.tradeStatePersistenceService = tradeStatePersistenceService;
+    this.tradingApiService = tradingApiService;
   }
 
   public void executeStrategy(String coinPair, List<Bar> data) {
-    executeSelectedStrategy(coinPair, data, strategy.getStrategyParameters(coinPair), strategy);
+    Object lock = coinPairLocks.computeIfAbsent(coinPair, k -> new Object());
+    synchronized (lock) {
+      executeSelectedStrategy(coinPair, data, strategy.getStrategyParameters(coinPair), strategy);
+    }
+  }
+
+  /**
+   * Sets the portfolio allocation based on the number of coin pairs.
+   * Each coin pair gets an equal portion of the total portfolio capital.
+   *
+   * @param numberOfCoinPairs The number of coin pairs being traded
+   */
+  public void setPortfolioAllocation(int numberOfCoinPairs) {
+    if (numberOfCoinPairs <= 0) {
+      throw new IllegalArgumentException("Number of coin pairs must be greater than 0");
+    }
+    this.portfolioAllocation = 1.0 / numberOfCoinPairs;
+    log.info("Portfolio allocation set to 1/{} = {} for each coin pair",
+        numberOfCoinPairs, this.portfolioAllocation);
   }
 
   private void executeSelectedStrategy(String coinPair, List<Bar> data, StrategyParameters params,
@@ -44,34 +71,87 @@ public class TradeService {
 
     if (currentCapital <= 0) {
       log.info("No capital available to trade {}", coinPair);
+      return;
     }
 
     var evaluationContext = EvaluationContext.builder().symbol(coinPair).bars(data).build();
     var inTrade = tradeState.isInTrade();
-    if (!inTrade && strategy.shouldBuy(evaluationContext, params)) {
-      var allocatedCapital = portfolio.getTotalCapital() * PORTFOLIO_ALLOCATION;
-      tradeState.setInTrade(true);
-      tradeState.setEntryPrice(currentPrice);
-      var positionSize = calculateAdaptivePositionSize(data, currentPrice, allocatedCapital,
-          params);
-      tradeState.setPositionSize(positionSize);
-      tradeStatePersistenceService.saveTradeState(tradeState);
-      currentCapital = portfolio.addToTotalCapital(-tradeState.getPositionSize() * currentPrice);
-      log.info("BUY {} {} at: {}", coinPair, tradeState.getPositionSize(),
-          tradeState.getEntryPrice());
-    } else if (inTrade && strategy.shouldSell(evaluationContext, tradeState.getEntryPrice(),
-        params)) {
-      tradeState.setInTrade(false);
-      var entryPrice = tradeState.getEntryPrice();
-      double profit = (currentPrice - entryPrice) / entryPrice * 100;
-      var totalProfit = tradeState.getTotalProfit();
-      tradeState.setTotalProfit(totalProfit + profit);
-      tradeStatePersistenceService.saveTradeState(tradeState);
-      currentCapital = portfolio.addToTotalCapital(tradeState.getPositionSize() * currentPrice);
-      log.info("SELL {} {} at: {} | Profit: {}%", coinPair, tradeState.getPositionSize(),
-          currentPrice, profit);
-      log.info("{} total Profit: {}%", coinPair, tradeState.getTotalProfit());
+
+    try {
+      if (!inTrade && strategy.shouldBuy(evaluationContext, params)) {
+        // Calculate position size based on allocated capital
+        var allocatedCapital = portfolio.getTotalCapital() * portfolioAllocation;
+        var positionSize = calculateAdaptivePositionSize(coinPair, data, currentPrice,
+            allocatedCapital, params);
+
+        // Place market buy order
+        OrderResult orderResult = tradingApiService.placeMarketBuyOrder(coinPair, positionSize);
+
+        // Set trade state with actual executed values
+        tradeState.setInTrade(true);
+
+        // Calculate entry price including fees
+        double totalCost = orderResult.getExecutedPrice() * orderResult.getVolume()
+            + orderResult.getFee();
+        double entryPriceWithFees = totalCost / orderResult.getVolume();
+        tradeState.setEntryPrice(entryPriceWithFees);
+
+        // Use actual executed volume from the order
+        tradeState.setPositionSize(orderResult.getVolume());
+        tradeStatePersistenceService.saveTradeState(tradeState);
+
+        // Update capital (deduct the total cost including fees)
+        currentCapital = portfolio.addToTotalCapital(-totalCost);
+
+        log.info("BUY {} {} at: {} (including fees: {}) | Fee: {}", 
+            coinPair, 
+            orderResult.getVolume(),
+            orderResult.getExecutedPrice(),
+            entryPriceWithFees,
+            orderResult.getFee());
+
+      } else if (inTrade && strategy.shouldSell(evaluationContext, tradeState.getEntryPrice(),
+          params)) {
+        // Place market sell order
+        OrderResult orderResult = tradingApiService.placeMarketSellOrder(coinPair,
+            tradeState.getPositionSize());
+
+        // Calculate actual proceeds (after fees)
+        double totalProceeds = orderResult.getExecutedPrice() * orderResult.getVolume()
+            - orderResult.getFee();
+
+        // Calculate profit
+        var entryPrice = tradeState.getEntryPrice();
+        double entryValue = entryPrice * tradeState.getPositionSize();
+        double profit = ((totalProceeds - entryValue) / entryValue) * 100;
+
+        // Update trade state
+        tradeState.setInTrade(false);
+        var totalProfit = tradeState.getTotalProfit();
+        tradeState.setTotalProfit(totalProfit + profit);
+        tradeStatePersistenceService.saveTradeState(tradeState);
+
+        // Update capital (add the proceeds after fees)
+        currentCapital = portfolio.addToTotalCapital(totalProceeds);
+
+        log.info("SELL {} {} at: {} | Fee: {} | Proceeds: {} | Profit: {}%", 
+            coinPair, 
+            orderResult.getVolume(),
+            orderResult.getExecutedPrice(),
+            orderResult.getFee(),
+            totalProceeds,
+            profit);
+        log.info("{} total Profit: {}%", coinPair, tradeState.getTotalProfit());
+      }
+    } catch (Exception e) {
+      log.error("Error executing trade for {}: {}", coinPair, e.getMessage(), e);
+      // If there was an error during buy, make sure we're not left in an inconsistent state
+      if (!inTrade && tradeState.isInTrade()) {
+        tradeState.setInTrade(false);
+        tradeStatePersistenceService.saveTradeState(tradeState);
+      }
     }
+
     log.info("Capital: {}", currentCapital);
   }
 
@@ -83,7 +163,7 @@ public class TradeService {
    * @param params           Strategy parameters
    * @return Recommended position size as percentage of capital
    */
-  private double calculateAdaptivePositionSize(List<Bar> data, double entryPrice,
+  private double calculateAdaptivePositionSize(String coinPair, List<Bar> data, double entryPrice,
       double availableCapital, StrategyParameters params) {
     // Calculate ATR as percentage of price
     double atr = atrAnalyser.calculateATR(data, params.atrPeriod());
@@ -93,12 +173,12 @@ public class TradeService {
     var upperBound = 12.0;
 
     // Base position size (percentage of capital)
-    double basePositionSize = 0.5; // Default 60% of capital
+    double basePositionSize = 0.5; // Default 50% of capital
 
     double capitalPercentage;
     // Adjust position size based on volatility
     if (atrPercent < lowerBound) {
-      // Low volatility - can take larger position
+      // Low volatility - can take a larger position
       capitalPercentage = Math.min(basePositionSize * 1.5, 1.0);
     } else if (atrPercent > upperBound) {
       // High volatility - reduce position size
@@ -107,6 +187,12 @@ public class TradeService {
       // Normal volatility - use base size
       capitalPercentage = basePositionSize;
     }
-    return availableCapital * capitalPercentage / entryPrice;
+
+    // Account for round-trip fees
+    double takerFeeRate = tradingApiService.getCoinTradingFee(coinPair);
+    double roundTripFeeImpact = takerFeeRate * 2 / 100; // Both buy and sell
+    double feeAdjustedCapitalPercentage = capitalPercentage * (1 - roundTripFeeImpact);
+
+    return availableCapital * feeAdjustedCapitalPercentage / entryPrice;
   }
 }

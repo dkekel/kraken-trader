@@ -6,6 +6,10 @@ spring:
       enabled: false
   application:
     name: "kraken-trader"
+  profiles:
+    # Set default profile to real trading
+    # To use paper trading, run with --spring.profiles.active=paper-trading
+    default: default
   datasource:
     url: jdbc:h2:file:./data/db/kraken-trader;DB_CLOSE_ON_EXIT=FALSE
     username: sa
@@ -20,10 +24,17 @@ spring:
     console:
       enabled: true
       path: /h2-console
+
 kraken:
   api:
-    key: ABC
-    secret: ABC
+    key: ${API_KEY}
+    secret: ${API_SECRET}
+
+# Paper trading configuration
+paper:
+  trading:
+    initial:
+      balance: 10000  # Initial paper trading balance in USD
 logging:
   level:
     ch.kekelidze.krakentrader.indicator.AdxIndicator: INFO
@@ -58,8 +69,10 @@ logging:
 
     ch.kekelidze.krakentrader.backtester.service.BackTesterService: info
     ch.kekelidze.krakentrader.api.websocket.KrakenWebSocketClient: info
+    ch.kekelidze.krakentrader.api.websocket.service.KrakenWebSocketService: debug
 
     ch.kekelidze.krakentrader.trade.service.TradeService: debug
+    ch.kekelidze.krakentrader.api.rest.service.PaperTradeKrakenApiService: debug
 
   file:
     name: logs/kraken-trader.log

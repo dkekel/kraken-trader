@@ -1,8 +1,9 @@
 package ch.kekelidze.krakentrader.api.websocket.service;
 
-import ch.kekelidze.krakentrader.api.websocket.KrakenWebSocketClient;
-import ch.kekelidze.krakentrader.api.rest.service.KrakenApiService;
+import ch.kekelidze.krakentrader.api.HistoricalDataService;
+import ch.kekelidze.krakentrader.api.rest.service.TradingApiService;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
+import ch.kekelidze.krakentrader.api.websocket.KrakenWebSocketClient;
 import ch.kekelidze.krakentrader.api.websocket.SinglePairWebSocketClient;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.trade.Portfolio;
@@ -41,7 +42,8 @@ public class KrakenWebSocketService implements DisposableBean {
   private final PortfolioPersistenceService portfolioPersistenceService;
   private final TradeService tradeService;
   private final ResponseConverterUtils responseConverterUtils;
-  private final KrakenApiService krakenApiService;
+  private final TradingApiService krakenApiService;
+  private final HistoricalDataService marketDataService;
   private final ApplicationContext applicationContext;
 
   private WebSocketContainer container;
@@ -50,15 +52,27 @@ public class KrakenWebSocketService implements DisposableBean {
     try {
       var strategy = applicationContext.getBean(args[0], Strategy.class);
       var coinPairs = args[1].split(",");
-      var capital = Double.parseDouble(args[2]);
-      log.info("Starting WebSocket client for strategy: {} and capital: {}", strategy, capital);
-      tradeService.setStrategy(strategy);
-      if (!portfolioPersistenceService.isPortfolioExists()) {
+
+      initFeesCache(coinPairs);
+
+      try {
+        double capital = krakenApiService.getAssetBalance("USD");
         portfolio.setTotalCapital(capital);
+        log.info("Retrieved capital from Kraken API: {}", capital);
+      } catch (Exception e) {
+        log.error("Failed to get account balance from Kraken API: {}", e.getMessage(), e);
+        throw new RuntimeException("Failed to get account balance from Kraken API", e);
       }
 
+      log.info("Starting WebSocket client for strategy: {}", strategy);
+      tradeService.setStrategy(strategy);
+
+      // Set portfolio allocation based on the number of coin pairs
+      tradeService.setPortfolioAllocation(coinPairs.length);
+      log.info("Set portfolio allocation for {} coin pairs", coinPairs.length);
+
       // Initialize the WebSocket client with Spring-managed dependencies
-      KrakenWebSocketClient.initialize(tradeService, responseConverterUtils, krakenApiService,
+      KrakenWebSocketClient.initialize(tradeService, responseConverterUtils, marketDataService,
           coinPairs, this);
 
       // Connect to WebSocket server
@@ -70,6 +84,13 @@ public class KrakenWebSocketService implements DisposableBean {
 
     } catch (Exception e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  private void initFeesCache(String[] coinPairs) {
+    for (String coinPair : coinPairs) {
+      var coinFees = krakenApiService.getCoinTradingFee(coinPair);
+      log.info("Initialised trading fee cache for {}: {}", coinPair, coinFees);
     }
   }
 
@@ -130,22 +151,63 @@ public class KrakenWebSocketService implements DisposableBean {
     clientToCoinPairMap.remove(client);
     client.destroy();
 
-    CompletableFuture.runAsync(() -> {
-      try {
-        // Add a small delay before reconnection to avoid rapid reconnection attempts
-        Thread.sleep(RECONNECT_DELAY_MS);
+    CompletableFuture.runAsync(reconnectRunnable(coinPair, RECONNECT_DELAY_MS, 1));
+  }
 
+  /**
+   * Schedules a reconnection attempt with exponential backoff.
+   * 
+   * @param coinPair The coin pair to reconnect
+   * @param attempt The current attempt number (starting from 1)
+   */
+  private void scheduleReconnectWithBackoff(String coinPair, int attempt) {
+    // Maximum number of reconnection attempts
+    final int MAX_RECONNECT_ATTEMPTS = 10;
+
+    if (attempt > MAX_RECONNECT_ATTEMPTS) {
+      log.error("Maximum reconnection attempts ({}) reached for coin pair {}. Giving up.", 
+          MAX_RECONNECT_ATTEMPTS, coinPair);
+      return;
+    }
+
+    // Calculate delay with exponential backoff: base_delay * 2^(attempt-1)
+    // This gives: 2s, 4s, 8s, 16s, 32s, etc.
+    // Cap the maximum delay at 5 minutes
+    final long MAX_DELAY_MS = 5 * 60 * 1000;
+
+    // Calculate the final delay with jitter and capping
+    final long delayMs = Math.min(
+        RECONNECT_DELAY_MS * (long)Math.pow(2, attempt - 1) 
+            + (long)(RECONNECT_DELAY_MS * Math.pow(2, attempt - 1) * 0.1 * Math.random()),
+        MAX_DELAY_MS
+    );
+
+    log.info("Scheduling reconnection attempt {} for coin pair {} after {} ms", 
+        attempt, coinPair, delayMs);
+
+    CompletableFuture.runAsync(reconnectRunnable(coinPair, delayMs, attempt));
+  }
+
+  private Runnable reconnectRunnable(String coinPair, long delayMs, int attempt) {
+    return () -> {
+      try {
+        Thread.sleep(delayMs);
+
+        log.info("Attempting reconnection #{} for coin pair: {}", attempt, coinPair);
         var container = getWebSocketContainer();
         createClientForCoinPair(coinPair, container);
-        log.info("Client reconnected for coin pair: {}", coinPair);
+        log.info("Client successfully reconnected for coin pair: {} after {} attempts",
+            coinPair, attempt);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         log.error("Reconnection interrupted for coin pair {}: {}", coinPair, e.getMessage());
       } catch (Exception e) {
-        log.error("Error reconnecting client for coin pair {}: {}", coinPair, e.getMessage(), e);
-        // TODO: schedule another reconnect attempt with exponential backoff
+        log.error("Error during reconnection attempt {} for coin pair {}: {}",
+            attempt, coinPair, e.getMessage(), e);
+        // Schedule next attempt with increased backoff
+        scheduleReconnectWithBackoff(coinPair, attempt + 1);
       }
-    });
+    };
   }
 
   private synchronized WebSocketContainer getWebSocketContainer() {

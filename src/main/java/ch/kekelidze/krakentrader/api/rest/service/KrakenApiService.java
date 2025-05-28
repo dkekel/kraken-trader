@@ -1,6 +1,7 @@
 package ch.kekelidze.krakentrader.api.rest.service;
 
 import ch.kekelidze.krakentrader.api.HistoricalDataService;
+import ch.kekelidze.krakentrader.api.dto.OrderResult;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import java.io.IOException;
 import java.net.URI;
@@ -20,6 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.ta4j.core.Bar;
 
@@ -30,14 +33,15 @@ import org.ta4j.core.Bar;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class KrakenApiService implements HistoricalDataService {
+@Profile("!paper-trading")
+public class KrakenApiService implements TradingApiService {
+
+  private static final double FALLBACK_FEE_RATE = 0.4;
 
   @Value("${kraken.api.key}")
   private String apiKey;
   @Value("${kraken.api.secret}")
   private String apiSecret;
-
-  private final ResponseConverterUtils responseConverterUtils;
 
   /**
    * Retrieves the current account balances from the Kraken API.
@@ -45,6 +49,7 @@ public class KrakenApiService implements HistoricalDataService {
    * @return a map where keys are asset names and values are their corresponding balances.
    * @throws Exception if the API call fails or the response cannot be parsed.
    */
+  @Override
   public Map<String, Double> getAccountBalance() throws Exception {
     String nonce = String.valueOf(System.currentTimeMillis());
     String postData = "nonce=" + nonce;
@@ -83,6 +88,17 @@ public class KrakenApiService implements HistoricalDataService {
     }
   }
 
+  @Override
+  public Double getAssetBalance(String asset) throws Exception {
+    Map<String, Double> balances = getAccountBalance();
+    var assetKey = balances.keySet().stream().filter(balanceAsset -> balanceAsset.contains(asset))
+        .findFirst();
+    if (assetKey.isPresent()) {
+      return balances.get(assetKey.get());
+    }
+    throw new RuntimeException("No balance for asset: " + asset);
+  }
+
   /**
    * Creates an API signature for private Kraken API calls.
    *
@@ -107,10 +123,45 @@ public class KrakenApiService implements HistoricalDataService {
     return Base64.getEncoder().encodeToString(mac.doFinal());
   }
 
-  public void placeMarketOrder(String coin, double amount) throws Exception {
+  /**
+   * Places a market buy order
+   * 
+   * @param coin the trading pair (e.g., "XBTUSD")
+   * @param amount the amount to buy
+   * @return OrderResult containing order details including fees
+   * @throws Exception if the API call fails
+   */
+  @Override
+  public OrderResult placeMarketBuyOrder(String coin, double amount) throws Exception {
+    return placeMarketOrder(coin, amount, "buy");
+  }
+
+  /**
+   * Places a market sell order
+   * 
+   * @param coin the trading pair (e.g., "XBTUSD")
+   * @param amount the amount to sell
+   * @return OrderResult containing order details including fees
+   * @throws Exception if the API call fails
+   */
+  @Override
+  public OrderResult placeMarketSellOrder(String coin, double amount) throws Exception {
+    return placeMarketOrder(coin, amount, "sell");
+  }
+
+  /**
+   * Places a market order (buy or sell)
+   * 
+   * @param coin the trading pair (e.g., "XBTUSD")
+   * @param amount the amount to trade
+   * @param type the order type ("buy" or "sell")
+   * @return OrderResult containing order details including fees
+   * @throws Exception if the API call fails
+   */
+  private OrderResult placeMarketOrder(String coin, double amount, String type) throws Exception {
     String nonce = String.valueOf(System.currentTimeMillis());
     String postData =
-        "nonce=" + nonce + "&ordertype=market&pair=" + coin + "&type=buy&volume=" + amount;
+        "nonce=" + nonce + "&ordertype=market&pair=" + coin + "&type=" + type + "&volume=" + amount;
 
     var path = "/0/private/AddOrder";
     var signature = getApiSignature(path, nonce, postData);
@@ -127,46 +178,63 @@ public class KrakenApiService implements HistoricalDataService {
 
       HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
       log.info("Order Response: " + response.body());
+
+      // Parse the response to get order details
+      JSONObject responseJson = new JSONObject(response.body());
+
+      if (responseJson.has("error") && !responseJson.getJSONArray("error").isEmpty()) {
+        throw new RuntimeException("Kraken API error: "
+            + responseJson.getJSONArray("error").toString());
+      }
+
+      // Get the order ID from the result
+      JSONObject result = responseJson.getJSONObject("result");
+      String orderId = result.getJSONArray("txid").getString(0);
+
+      // Get order details including fees by querying the order status
+      return getOrderDetails(orderId);
     }
   }
 
   /**
-   * Kraken’s OHLC Format: Each candle is an array [time, open, high, low, close, vwap, volume,
-   * count].
-   *
-   * @param coin   coin to get data for
-   * @param period period duration, e.g. 60 for 1-hour candles
-   * @return list of closing prices per period
+   * Gets the details of an order, including fees and executed price
+   * 
+   * @param orderId the ID of the order
+   * @return OrderResult containing order details
+   * @throws Exception if the API call fails
    */
-  @Override
-  public Map<String, List<Bar>> queryHistoricalData(List<String> coin, int period) {
-    var historicalData = new HashMap<String, List<Bar>>();
+  private OrderResult getOrderDetails(String orderId) throws Exception {
+    String nonce = String.valueOf(System.currentTimeMillis());
+    String postData = "nonce=" + nonce + "&txid=" + orderId;
+
+    var path = "/0/private/QueryOrders";
+    var signature = getApiSignature(path, nonce, postData);
+
     try (HttpClient client = HttpClient.newHttpClient()) {
-      for (String coinPair : coin) {
-        String url =
-            "https://api.kraken.com/0/public/OHLC?pair=" + coinPair + "&interval=" + period;
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(url))
-            .build();
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(URI.create("https://api.kraken.com" + path))
+          .header("API-Key", apiKey)
+          .header("API-Sign", signature)
+          .header("Content-Type", "application/x-www-form-urlencoded")
+          .POST(HttpRequest.BodyPublishers.ofString(postData))
+          .build();
 
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        JSONObject json = new JSONObject(response.body());
-        JSONObject result = json.getJSONObject("result");
-        JSONArray ohlcData = result.keySet().stream().filter(coinPair::equals)
-            .map(result::getJSONArray).findFirst().orElse(new JSONArray());
+      HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+      JSONObject responseJson = new JSONObject(response.body());
 
-        // Extract closing prices (index 4 in Kraken's OHLC array)
-        var dataBars = new ArrayList<Bar>();
-        for (int i = 0; i < ohlcData.length(); i++) {
-          var ohlcCandle = ohlcData.getJSONArray(i);
-          var bar = responseConverterUtils.getPriceBar(ohlcCandle, period);
-          dataBars.add(bar);
-        }
-        historicalData.put(coinPair, dataBars);
+      if (responseJson.has("error") && !responseJson.getJSONArray("error").isEmpty()) {
+        throw new RuntimeException("Kraken API error: "
+            + responseJson.getJSONArray("error").toString());
       }
-      return historicalData;
-    } catch (IOException | InterruptedException e) {
-      throw new RuntimeException("Failed to fetch and parse historical data: " + e.getMessage(), e);
+
+      JSONObject result = responseJson.getJSONObject("result");
+      JSONObject order = result.getJSONObject(orderId);
+
+      double fee = order.getDouble("fee");
+      double price = order.getDouble("price");
+      double volume = order.getDouble("vol_exec");
+
+      return new OrderResult(orderId, fee, price, volume);
     }
   }
 
@@ -258,43 +326,80 @@ public class KrakenApiService implements HistoricalDataService {
     return volumes;
   }
 
-  //  private void placeLimitOrder(String coin, double amount) {
-//    try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-//      String apiEndpoint = "https://api.kraken.com/0/private/AddOrder";
-//
-//      // Construct the request payload
-//      String body = "nonce=" + System.currentTimeMillis() +
-//          "&ordertype=limit" +
-//          "&type=buy" +
-//          "&pair=" + coin +
-//          "&volume=" + amount;
-//
-//      HttpPost post = new HttpPost(apiEndpoint);
-//      post.setEntity(new StringEntity(body, ContentType.APPLICATION_FORM_URLENCODED));
-//
-//      // Set the required headers (example placeholders, replace as needed)
-//      post.setHeader("API-Key", "<Your-API-Key>");
-//      post.setHeader("API-Sign", "<Your-API-Signature>");
-//
-//      try (CloseableHttpResponse response = httpClient.execute(post)) {
-//        if (response.getStatusLine().getStatusCode() == 200) {
-//          String jsonResponse = EntityUtils.toString(response.getEntity());
-//          ObjectMapper mapper = new ObjectMapper();
-//          JsonNode rootNode = mapper.readTree(jsonResponse);
-//
-//          if (!rootNode.path("error").isEmpty()) {
-//            throw new RuntimeException(
-//                "Kraken API returned error: " + rootNode.path("error").toString());
-//          }
-//
-//          System.out.println("Limit order placed successfully. Response: " + jsonResponse);
-//        } else {
-//          throw new RuntimeException(
-//              "API call failed with status code: " + response.getStatusLine().getStatusCode());
-//        }
-//      }
-//    } catch (Exception e) {
-//      throw new RuntimeException("Failed to place limit order: " + e.getMessage(), e);
-//    }
-//  }
+  /**
+   * Retrieves the current fee information for the specified pair.
+   *
+   * @param pair Trading pair (e.g., "XBTUSD")
+   * @return A map containing fee information including maker and taker fees
+   */
+  @Override
+  @Cacheable(value = "feeInfo", key = "#pair", cacheManager = "tradingCacheManager")
+  public double getCoinTradingFee(String pair) {
+    double takerFeeRate = FALLBACK_FEE_RATE;
+
+    try {
+      // Get current fees from Kraken
+      var feeInfo = getTradingFees(pair);
+
+      // For market orders, we use the taker fee
+      takerFeeRate = feeInfo.get("takerFee");
+    } catch (Exception e) {
+      // If fee retrieval fails, fall back to a conservative estimate
+      log.warn("Failed to retrieve fees from Kraken API: {}. Falling back to default fee {}",
+          e.getMessage(), FALLBACK_FEE_RATE, e);
+    }
+
+    return takerFeeRate;
+  }
+
+  private Map<String, Double> getTradingFees(String pair) throws Exception {
+    String nonce = String.valueOf(System.currentTimeMillis());
+    String postData = "nonce=" + nonce + "&pair=" + pair + "&fee-info=true";
+
+    String path = "/0/private/TradeVolume";
+    String signature = getApiSignature(path, nonce, postData);
+
+    try (HttpClient client = HttpClient.newHttpClient()) {
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(URI.create("https://api.kraken.com" + path))
+          .header("API-Key", apiKey)
+          .header("API-Sign", signature)
+          .header("Content-Type", "application/x-www-form-urlencoded")
+          .POST(HttpRequest.BodyPublishers.ofString(postData))
+          .build();
+
+      HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+      JSONObject responseJson = new JSONObject(response.body());
+
+      if (responseJson.has("error") && !responseJson.getJSONArray("error").isEmpty()) {
+        throw new RuntimeException("Kraken API error: " + responseJson.getJSONArray("error").toString());
+      }
+
+      Map<String, Double> feeInfo = new HashMap<>();
+      JSONObject result = responseJson.getJSONObject("result");
+
+      // Extract current fee tier
+      if (result.has("fees")) {
+        JSONObject feesObj = result.getJSONObject("fees");
+        if (!feesObj.isEmpty()) {
+          // Get the first key from the fees object
+          String firstPairKey = feesObj.keys().next();
+          JSONObject pairFees = feesObj.getJSONObject(firstPairKey);
+
+          feeInfo.put("makerFee", pairFees.getDouble("fee"));
+          feeInfo.put("takerFee", pairFees.getDouble("fee"));
+
+          log.debug("Retrieved fee info for {} (using key {}): maker={}, taker={}",
+              pair, firstPairKey, feeInfo.get("makerFee"), feeInfo.get("takerFee"));
+        }
+      }
+
+      // Extract current 30-day volume if available
+      if (result.has("volume")) {
+        feeInfo.put("volume", result.getDouble("volume"));
+      }
+
+      return feeInfo;
+    }
+  }
 }
