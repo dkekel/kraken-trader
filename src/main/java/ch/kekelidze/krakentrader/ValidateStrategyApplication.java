@@ -2,6 +2,8 @@ package ch.kekelidze.krakentrader;
 
 import ch.kekelidze.krakentrader.api.HistoricalDataService;
 import ch.kekelidze.krakentrader.api.file.service.CsvFileService;
+import ch.kekelidze.krakentrader.api.rest.service.MarketDataService;
+import ch.kekelidze.krakentrader.api.rest.service.PaperTradeKrakenApiService;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import ch.kekelidze.krakentrader.backtester.service.BackTesterService;
 import ch.kekelidze.krakentrader.backtester.service.dto.BacktestResult;
@@ -9,24 +11,25 @@ import ch.kekelidze.krakentrader.indicator.Indicator;
 import ch.kekelidze.krakentrader.optimize.config.StrategyConfig;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
-import java.time.LocalDate;
-import java.time.ZonedDateTime;
-import java.time.ZoneId;
-import java.util.List;
-import java.util.Map;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import lombok.extern.slf4j.Slf4j;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 
 @Slf4j
 @SpringBootApplication(
-    scanBasePackageClasses = {CsvFileService.class, ResponseConverterUtils.class,
-        BackTesterService.class, StrategyConfig.class, Indicator.class, Strategy.class}
+    scanBasePackageClasses = {CsvFileService.class, MarketDataService.class,
+        PaperTradeKrakenApiService.class, ResponseConverterUtils.class, BackTesterService.class,
+        StrategyConfig.class, Indicator.class, Strategy.class}
 )
 public class ValidateStrategyApplication {
 

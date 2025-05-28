@@ -7,6 +7,7 @@ import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -20,6 +21,7 @@ import org.ta4j.core.num.DecimalNum;
 
 @Slf4j
 @Service
+@Profile("csv-data")
 public class CsvFileService implements HistoricalDataService {
 
   /**
