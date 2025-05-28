@@ -14,11 +14,13 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.ta4j.core.Bar;
 
 @Service
 @RequiredArgsConstructor
+@Profile("live-data")
 public class MarketDataService implements HistoricalDataService {
 
   private final ResponseConverterUtils responseConverterUtils;

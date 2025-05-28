@@ -33,7 +33,7 @@ import org.ta4j.core.Bar;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Profile("!paper-trading")
+@Profile("real-trading")
 public class KrakenApiService implements TradingApiService {
 
   private static final double FALLBACK_FEE_RATE = 0.4;

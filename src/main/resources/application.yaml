@@ -7,9 +7,15 @@ spring:
   application:
     name: "kraken-trader"
   profiles:
-    # Set default profile to real trading
-    # To use paper trading, run with --spring.profiles.active=paper-trading
-    default: default
+    # Set default profiles
+    # To use real trading, run with --spring.profiles.active=real-trading
+    # To use live market data, run with --spring.profiles.active=live-data
+    # To use CSV file data, run with --spring.profiles.active=csv-data
+    # Default is simulation-mode (paper trading with CSV data)
+    default: simulation-mode
+    group:
+      simulation-mode: paper-trading,csv-data
+      trading-mode: real-trading,live-data
   datasource:
     url: jdbc:h2:file:./data/db/kraken-trader;DB_CLOSE_ON_EXIT=FALSE
     username: sa
