@@ -1,6 +1,6 @@
 package ch.kekelidze.krakentrader.api.websocket;
 
-import ch.kekelidze.krakentrader.api.rest.service.KrakenApiService;
+import ch.kekelidze.krakentrader.api.HistoricalDataService;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import ch.kekelidze.krakentrader.api.websocket.service.KrakenWebSocketService;
 import ch.kekelidze.krakentrader.trade.service.TradeService;
@@ -55,17 +55,17 @@ public class KrakenWebSocketClient {
 
   // Method to set dependencies from Spring context
   public static void initialize(TradeService strategyService, ResponseConverterUtils converterUtils,
-      KrakenApiService krakenApiService, String[] symbols, KrakenWebSocketService service) {
+      HistoricalDataService marketDataService, String[] symbols, KrakenWebSocketService service) {
     tradeService = strategyService;
     responseConverterUtils = converterUtils;
     webSocketService = service;
     SYMBOLS = List.of(symbols);
     PERIOD = tradeService.getStrategy().getPeriod();
-    initializePriceQueue(krakenApiService);
+    initializePriceQueue(marketDataService);
   }
 
-  private static void initializePriceQueue(KrakenApiService krakenApiService) {
-    var historicalData = krakenApiService.queryHistoricalData(SYMBOLS, PERIOD);
+  private static void initializePriceQueue(HistoricalDataService marketDataService) {
+    var historicalData = marketDataService.queryHistoricalData(SYMBOLS, PERIOD);
     for (String coin : SYMBOLS) {
       var historicalCoinData = historicalData.get(coin);
       var coinQueue = priceQueue.computeIfAbsent(coin, key -> new LinkedList<>());

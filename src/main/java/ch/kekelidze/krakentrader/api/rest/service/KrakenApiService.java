@@ -22,6 +22,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.ta4j.core.Bar;
 
@@ -32,7 +33,8 @@ import org.ta4j.core.Bar;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class KrakenApiService implements HistoricalDataService {
+@Profile("!paper-trading")
+public class KrakenApiService implements TradingApiService {
 
   private static final double FALLBACK_FEE_RATE = 0.4;
 
@@ -41,14 +43,13 @@ public class KrakenApiService implements HistoricalDataService {
   @Value("${kraken.api.secret}")
   private String apiSecret;
 
-  private final ResponseConverterUtils responseConverterUtils;
-
   /**
    * Retrieves the current account balances from the Kraken API.
    *
    * @return a map where keys are asset names and values are their corresponding balances.
    * @throws Exception if the API call fails or the response cannot be parsed.
    */
+  @Override
   public Map<String, Double> getAccountBalance() throws Exception {
     String nonce = String.valueOf(System.currentTimeMillis());
     String postData = "nonce=" + nonce;
@@ -87,6 +88,7 @@ public class KrakenApiService implements HistoricalDataService {
     }
   }
 
+  @Override
   public Double getAssetBalance(String asset) throws Exception {
     Map<String, Double> balances = getAccountBalance();
     var assetKey = balances.keySet().stream().filter(balanceAsset -> balanceAsset.contains(asset))
@@ -129,6 +131,7 @@ public class KrakenApiService implements HistoricalDataService {
    * @return OrderResult containing order details including fees
    * @throws Exception if the API call fails
    */
+  @Override
   public OrderResult placeMarketBuyOrder(String coin, double amount) throws Exception {
     return placeMarketOrder(coin, amount, "buy");
   }
@@ -141,6 +144,7 @@ public class KrakenApiService implements HistoricalDataService {
    * @return OrderResult containing order details including fees
    * @throws Exception if the API call fails
    */
+  @Override
   public OrderResult placeMarketSellOrder(String coin, double amount) throws Exception {
     return placeMarketOrder(coin, amount, "sell");
   }
@@ -231,46 +235,6 @@ public class KrakenApiService implements HistoricalDataService {
       double volume = order.getDouble("vol_exec");
 
       return new OrderResult(orderId, fee, price, volume);
-    }
-  }
-
-  /**
-   * Kraken’s OHLC Format: Each candle is an array [time, open, high, low, close, vwap, volume,
-   * count].
-   *
-   * @param coin   coin to get data for
-   * @param period period duration, e.g. 60 for 1-hour candles
-   * @return list of closing prices per period
-   */
-  @Override
-  public Map<String, List<Bar>> queryHistoricalData(List<String> coin, int period) {
-    var historicalData = new HashMap<String, List<Bar>>();
-    try (HttpClient client = HttpClient.newHttpClient()) {
-      for (String coinPair : coin) {
-        String url =
-            "https://api.kraken.com/0/public/OHLC?pair=" + coinPair + "&interval=" + period;
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(url))
-            .build();
-
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        JSONObject json = new JSONObject(response.body());
-        JSONObject result = json.getJSONObject("result");
-        JSONArray ohlcData = result.keySet().stream().filter(coinPair::equals)
-            .map(result::getJSONArray).findFirst().orElse(new JSONArray());
-
-        // Extract closing prices (index 4 in Kraken's OHLC array)
-        var dataBars = new ArrayList<Bar>();
-        for (int i = 0; i < ohlcData.length(); i++) {
-          var ohlcCandle = ohlcData.getJSONArray(i);
-          var bar = responseConverterUtils.getPriceBar(ohlcCandle, period);
-          dataBars.add(bar);
-        }
-        historicalData.put(coinPair, dataBars);
-      }
-      return historicalData;
-    } catch (IOException | InterruptedException e) {
-      throw new RuntimeException("Failed to fetch and parse historical data: " + e.getMessage(), e);
     }
   }
 
@@ -368,6 +332,7 @@ public class KrakenApiService implements HistoricalDataService {
    * @param pair Trading pair (e.g., "XBTUSD")
    * @return A map containing fee information including maker and taker fees
    */
+  @Override
   @Cacheable(value = "feeInfo", key = "#pair", cacheManager = "tradingCacheManager")
   public double getCoinTradingFee(String pair) {
     double takerFeeRate = FALLBACK_FEE_RATE;

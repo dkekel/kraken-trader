@@ -1,7 +1,7 @@
 package ch.kekelidze.krakentrader.trade.service;
 
 import ch.kekelidze.krakentrader.api.dto.OrderResult;
-import ch.kekelidze.krakentrader.api.rest.service.KrakenApiService;
+import ch.kekelidze.krakentrader.api.rest.service.TradingApiService;
 import ch.kekelidze.krakentrader.indicator.analyser.AtrAnalyser;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.Strategy;
@@ -27,18 +27,18 @@ public class TradeService {
   private final AtrAnalyser atrAnalyser;
   private final Portfolio portfolio;
   private final TradeStatePersistenceService tradeStatePersistenceService;
-  private final KrakenApiService krakenApiService;
+  private final TradingApiService tradingApiService;
   @Getter
   @Setter
   private Strategy strategy;
 
   public TradeService(AtrAnalyser atrAnalyser, Portfolio portfolio,
       TradeStatePersistenceService tradeStatePersistenceService,
-      KrakenApiService krakenApiService) {
+      TradingApiService tradingApiService) {
     this.atrAnalyser = atrAnalyser;
     this.portfolio = portfolio;
     this.tradeStatePersistenceService = tradeStatePersistenceService;
-    this.krakenApiService = krakenApiService;
+    this.tradingApiService = tradingApiService;
   }
 
   public void executeStrategy(String coinPair, List<Bar> data) {
@@ -85,7 +85,7 @@ public class TradeService {
             allocatedCapital, params);
 
         // Place market buy order
-        OrderResult orderResult = krakenApiService.placeMarketBuyOrder(coinPair, positionSize);
+        OrderResult orderResult = tradingApiService.placeMarketBuyOrder(coinPair, positionSize);
 
         // Set trade state with actual executed values
         tradeState.setInTrade(true);
@@ -113,7 +113,7 @@ public class TradeService {
       } else if (inTrade && strategy.shouldSell(evaluationContext, tradeState.getEntryPrice(),
           params)) {
         // Place market sell order
-        OrderResult orderResult = krakenApiService.placeMarketSellOrder(coinPair,
+        OrderResult orderResult = tradingApiService.placeMarketSellOrder(coinPair,
             tradeState.getPositionSize());
 
         // Calculate actual proceeds (after fees)
@@ -189,7 +189,7 @@ public class TradeService {
     }
 
     // Account for round-trip fees
-    double takerFeeRate = krakenApiService.getCoinTradingFee(coinPair);
+    double takerFeeRate = tradingApiService.getCoinTradingFee(coinPair);
     double roundTripFeeImpact = takerFeeRate * 2 / 100; // Both buy and sell
     double feeAdjustedCapitalPercentage = capitalPercentage * (1 - roundTripFeeImpact);
 

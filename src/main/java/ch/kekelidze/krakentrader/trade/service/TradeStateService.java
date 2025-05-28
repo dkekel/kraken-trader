@@ -1,7 +1,7 @@
 package ch.kekelidze.krakentrader.trade.service;
 
-import ch.kekelidze.krakentrader.api.rest.service.KrakenApiService;
 import ch.kekelidze.krakentrader.api.rest.service.KrakenAveragePriceService;
+import ch.kekelidze.krakentrader.api.rest.service.TradingApiService;
 import ch.kekelidze.krakentrader.trade.TradeState;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,11 +23,11 @@ public class TradeStateService {
     );
 
     private final KrakenAveragePriceService averagePriceService;
-    private final KrakenApiService krakenApiService;
+    private final TradingApiService krakenApiService;
     
     @Autowired
     public TradeStateService(KrakenAveragePriceService averagePriceService,
-        KrakenApiService krakenApiService) {
+        TradingApiService krakenApiService) {
         this.averagePriceService = averagePriceService;
       this.krakenApiService = krakenApiService;
     }

@@ -1,8 +1,9 @@
 package ch.kekelidze.krakentrader.api.websocket.service;
 
-import ch.kekelidze.krakentrader.api.websocket.KrakenWebSocketClient;
-import ch.kekelidze.krakentrader.api.rest.service.KrakenApiService;
+import ch.kekelidze.krakentrader.api.HistoricalDataService;
+import ch.kekelidze.krakentrader.api.rest.service.TradingApiService;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
+import ch.kekelidze.krakentrader.api.websocket.KrakenWebSocketClient;
 import ch.kekelidze.krakentrader.api.websocket.SinglePairWebSocketClient;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.trade.Portfolio;
@@ -41,7 +42,8 @@ public class KrakenWebSocketService implements DisposableBean {
   private final PortfolioPersistenceService portfolioPersistenceService;
   private final TradeService tradeService;
   private final ResponseConverterUtils responseConverterUtils;
-  private final KrakenApiService krakenApiService;
+  private final TradingApiService krakenApiService;
+  private final HistoricalDataService marketDataService;
   private final ApplicationContext applicationContext;
 
   private WebSocketContainer container;
@@ -53,29 +55,24 @@ public class KrakenWebSocketService implements DisposableBean {
 
       initFeesCache(coinPairs);
 
-      // Get capital from Kraken API instead of command line arguments
-      double capital;
       try {
-        capital = krakenApiService.getAssetBalance("USD");
+        double capital = krakenApiService.getAssetBalance("USD");
+        portfolio.setTotalCapital(capital);
         log.info("Retrieved capital from Kraken API: {}", capital);
       } catch (Exception e) {
         log.error("Failed to get account balance from Kraken API: {}", e.getMessage(), e);
         throw new RuntimeException("Failed to get account balance from Kraken API", e);
       }
 
-      log.info("Starting WebSocket client for strategy: {} and capital: {}", strategy, capital);
+      log.info("Starting WebSocket client for strategy: {}", strategy);
       tradeService.setStrategy(strategy);
 
       // Set portfolio allocation based on the number of coin pairs
       tradeService.setPortfolioAllocation(coinPairs.length);
       log.info("Set portfolio allocation for {} coin pairs", coinPairs.length);
 
-      if (portfolioPersistenceService.isPortfolioExists()) {
-        portfolio.setTotalCapital(capital);
-      }
-
       // Initialize the WebSocket client with Spring-managed dependencies
-      KrakenWebSocketClient.initialize(tradeService, responseConverterUtils, krakenApiService,
+      KrakenWebSocketClient.initialize(tradeService, responseConverterUtils, marketDataService,
           coinPairs, this);
 
       // Connect to WebSocket server

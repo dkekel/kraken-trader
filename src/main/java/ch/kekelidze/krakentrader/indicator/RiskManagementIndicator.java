@@ -1,6 +1,6 @@
 package ch.kekelidze.krakentrader.indicator;
 
-import ch.kekelidze.krakentrader.api.rest.service.KrakenApiService;
+import ch.kekelidze.krakentrader.api.rest.service.TradingApiService;
 import ch.kekelidze.krakentrader.indicator.analyser.AtrAnalyser;
 import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
@@ -16,7 +16,7 @@ import org.ta4j.core.Bar;
 public class RiskManagementIndicator implements Indicator {
 
   private final AtrAnalyser atrAnalyser;
-  private final KrakenApiService krakenApiService;
+  private final TradingApiService krakenApiService;
 
   @Override
   public boolean isBuySignal(EvaluationContext context, StrategyParameters params) {
