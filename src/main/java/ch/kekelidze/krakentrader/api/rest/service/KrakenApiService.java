@@ -37,6 +37,8 @@ import org.ta4j.core.Bar;
 public class KrakenApiService implements TradingApiService {
 
   private static final double FALLBACK_FEE_RATE = 0.4;
+  private static final int MAX_RETRIES = 3;
+  private static final long RETRY_DELAY_MS = 1000;
 
   @Value("${kraken.api.key}")
   private String apiKey;
@@ -192,49 +194,120 @@ public class KrakenApiService implements TradingApiService {
       String orderId = result.getJSONArray("txid").getString(0);
 
       // Get order details including fees by querying the order status
-      return getOrderDetails(orderId);
+      return getOrderDetails(orderId, coin, amount);
     }
   }
 
   /**
    * Gets the details of an order, including fees and executed price
-   * 
+   *
    * @param orderId the ID of the order
    * @return OrderResult containing order details
    * @throws Exception if the API call fails
    */
-  private OrderResult getOrderDetails(String orderId) throws Exception {
+  private OrderResult getOrderDetails(String orderId, String coin, double amount) throws Exception {
     String nonce = String.valueOf(System.currentTimeMillis());
     String postData = "nonce=" + nonce + "&txid=" + orderId;
 
     var path = "/0/private/QueryOrders";
     var signature = getApiSignature(path, nonce, postData);
 
+    for (int attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try (HttpClient client = HttpClient.newHttpClient()) {
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create("https://api.kraken.com" + path))
+            .header("API-Key", apiKey)
+            .header("API-Sign", signature)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .POST(HttpRequest.BodyPublishers.ofString(postData))
+            .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        JSONObject responseJson = new JSONObject(response.body());
+
+        if (responseJson.has("error") && !responseJson.getJSONArray("error").isEmpty()) {
+          throw new RuntimeException("Kraken API error: "
+              + responseJson.getJSONArray("error").toString());
+        }
+
+        JSONObject result = responseJson.getJSONObject("result");
+
+        // Check if order details are available
+        if (result.has(orderId)) {
+          JSONObject order = result.getJSONObject(orderId);
+
+          double fee = order.getDouble("fee");
+          double price = order.getDouble("price");
+          double volume = order.getDouble("vol_exec");
+
+          return new OrderResult(orderId, fee, price, volume);
+        } else {
+          // Order not yet available, log and retry
+          log.info("Order details not yet available for order {}. Retry attempt {}/{}.",
+              orderId, attempt + 1, MAX_RETRIES);
+
+          if (attempt < MAX_RETRIES - 1) {
+            // Wait before retrying
+            Thread.sleep(RETRY_DELAY_MS);
+            // Generate new nonce and signature for the next attempt
+            nonce = String.valueOf(System.currentTimeMillis());
+            postData = "nonce=" + nonce + "&txid=" + orderId;
+            signature = getApiSignature(path, nonce, postData);
+          }
+        }
+      } catch (Exception e) {
+        log.warn("Error retrieving order details (attempt {}/{}): {}",
+            attempt + 1, MAX_RETRIES, e.getMessage());
+
+        if (attempt < MAX_RETRIES - 1) {
+          Thread.sleep(RETRY_DELAY_MS);
+        }
+      }
+    }
+
+    // If we reached here, we couldn't get the order details after all retries
+    // Return a basic OrderResult with just the orderId to prevent repeated orders
+    log.warn("Could not retrieve full order details after {} attempts. " +
+            "Returning basic order information to prevent reordering.",
+        MAX_RETRIES);
+
+    // Fall back to estimated values
+    double estimatedPrice = getCurrentPrice(coin);
+    return new OrderResult(orderId, FALLBACK_FEE_RATE, estimatedPrice, amount);
+  }
+
+  /**
+   * Gets the current market price for a coin pair
+   *
+   * @param pair The trading pair (e.g., "XBTUSD")
+   * @return Current market price
+   * @throws Exception if the API call fails
+   */
+  private double getCurrentPrice(String pair) throws Exception {
     try (HttpClient client = HttpClient.newHttpClient()) {
       HttpRequest request = HttpRequest.newBuilder()
-          .uri(URI.create("https://api.kraken.com" + path))
-          .header("API-Key", apiKey)
-          .header("API-Sign", signature)
-          .header("Content-Type", "application/x-www-form-urlencoded")
-          .POST(HttpRequest.BodyPublishers.ofString(postData))
+          .uri(URI.create("https://api.kraken.com/0/public/Ticker?pair=" + pair))
+          .GET()
           .build();
 
       HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
       JSONObject responseJson = new JSONObject(response.body());
 
       if (responseJson.has("error") && !responseJson.getJSONArray("error").isEmpty()) {
-        throw new RuntimeException("Kraken API error: "
-            + responseJson.getJSONArray("error").toString());
+        log.error("Kraken API error: {}", responseJson.getJSONArray("error").toString());
+        return 0.0d;
       }
 
       JSONObject result = responseJson.getJSONObject("result");
-      JSONObject order = result.getJSONObject(orderId);
+      String firstKey = result.keys().next();
+      JSONObject pairData = result.getJSONObject(firstKey);
 
-      double fee = order.getDouble("fee");
-      double price = order.getDouble("price");
-      double volume = order.getDouble("vol_exec");
-
-      return new OrderResult(orderId, fee, price, volume);
+      // Return the last trade price
+      JSONArray c = pairData.getJSONArray("c");
+      return Double.parseDouble(c.getString(0));
+    } catch (Exception e) {
+      log.error("Failed to get current price for pair {}", pair, e);
+      return 0.0d;
     }
   }
 
