@@ -91,13 +91,14 @@ public class TradeService {
         tradeState.setInTrade(true);
 
         // Calculate entry price including fees
-        double totalCost = orderResult.getExecutedPrice() * orderResult.getVolume()
-            + orderResult.getFee();
-        double entryPriceWithFees = totalCost / orderResult.getVolume();
+        var executedPrice =
+            orderResult.executedPrice() == 0 ? currentPrice : orderResult.executedPrice();
+        double totalCost = executedPrice * orderResult.volume() + orderResult.fee();
+        double entryPriceWithFees = totalCost / orderResult.volume();
         tradeState.setEntryPrice(entryPriceWithFees);
 
         // Use actual executed volume from the order
-        tradeState.setPositionSize(orderResult.getVolume());
+        tradeState.setPositionSize(orderResult.volume());
         tradeStatePersistenceService.saveTradeState(tradeState);
 
         // Update capital (deduct the total cost including fees)
@@ -105,10 +106,10 @@ public class TradeService {
 
         log.info("BUY {} {} at: {} (including fees: {}) | Fee: {}", 
             coinPair, 
-            orderResult.getVolume(),
-            orderResult.getExecutedPrice(),
+            orderResult.volume(),
+            executedPrice,
             entryPriceWithFees,
-            orderResult.getFee());
+            orderResult.fee());
 
       } else if (inTrade && strategy.shouldSell(evaluationContext, tradeState.getEntryPrice(),
           params)) {
@@ -117,8 +118,9 @@ public class TradeService {
             tradeState.getPositionSize());
 
         // Calculate actual proceeds (after fees)
-        double totalProceeds = orderResult.getExecutedPrice() * orderResult.getVolume()
-            - orderResult.getFee();
+        var executedPrice =
+            orderResult.executedPrice() == 0 ? currentPrice : orderResult.executedPrice();
+        double totalProceeds = executedPrice * orderResult.volume() - orderResult.fee();
 
         // Calculate profit
         var entryPrice = tradeState.getEntryPrice();
@@ -136,9 +138,9 @@ public class TradeService {
 
         log.info("SELL {} {} at: {} | Fee: {} | Proceeds: {} | Profit: {}%", 
             coinPair, 
-            orderResult.getVolume(),
-            orderResult.getExecutedPrice(),
-            orderResult.getFee(),
+            orderResult.volume(),
+            executedPrice,
+            orderResult.fee(),
             totalProceeds,
             profit);
         log.info("{} total Profit: {}%", coinPair, tradeState.getTotalProfit());
