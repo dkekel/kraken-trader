@@ -1,6 +1,7 @@
 package ch.kekelidze.krakentrader;
 
 import ch.kekelidze.krakentrader.api.file.service.CsvFileService;
+import ch.kekelidze.krakentrader.api.rest.service.TradingApiService;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import ch.kekelidze.krakentrader.backtester.service.BackTesterService;
 import ch.kekelidze.krakentrader.indicator.Indicator;
@@ -19,8 +20,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @Slf4j
 @SpringBootApplication(
-    scanBasePackageClasses = {CsvFileService.class, ResponseConverterUtils.class,
-        BackTesterService.class, Indicator.class, Strategy.class, Optimizer.class}
+    scanBasePackageClasses = {CsvFileService.class, ResponseConverterUtils.class, Optimizer.class,
+        TradingApiService.class, BackTesterService.class, Indicator.class, Strategy.class}
 )
 public class BuyLowSellHighParameterOptimizationRunner {
 
@@ -44,8 +45,10 @@ public class BuyLowSellHighParameterOptimizationRunner {
     int period = Integer.parseInt(args[1]);
     ZonedDateTime startDate = LocalDate.parse(args[2], DateTimeFormatter.ISO_DATE)
         .atStartOfDay(ZoneId.systemDefault());
-    ZonedDateTime endDate = LocalDate.parse(args[3], DateTimeFormatter.ISO_DATE)
-        .atStartOfDay(ZoneId.systemDefault());
+    ZonedDateTime endDate = args.length > 3
+        ? LocalDate.parse(args[3], DateTimeFormatter.ISO_DATE).atStartOfDay(ZoneId.systemDefault())
+        : LocalDate.now().atStartOfDay(ZoneId.systemDefault());
+
 
     // Run optimization
     log.info("Starting Strategy Optimization for {}", coins);
