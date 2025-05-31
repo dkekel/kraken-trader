@@ -206,11 +206,6 @@ public class GeneticOptimizer implements Optimizer {
       fitness *= (1 + result.winRate());
     }
 
-    // Penalize strategies with very few trades
-    if (result.totalTrades() < 5) {
-      fitness *= 0.5;
-    }
-
     return fitness;
   }
 
