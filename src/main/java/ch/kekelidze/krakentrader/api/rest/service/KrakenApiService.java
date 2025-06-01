@@ -37,7 +37,7 @@ import org.ta4j.core.Bar;
 public class KrakenApiService implements TradingApiService {
 
   private static final double FALLBACK_FEE_RATE = 0.4;
-  private static final int MAX_RETRIES = 3;
+  private static final int MAX_RETRIES = 5;
   private static final long RETRY_DELAY_MS = 1000;
 
   @Value("${kraken.api.key}")
@@ -245,6 +245,7 @@ public class KrakenApiService implements TradingApiService {
           // Order not yet available, log and retry
           log.info("Order details not yet available for order {}. Retry attempt {}/{}.",
               orderId, attempt + 1, MAX_RETRIES);
+          log.info("Order validation response: {}", responseJson);
 
           if (attempt < MAX_RETRIES - 1) {
             // Wait before retrying
