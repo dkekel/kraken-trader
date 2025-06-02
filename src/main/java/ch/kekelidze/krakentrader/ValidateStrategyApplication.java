@@ -44,7 +44,7 @@ public class ValidateStrategyApplication {
         : LocalDate.of(2000, 1, 1).atStartOfDay(ZoneId.systemDefault());
     ZonedDateTime endDate = args.length > 3
         ? LocalDate.parse(args[3], DateTimeFormatter.ISO_DATE).atStartOfDay(ZoneId.systemDefault())
-        : LocalDate.now().atStartOfDay(ZoneId.systemDefault());
+        : LocalDate.now().plusDays(1).atStartOfDay(ZoneId.systemDefault());
 
     var application = SpringApplication.run(ValidateStrategyApplication.class, args);
     validateWithHistoricalData(application, coins, period, startDate, endDate);
