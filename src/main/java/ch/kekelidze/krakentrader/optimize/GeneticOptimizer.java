@@ -77,14 +77,14 @@ public class GeneticOptimizer implements Optimizer {
         .limit(MAX_GENERATIONS)
         .peek(evolutionResult -> {
           statistics.accept(evolutionResult);
-          log.debug("Statistics: {}", statistics);
+          log.debug("Statistics for {}: {}", coinPair, statistics);
         })
         .collect(EvolutionResult.toBestPhenotype());
 
     Genotype<IntegerGene> genotype = best.genotype();
     StrategyParameters optimalParams = codec.decode(genotype);
-    log.debug("Optimal parameters found: {}", optimalParams);
-    log.debug("Best fitness: {}", best.fitness());
+    log.debug("Optimal parameters found for {}: {}", coinPair, optimalParams);
+    log.debug("Best fitness for {}: {}", coinPair, best.fitness());
 
     return optimalParams;
   }
@@ -188,12 +188,12 @@ public class GeneticOptimizer implements Optimizer {
         worstFitness = Math.min(worstFitness, regimeFitness);
         totalFitness += regimeFitness;
 
-        log.debug("Regime {} fitness: {}",
+        log.trace("Regime {} fitness for {}: {}",
+            coinPair,
             evaluationContext.getMetadata().getOrDefault("regimeType", "unknown"),
             regimeFitness);
       } catch (Exception e) {
-        log.error("Error in fitness evaluation for regime {}: {}",
-            evaluationContext.getSymbol(), e.getMessage());
+        log.error("Error in fitness evaluation for regime {}: {}", coinPair, e.getMessage());
         return -100.0; // Penalty for failed evaluations
       }
     }
@@ -203,8 +203,8 @@ public class GeneticOptimizer implements Optimizer {
     double averageFitness = totalFitness / regimeContexts.size();
     double combinedFitness = (averageFitness * 0.6) + (worstFitness * 0.4);
 
-    log.debug("Parameters fitness summary - Average: {}, Worst: {}, Combined: {}",
-        averageFitness, worstFitness, combinedFitness);
+    log.trace("Parameters fitness summary for {} - Average: {}, Worst: {}, Combined: {}",
+        coinPair, averageFitness, worstFitness, combinedFitness);
 
     return combinedFitness;
   }
@@ -219,7 +219,7 @@ public class GeneticOptimizer implements Optimizer {
       // Calculate fitness for this period
       double fitness = calculateFitness(result);
 
-      log.debug("Single-period fitness: {}", fitness);
+      log.trace("Single-period fitness for {}: {}", coinPair, fitness);
 
       return fitness;
     } catch (Exception e) {
