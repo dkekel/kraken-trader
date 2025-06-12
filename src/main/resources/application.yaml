@@ -44,29 +44,29 @@ paper:
 logging:
   level:
     ch.kekelidze.krakentrader.indicator.AdxIndicator: INFO
-    ch.kekelidze.krakentrader.indicator.MovingAverageIndicator: debug
-    ch.kekelidze.krakentrader.indicator.SimpleMovingAverageDivergenceIndicator: debug
+    ch.kekelidze.krakentrader.indicator.MovingAverageIndicator: info
+    ch.kekelidze.krakentrader.indicator.SimpleMovingAverageDivergenceIndicator: info
     ch.kekelidze.krakentrader.indicator.MovingAverageDivergenceCrossOverIndicator: info
     ch.kekelidze.krakentrader.indicator.MFIIndicator: info
     ch.kekelidze.krakentrader.indicator.PricePredictionIndicator: INFO
-    ch.kekelidze.krakentrader.indicator.VolumeIndicator: debug
+    ch.kekelidze.krakentrader.indicator.VolumeIndicator: info
     ch.kekelidze.krakentrader.indicator.RsiIndicator: info
-    ch.kekelidze.krakentrader.indicator.RsiRangeIndicator: debug
-    ch.kekelidze.krakentrader.indicator.RiskManagementIndicator: debug
+    ch.kekelidze.krakentrader.indicator.RsiRangeIndicator: info
+    ch.kekelidze.krakentrader.indicator.RiskManagementIndicator: info
     ch.kekelidze.krakentrader.indicator.MovingTrendIndicator: info
-    ch.kekelidze.krakentrader.indicator.VolatilityIndicator: debug
+    ch.kekelidze.krakentrader.indicator.VolatilityIndicator: info
 
     ch.kekelidze.krakentrader.indicator.analyser.SupportResistanceAnalyser: info
     ch.kekelidze.krakentrader.indicator.analyser.VolatilityAnalyser: info
     ch.kekelidze.krakentrader.indicator.analyser.BollingerContractionAnalyser: info
-    ch.kekelidze.krakentrader.indicator.analyser.TrendAnalyser: debug
+    ch.kekelidze.krakentrader.indicator.analyser.TrendAnalyser: info
 
     ch.kekelidze.krakentrader.strategy.PricePredictionStrategy: INFO
     ch.kekelidze.krakentrader.strategy.MovingAverageScalper: info
     ch.kekelidze.krakentrader.strategy.MultiIndexMomentumStrategy: info
     ch.kekelidze.krakentrader.strategy.MultiTimeFrameLowHighStrategy: info
     ch.kekelidze.krakentrader.strategy.ConsolidationStrategy: info
-    ch.kekelidze.krakentrader.strategy.BuyLowSellHighStrategy: debug
+    ch.kekelidze.krakentrader.strategy.BuyLowSellHighStrategy: info
 
     ch.kekelidze.krakentrader.optimize.GeneticOptimizer: info
     ch.kekelidze.krakentrader.optimize.MultiStrategyOptimizer: info
@@ -75,12 +75,36 @@ logging:
 
     ch.kekelidze.krakentrader.backtester.service.BackTesterService: info
     ch.kekelidze.krakentrader.api.websocket.KrakenWebSocketClient: info
-    ch.kekelidze.krakentrader.api.websocket.service.KrakenWebSocketService: debug
+    ch.kekelidze.krakentrader.api.websocket.service.KrakenWebSocketService: info
 
-    ch.kekelidze.krakentrader.trade.service.TradeService: debug
-    ch.kekelidze.krakentrader.api.rest.service.PaperTradeKrakenApiService: debug
+    ch.kekelidze.krakentrader.trade.service.TradeService: info
+    ch.kekelidze.krakentrader.api.rest.service.PaperTradeKrakenApiService: info
 
   file:
     name: logs/kraken-trader.log
   pattern:
     file: "%d{yyyy-MM-dd HH:mm:ss, Europe/Zurich} [%t] %-5level %logger{36} - %msg%n"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: real-trading
+logging:
+  level:
+    ch.kekelidze.krakentrader.indicator.MovingAverageIndicator: debug
+    ch.kekelidze.krakentrader.indicator.SimpleMovingAverageDivergenceIndicator: debug
+    ch.kekelidze.krakentrader.indicator.VolumeIndicator: debug
+    ch.kekelidze.krakentrader.indicator.RsiRangeIndicator: debug
+    ch.kekelidze.krakentrader.indicator.RiskManagementIndicator: debug
+    ch.kekelidze.krakentrader.indicator.MovingTrendIndicator: debug
+    ch.kekelidze.krakentrader.indicator.VolatilityIndicator: debug
+
+    ch.kekelidze.krakentrader.indicator.analyser.TrendAnalyser: debug
+
+    ch.kekelidze.krakentrader.strategy.BuyLowSellHighStrategy: debug
+
+    ch.kekelidze.krakentrader.api.websocket.service.KrakenWebSocketService: debug
+    ch.kekelidze.krakentrader.api.rest.service.KrakenApiService: debug
+
+    ch.kekelidze.krakentrader.trade.service.TradeService: debug
