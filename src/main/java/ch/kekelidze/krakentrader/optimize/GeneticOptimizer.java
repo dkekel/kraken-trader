@@ -21,42 +21,44 @@ import io.jenetics.engine.Engine;
 import io.jenetics.engine.EvolutionResult;
 import io.jenetics.engine.EvolutionStatistics;
 import io.jenetics.stat.DoubleMomentStatistics;
-import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.ta4j.core.Bar;
 
 @Slf4j
 @Component("genericOptimizer")
 public class GeneticOptimizer implements Optimizer {
 
-  private static final double initialBalance = 1000;
   private static final int STEADY_FITNESS_GENERATIONS = 10;
   private static final int MAX_GENERATIONS = 20;
 
-  private static List<Bar> historicalData;
+  @Value("${optimization.use-multi-regime:false}")
+  private boolean useMultiRegime;
 
-  protected static BackTesterService backTesterService;
-  protected static DataMassageService dataMassageService;
+  @Value("${paper.trading.initial.balance:1000}")
+  private double initialBalance;
+
+  protected BackTesterService backTesterService;
+  protected DataMassageService dataMassageService;
 
   public GeneticOptimizer(BackTesterService backTesterService,
       DataMassageService dataMassageService) {
-    GeneticOptimizer.backTesterService = backTesterService;
-    GeneticOptimizer.dataMassageService = dataMassageService;
+    this.backTesterService = backTesterService;
+    this.dataMassageService = dataMassageService;
   }
 
   @Override
   public StrategyParameters optimizeParameters(EvaluationContext context) {
-    historicalData = new ArrayList<>(context.getBars());
     String coinPair = context.getSymbol();
 
     log.debug("Starting genetic optimization for {}", coinPair);
+    log.debug("Using multi-regime optimization: {}", useMultiRegime);
 
     Codec<StrategyParameters, IntegerGene> codec = createParameterCodec();
 
     Engine<IntegerGene, Double> engine = Engine.builder(
-            genotype -> fitness(context.getSymbol(), context.getPeriod(), genotype), codec)
+            genotype -> fitness(context, genotype), codec)
         .populationSize(50)
         .optimize(Optimize.MAXIMUM)
         .offspringSelector(new TournamentSelector<>(5))
@@ -153,7 +155,19 @@ public class GeneticOptimizer implements Optimizer {
   }
 
   // Fitness function (Sharpe Ratio)
-  private static Double fitness(String coinPair, int period, StrategyParameters params) {
+  private Double fitness(EvaluationContext context, StrategyParameters params) {
+    if (useMultiRegime) {
+      return multiRegimeFitness(context, params);
+    } else {
+      return singlePeriodFitness(context, params);
+    }
+  }
+
+  // Multi-regime fitness evaluation
+  private Double multiRegimeFitness(EvaluationContext context, StrategyParameters params) {
+    var coinPair = context.getSymbol();
+    var period = context.getPeriod();
+    var historicalData = context.getBars();
     List<EvaluationContext> regimeContexts = dataMassageService.createMultiRegimeContexts(coinPair,
         period, historicalData);
 
@@ -161,10 +175,11 @@ public class GeneticOptimizer implements Optimizer {
     double totalFitness = 0;
     double worstFitness = Double.MAX_VALUE;
 
-    for (EvaluationContext context : regimeContexts) {
+    for (EvaluationContext evaluationContext : regimeContexts) {
       try {
         // Run simulation for this regime
-        BacktestResult result = backTesterService.runSimulation(context, params, initialBalance);
+        BacktestResult result = backTesterService.runSimulation(evaluationContext, params,
+            initialBalance);
 
         // Calculate fitness for this regime
         double regimeFitness = calculateFitness(result);
@@ -174,11 +189,11 @@ public class GeneticOptimizer implements Optimizer {
         totalFitness += regimeFitness;
 
         log.debug("Regime {} fitness: {}",
-            context.getMetadata().getOrDefault("regimeType", "unknown"),
+            evaluationContext.getMetadata().getOrDefault("regimeType", "unknown"),
             regimeFitness);
       } catch (Exception e) {
         log.error("Error in fitness evaluation for regime {}: {}",
-            context.getSymbol(), e.getMessage());
+            evaluationContext.getSymbol(), e.getMessage());
         return -100.0; // Penalty for failed evaluations
       }
     }
@@ -194,7 +209,26 @@ public class GeneticOptimizer implements Optimizer {
     return combinedFitness;
   }
 
-  private static double calculateFitness(BacktestResult result) {
+  // Single-period fitness evaluation
+  private Double singlePeriodFitness(EvaluationContext context, StrategyParameters params) {
+    var coinPair = context.getSymbol();
+    try {
+      // Run simulation for the entire period
+      BacktestResult result = backTesterService.runSimulation(context, params, initialBalance);
+
+      // Calculate fitness for this period
+      double fitness = calculateFitness(result);
+
+      log.debug("Single-period fitness: {}", fitness);
+
+      return fitness;
+    } catch (Exception e) {
+      log.error("Error in fitness evaluation for {}: {}", coinPair, e.getMessage());
+      return -100.0; // Penalty for failed evaluations
+    }
+  }
+
+  private double calculateFitness(BacktestResult result) {
     // Sharpe ratio is a good base metric
     double fitness = result.sharpeRatio();
 
@@ -208,5 +242,4 @@ public class GeneticOptimizer implements Optimizer {
 
     return fitness;
   }
-
 }

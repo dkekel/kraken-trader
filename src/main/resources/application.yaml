@@ -11,11 +11,13 @@ spring:
     # To use real trading, run with --spring.profiles.active=real-trading
     # To use live market data, run with --spring.profiles.active=live-data
     # To use CSV file data, run with --spring.profiles.active=csv-data
+    # To use multi-regime optimization, run with --spring.profiles.active=multi-regime-optimization
     # Default is simulation-mode (paper trading with CSV data)
     default: simulation-mode
     group:
       simulation-mode: paper-trading,csv-data
       trading-mode: real-trading,live-data
+      multi-regime-optimization: paper-trading,csv-data
   datasource:
     url: jdbc:h2:file:./data/db/kraken-trader;DB_CLOSE_ON_EXIT=FALSE
     username: sa
@@ -40,7 +42,22 @@ kraken:
 paper:
   trading:
     initial:
-      balance: 10000  # Initial paper trading balance in USD
+      balance: 1000  # Initial paper trading balance in USD
+
+# Optimization configuration
+optimization:
+  use-multi-regime: false  # Set to true to use multi-regime optimization
+
+# Profile-specific configurations
+---
+spring:
+  config:
+    activate:
+      on-profile: multi-regime-optimization
+optimization:
+  use-multi-regime: true  # Enable multi-regime optimization for this profile
+
+---
 logging:
   level:
     ch.kekelidze.krakentrader.indicator.AdxIndicator: INFO
@@ -68,12 +85,12 @@ logging:
     ch.kekelidze.krakentrader.strategy.ConsolidationStrategy: info
     ch.kekelidze.krakentrader.strategy.BuyLowSellHighStrategy: info
 
-    ch.kekelidze.krakentrader.optimize.GeneticOptimizer: info
+    ch.kekelidze.krakentrader.optimize.GeneticOptimizer: debug
     ch.kekelidze.krakentrader.optimize.MultiStrategyOptimizer: info
 
     ch.kekelidze.krakentrader.api.rest.service.KrakenAveragePriceService: info
 
-    ch.kekelidze.krakentrader.backtester.service.BackTesterService: debug
+    ch.kekelidze.krakentrader.backtester.service.BackTesterService: info
     ch.kekelidze.krakentrader.api.websocket.KrakenWebSocketClient: info
     ch.kekelidze.krakentrader.api.websocket.service.KrakenWebSocketService: info
 
