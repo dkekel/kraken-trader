@@ -229,17 +229,28 @@ public class GeneticOptimizer implements Optimizer {
   }
 
   private double calculateFitness(BacktestResult result) {
-    // Sharpe ratio is a good base metric
-    double fitness = result.sharpeRatio();
+    double sharpeRatio = result.sharpeRatio();
+    double winRate = result.winRate();
 
-    // Penalize strategies with very low win rates
-    if (result.winRate() < 0.3) {
-      fitness *= 0.5;
+    // Handle negative Sharpe ratios differently
+    if (sharpeRatio < 0) {
+      // For negative Sharpe, we want to minimize the negative impact
+      // A higher win rate should result in a less negative fitness score
+      if (winRate < 0.3) {
+        // A very low win rate makes it even worse
+        return sharpeRatio * 1.5; // More negative
+      } else {
+        // The penalty is reduced as the win rate increases, starting from the 0.3 threshold.
+        // (1.8 - winRate) ensures continuity at winRate = 0.3 (1.8 - 0.3 = 1.5)
+        return sharpeRatio * (1.8 - winRate); // Less negative as the win rate increases
+      }
     } else {
-      // Otherwise reward higher win rates
-      fitness *= (1 + result.winRate());
+      // For positive Sharpe ratios, keep the original logic
+      if (winRate < 0.3) {
+        return sharpeRatio * 0.5;
+      } else {
+        return sharpeRatio * (1 + winRate);
+      }
     }
-
-    return fitness;
   }
 }
