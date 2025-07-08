@@ -101,3 +101,27 @@ logging:
     name: logs/kraken-trader.log
   pattern:
     file: "%d{yyyy-MM-dd HH:mm:ss, Europe/Zurich} [%t] %-5level %logger{36} - %msg%n"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: real-trading
+logging:
+  level:
+    ch.kekelidze.krakentrader.indicator.MovingAverageIndicator: debug
+    ch.kekelidze.krakentrader.indicator.SimpleMovingAverageDivergenceIndicator: debug
+    ch.kekelidze.krakentrader.indicator.VolumeIndicator: debug
+    ch.kekelidze.krakentrader.indicator.RsiRangeIndicator: debug
+    ch.kekelidze.krakentrader.indicator.RiskManagementIndicator: debug
+    ch.kekelidze.krakentrader.indicator.MovingTrendIndicator: debug
+    ch.kekelidze.krakentrader.indicator.VolatilityIndicator: debug
+
+    ch.kekelidze.krakentrader.indicator.analyser.TrendAnalyser: debug
+
+    ch.kekelidze.krakentrader.strategy.BuyLowSellHighStrategy: debug
+
+    ch.kekelidze.krakentrader.api.websocket.service.KrakenWebSocketService: debug
+    ch.kekelidze.krakentrader.api.rest.service.KrakenApiService: debug
+
+    ch.kekelidze.krakentrader.trade.service.TradeService: debug

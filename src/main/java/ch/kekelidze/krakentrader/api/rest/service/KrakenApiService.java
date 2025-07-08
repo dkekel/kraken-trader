@@ -226,8 +226,8 @@ public class KrakenApiService implements TradingApiService {
         JSONObject responseJson = new JSONObject(response.body());
 
         if (responseJson.has("error") && !responseJson.getJSONArray("error").isEmpty()) {
-          throw new RuntimeException("Kraken API error: "
-              + responseJson.getJSONArray("error").toString());
+          log.error("Kraken API error: {}", responseJson.getJSONArray("error").toString());
+          return createFallbackOrderResult(orderId, coin, amount);
         }
 
         JSONObject result = responseJson.getJSONObject("result");
@@ -239,6 +239,13 @@ public class KrakenApiService implements TradingApiService {
           double fee = order.getDouble("fee");
           double price = order.getDouble("price");
           double volume = order.getDouble("vol_exec");
+
+          // Validate the returned data - if any values are zero/invalid, use fallback
+          if (!isValidOrderData(fee, price, volume)) {
+            log.warn("Received invalid order data for {}: fee={}, price={}, volume={}.",
+                orderId, fee, price, volume);
+            return createFallbackOrderResult(orderId, coin, amount);
+          }
 
           return new OrderResult(orderId, fee, price, volume);
         } else {
@@ -272,10 +279,30 @@ public class KrakenApiService implements TradingApiService {
             "Returning basic order information to prevent reordering.",
         MAX_RETRIES);
 
-    // Fall back to estimated values
-    double estimatedPrice = getCurrentPrice(coin);
-    return new OrderResult(orderId, FALLBACK_FEE_RATE, estimatedPrice, amount);
+    return createFallbackOrderResult(orderId, coin, amount);
   }
+
+  /**
+   * Validates if order result data is valid (non-zero values)
+   */
+  private boolean isValidOrderData(double fee, double price, double volume) {
+    return fee > 0 && price > 0 && volume > 0;
+  }
+
+  /**
+   * Creates fallback order result with estimated values
+   */
+  private OrderResult createFallbackOrderResult(String orderId, String coin, double amount)
+      throws Exception {
+    double estimatedPrice = getCurrentPrice(coin);
+    double estimatedFee = amount * estimatedPrice * (FALLBACK_FEE_RATE / 100);
+
+    log.warn("Using fallback order details for {}: price={}, fee={}, volume={}",
+        orderId, estimatedPrice, estimatedFee, amount);
+
+    return new OrderResult(orderId, estimatedFee, estimatedPrice, amount);
+  }
+
 
   /**
    * Gets the current market price for a coin pair

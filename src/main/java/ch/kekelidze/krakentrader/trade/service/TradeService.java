@@ -91,8 +91,7 @@ public class TradeService {
         tradeState.setInTrade(true);
 
         // Calculate entry price including fees
-        var executedPrice =
-            orderResult.executedPrice() == 0 ? currentPrice : orderResult.executedPrice();
+        var executedPrice = orderResult.executedPrice();
         double totalCost = executedPrice * orderResult.volume() + orderResult.fee();
         double entryPriceWithFees = totalCost / orderResult.volume();
         tradeState.setEntryPrice(entryPriceWithFees);
