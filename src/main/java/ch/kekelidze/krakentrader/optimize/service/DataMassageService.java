@@ -7,9 +7,13 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -128,7 +132,154 @@ public class DataMassageService {
       regimeContexts = createTimeBasedSegments(coinPair, period, data, MIN_REGIME_LENGTH);
     }
 
+    // Check if all regime types are represented
+    ensureAllRegimeTypesAreRepresented(coinPair, period, data, regimeContexts, uuid);
+
     return regimeContexts;
+  }
+
+  /**
+   * Ensures that all possible market regime types are represented in the list of contexts.
+   * If any regime type is missing, creates a synthetic context for that regime type.
+   */
+  private void ensureAllRegimeTypesAreRepresented(String coinPair, int period, List<Bar> data,
+      List<EvaluationContext> regimeContexts, UUID uuid) {
+
+    // Check which regime types are already represented
+    Set<RegimeType> representedRegimes = regimeContexts.stream()
+        .map(context -> {
+          String regimeTypeStr = context.getMetadata().getOrDefault("regimeType", "");
+          try {
+            return RegimeType.valueOf(regimeTypeStr);
+          } catch (IllegalArgumentException e) {
+            return null;
+          }
+        })
+        .filter(Objects::nonNull)
+        .collect(Collectors.toSet());
+
+    // Get all possible regime types
+    Set<RegimeType> allRegimeTypes = new HashSet<>(Arrays.asList(RegimeType.values()));
+
+    // Find missing regime types
+    Set<RegimeType> missingRegimeTypes = new HashSet<>(allRegimeTypes);
+    missingRegimeTypes.removeAll(representedRegimes);
+
+    if (!missingRegimeTypes.isEmpty()) {
+      log.info("Missing regime types: {}. Creating synthetic contexts for them.", missingRegimeTypes);
+
+      // Create synthetic contexts for missing regime types
+      for (RegimeType missingRegimeType : missingRegimeTypes) {
+        // Find the most suitable data segment for this regime type
+        List<Bar> suitableData = findSuitableDataForRegime(data, missingRegimeType);
+
+        if (suitableData.isEmpty()) {
+          log.warn("Could not find suitable data for regime type: {}. Using a subset of the original data.", missingRegimeType);
+          // Use a subset of the original data if no suitable data is found
+          int startIdx = data.size() / 3;  // Use the middle third of the data
+          int endIdx = Math.min(startIdx + MIN_REGIME_LENGTH, data.size());
+          suitableData = data.subList(startIdx, endIdx);
+        }
+
+        // Calculate statistics for metadata
+        double volatility = calculateAverageVolatility(suitableData);
+        double avgPrice = calculateAveragePrice(suitableData);
+
+        // Create a context for this regime type
+        EvaluationContext context = EvaluationContext.builder()
+            .symbol(coinPair + "_" + missingRegimeType.name() + "_synthetic_" + uuid.toString())
+            .period(period)
+            .bars(suitableData)
+            .metadata(Map.of(
+                "regimeType", missingRegimeType.name(),
+                "volatility", String.format("%.2f", volatility),
+                "avgPrice", String.format("%.2f", avgPrice),
+                "startDate", suitableData.getFirst().getEndTime().toString(),
+                "endDate", suitableData.getLast().getEndTime().toString(),
+                "synthetic", "true"
+            ))
+            .build();
+
+        regimeContexts.add(context);
+
+        log.info("Created synthetic regime context: {} with {} bars of type {} from {} to {}",
+            context.getSymbol(),
+            suitableData.size(),
+            missingRegimeType,
+            suitableData.getFirst().getEndTime(),
+            suitableData.getLast().getEndTime());
+      }
+    } else {
+      log.info("All regime types are represented in the contexts.");
+    }
+  }
+
+  /**
+   * Finds a suitable data segment for a specific regime type.
+   * Tries to find a segment that best matches the characteristics of the regime type.
+   */
+  private List<Bar> findSuitableDataForRegime(List<Bar> data, RegimeType regimeType) {
+    // Calculate volatility and trend strength for the entire dataset
+    Map<Integer, Double> volatilityMap = calculateVolatilityForLongPeriods(data);
+    Map<Integer, Double> trendStrengthMap = calculateTrendStrengthForLongPeriods(data);
+
+    // Determine thresholds based on the regime type
+    boolean needsHighVolatility = regimeType.name().startsWith("VOLATILE");
+    boolean needsLowVolatility = regimeType.name().startsWith("CALM");
+    boolean needsUptrend = regimeType.name().contains("UPTREND");
+    boolean needsDowntrend = regimeType.name().contains("DOWNTREND");
+    boolean needsRanging = regimeType.name().contains("RANGING");
+
+    // Find the best matching segment
+    int bestStartIdx = 0;
+    double bestMatch = Double.MIN_VALUE;
+    int windowSize = Math.min(MIN_REGIME_LENGTH, data.size() / 2);
+
+    for (int i = windowSize; i < data.size(); i += windowSize / 4) {
+      double avgVolatility = 0;
+      double avgTrendStrength = 0;
+      int count = 0;
+
+      for (int j = i - windowSize; j < i; j++) {
+        if (volatilityMap.containsKey(j) && trendStrengthMap.containsKey(j)) {
+          avgVolatility += volatilityMap.get(j);
+          avgTrendStrength += trendStrengthMap.get(j);
+          count++;
+        }
+      }
+
+      if (count > 0) {
+        avgVolatility /= count;
+        avgTrendStrength /= count;
+
+        // Calculate how well this segment matches the desired regime type
+        double match = 0;
+
+        // Volatility match
+        if (needsHighVolatility && avgVolatility > 2.0) match += 1;
+        if (needsLowVolatility && avgVolatility < 0.75) match += 1;
+        if (!needsHighVolatility && !needsLowVolatility && avgVolatility >= 0.75 && avgVolatility <= 2.0) match += 1;
+
+        // Trend match
+        if (needsUptrend && avgTrendStrength > 0.15) match += 1;
+        if (needsDowntrend && avgTrendStrength < -0.15) match += 1;
+        if (needsRanging && Math.abs(avgTrendStrength) <= 0.15) match += 1;
+
+        if (match > bestMatch) {
+          bestMatch = match;
+          bestStartIdx = i - windowSize;
+        }
+      }
+    }
+
+    // If we found a good match, return that segment
+    if (bestMatch > 0) {
+      int endIdx = Math.min(bestStartIdx + windowSize, data.size());
+      return data.subList(bestStartIdx, endIdx);
+    }
+
+    // If no good match was found, return an empty list
+    return new ArrayList<>();
   }
 
   /**
