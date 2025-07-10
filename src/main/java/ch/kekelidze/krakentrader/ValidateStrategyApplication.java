@@ -93,10 +93,21 @@ public class ValidateStrategyApplication {
       Map<String, BacktestResult> results) {
     try (var writer = new FileWriter(filePath)) {
       writer.write("# Strategy Results\n\n");
+
+      // Calculate summary statistics
+      double totalNetProfit = 0;
+      int totalTrades = 0;
+      double totalInitialCapital = INITIAL_CAPITAL * results.size();
+
       for (var entry : results.entrySet()) {
         writer.write(String.format("## %s\n", entry.getKey()));
 
         BacktestResult result = entry.getValue();
+
+        double netProfit = result.capital() - INITIAL_CAPITAL;
+        totalNetProfit += netProfit;
+        totalTrades += result.totalTrades();
+
         writer.write(String.format("- Profit: %.2f%%\n", result.totalProfit()));
         writer.write(String.format("- Total Trades: %d\n", result.totalTrades()));
         writer.write(String.format("- Net Profit: %.2f\n", result.capital() - INITIAL_CAPITAL));
@@ -105,6 +116,17 @@ public class ValidateStrategyApplication {
             String.format("- Largest Drawdown: %.2f%%\n", result.maxDrawdown()));
         writer.write(String.format("- Sharpe Ratio: %.2f\n\n", result.sharpeRatio()));
       }
+
+      // Add summary section
+      writer.write("---\n\n");
+
+      writer.write("## Summary\n");
+      writer.write(String.format("- **Total Net Profit**: %.2f\n", totalNetProfit));
+      writer.write(String.format("- **Total Trades**: %d\n", totalTrades));
+      writer.write(String.format("- **Total Initial Capital**: %.2f\n", totalInitialCapital));
+      writer.write(String.format("- **Overall Return**: %.2f%%\n", (totalNetProfit / totalInitialCapital) * 100));
+      writer.write(String.format("- **Number of Coins Traded**: %d\n", results.size()));
+
       writer.flush();
       log.info("Results successfully written to {}", filePath);
     } catch (IOException e) {
