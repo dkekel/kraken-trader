@@ -7,12 +7,15 @@ import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import ch.kekelidze.krakentrader.trade.Portfolio;
+import ch.kekelidze.krakentrader.trade.util.TradingCircuitBreaker;
+import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.ta4j.core.Bar;
 
@@ -23,27 +26,56 @@ public class TradeService {
   private double portfolioAllocation = 1/8d;
 
   private final Map<String, Object> coinPairLocks = new ConcurrentHashMap<>();
+  private final Map<String, Long> lastTradeTimestamps = new ConcurrentHashMap<>();
+
+  @Value("${trading.cooldown.minutes:15}")
+  private int tradeCooldownMinutes;
+
 
   private final AtrAnalyser atrAnalyser;
   private final Portfolio portfolio;
   private final TradeStatePersistenceService tradeStatePersistenceService;
   private final TradingApiService tradingApiService;
+  private final TradingCircuitBreaker circuitBreaker;
   @Getter
   @Setter
   private Strategy strategy;
 
   public TradeService(AtrAnalyser atrAnalyser, Portfolio portfolio,
       TradeStatePersistenceService tradeStatePersistenceService,
-      TradingApiService tradingApiService) {
+      TradingApiService tradingApiService,
+      TradingCircuitBreaker circuitBreaker) {
     this.atrAnalyser = atrAnalyser;
     this.portfolio = portfolio;
     this.tradeStatePersistenceService = tradeStatePersistenceService;
     this.tradingApiService = tradingApiService;
+    this.circuitBreaker = circuitBreaker;
+  }
+
+  @PostConstruct
+  public void logConfiguration() {
+    log.info("Trade cooldown configured to: {} minutes", tradeCooldownMinutes);
+    log.info("Circuit breaker protection enabled");
   }
 
   public void executeStrategy(String coinPair, List<Bar> data) {
     Object lock = coinPairLocks.computeIfAbsent(coinPair, k -> new Object());
     synchronized (lock) {
+      if (!circuitBreaker.canTrade(coinPair)) {
+        var circuitState = circuitBreaker.getDetailedState(coinPair);
+        log.warn(
+            "Trading halted for {} - Circuit breaker {} | Consecutive losses: {} | Total loss: {}%",
+            coinPair,
+            circuitState.getState(),
+            circuitState.getConsecutiveLosses(),
+            String.format("%.2f", circuitState.getTotalLossPercent()));
+        return;
+      }
+
+      if (!canTrade(coinPair)) {
+        log.warn("Skipping strategy execution for {} due to trade cooldown", coinPair);
+        return;
+      }
       executeSelectedStrategy(coinPair, data, strategy.getStrategyParameters(coinPair), strategy);
     }
   }
@@ -78,7 +110,20 @@ public class TradeService {
     var inTrade = tradeState.isInTrade();
 
     try {
-      if (!inTrade && strategy.shouldBuy(evaluationContext, params)) {
+      var buySignal = strategy.shouldBuy(evaluationContext, params);
+      var sellSignal = false;
+      if (inTrade) {
+        sellSignal = strategy.shouldSell(evaluationContext, tradeState.getEntryPrice(), params);
+      }
+
+      if (buySignal && sellSignal) {
+        log.warn(
+            "Conflicting BUY and SELL signals detected for {} - skipping trade to avoid whipsaw",
+            coinPair);
+        return;
+      }
+
+      if (!inTrade && buySignal) {
         // Calculate position size based on allocated capital
         var allocatedCapital = portfolio.getTotalCapital() * portfolioAllocation;
         var positionSize = calculateAdaptivePositionSize(coinPair, data, currentPrice,
@@ -103,15 +148,20 @@ public class TradeService {
         // Update capital (deduct the total cost including fees)
         currentCapital = portfolio.addToTotalCapital(-totalCost);
 
-        log.info("BUY {} {} at: {} (including fees: {}) | Fee: {}", 
+        // Record trade timestamp for cooldown tracking
+        recordTradeTimestamp(coinPair);
+
+        var circuitState = circuitBreaker.getCircuitState(coinPair);
+        log.info(
+            "BUY {} {} at: {} (including fees: {}) | Fee: {} | Circuit: {}",
             coinPair, 
             orderResult.volume(),
             executedPrice,
             entryPriceWithFees,
-            orderResult.fee());
+            orderResult.fee(),
+            circuitState);
 
-      } else if (inTrade && strategy.shouldSell(evaluationContext, tradeState.getEntryPrice(),
-          params)) {
+      } else if (inTrade && sellSignal) {
         // Place market sell order
         OrderResult orderResult = tradingApiService.placeMarketSellOrder(coinPair,
             tradeState.getPositionSize());
@@ -135,13 +185,19 @@ public class TradeService {
         // Update capital (add the proceeds after fees)
         currentCapital = portfolio.addToTotalCapital(totalProceeds);
 
-        log.info("SELL {} {} at: {} | Fee: {} | Proceeds: {} | Profit: {}%", 
+        // Record trade timestamp for cooldown tracking
+        recordTradeTimestamp(coinPair);
+
+        circuitBreaker.recordTradeResult(coinPair, profit);
+        var circuitState = circuitBreaker.getCircuitState(coinPair);
+        log.info("SELL {} {} at: {} | Fee: {} | Proceeds: {} | Profit: {}% | Circuit: {}",
             coinPair, 
             orderResult.volume(),
             executedPrice,
             orderResult.fee(),
             totalProceeds,
-            profit);
+            profit,
+            circuitState);
         log.info("{} total Profit: {}%", coinPair, tradeState.getTotalProfit());
       }
     } catch (Exception e) {
@@ -196,4 +252,44 @@ public class TradeService {
 
     return availableCapital * feeAdjustedCapitalPercentage / entryPrice;
   }
+
+  /**
+   * Checks if trading is allowed for the given coin pair based on cooldown period.
+   * Thread-safe implementation that prevents rapid consecutive trades.
+   *
+   * @param coinPair The coin pair to check
+   * @return true if trading is allowed, false if still in cooldown
+   */
+  private boolean canTrade(String coinPair) {
+    long currentTime = System.currentTimeMillis();
+    Long lastTradeTime = lastTradeTimestamps.get(coinPair);
+
+    if (lastTradeTime == null) {
+      return true;
+    }
+
+    long tradeCooldownMs = tradeCooldownMinutes * 60L * 1000L;
+    long timeSinceLastTrade = currentTime - lastTradeTime;
+    boolean canTrade = timeSinceLastTrade >= tradeCooldownMs;
+
+    if (!canTrade) {
+      long remainingCooldown = tradeCooldownMs - timeSinceLastTrade;
+      log.debug("Trade cooldown active for {}: {} seconds remaining",
+          coinPair, remainingCooldown / 1000);
+    }
+
+    return canTrade;
+  }
+
+  /**
+   * Records the timestamp of a successful trade for cooldown tracking.
+   * Should be called after every successful buy or sell operation.
+   *
+   * @param coinPair The coin pair that was traded
+   */
+  private void recordTradeTimestamp(String coinPair) {
+    lastTradeTimestamps.put(coinPair, System.currentTimeMillis());
+    log.debug("Trade timestamp recorded for {}", coinPair);
+  }
+
 }

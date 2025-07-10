@@ -48,6 +48,15 @@ paper:
 optimization:
   use-multi-regime: false  # Set to true to use multi-regime optimization
 
+trading:
+  cooldown:
+    minutes: 15
+  circuit-breaker:
+    max-consecutive-losses: 3
+    max-loss-percent-in-period: 10.0
+    circuit-open-minutes: 60
+    test-trades-in-half-open: 2
+
 # Profile-specific configurations
 ---
 spring:
@@ -56,6 +65,19 @@ spring:
       on-profile: multi-regime-optimization
 optimization:
   use-multi-regime: true  # Enable multi-regime optimization for this profile
+
+---
+spring:
+  config:
+    activate:
+      on-profile: conservative
+trading:
+  cooldown:
+    minutes: 30
+  circuit-breaker:
+    max-consecutive-losses: 2
+    max-loss-percent-in-period: 5.0
+    circuit-open-minutes: 120
 
 ---
 logging:

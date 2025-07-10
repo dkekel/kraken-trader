@@ -11,6 +11,7 @@ import ch.kekelidze.krakentrader.indicator.Indicator;
 import ch.kekelidze.krakentrader.optimize.config.StrategyConfig;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
+import ch.kekelidze.krakentrader.trade.util.TradingCircuitBreaker;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
@@ -29,7 +30,7 @@ import org.springframework.context.ApplicationContext;
 @SpringBootApplication(
     scanBasePackageClasses = {CsvFileService.class, MarketDataService.class,
         PaperTradeKrakenApiService.class, ResponseConverterUtils.class, BackTesterService.class,
-        StrategyConfig.class, Indicator.class, Strategy.class}
+        StrategyConfig.class, Indicator.class, Strategy.class, TradingCircuitBreaker.class}
 )
 public class ValidateStrategyApplication {
 
