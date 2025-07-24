@@ -7,6 +7,7 @@ import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
 import ch.kekelidze.krakentrader.trade.Portfolio;
+import ch.kekelidze.krakentrader.trade.TradeState;
 import ch.kekelidze.krakentrader.trade.util.TradingCircuitBreaker;
 import jakarta.annotation.PostConstruct;
 import java.util.List;
@@ -202,6 +203,17 @@ public class TradeService {
       }
     } catch (Exception e) {
       log.error("Error executing trade for {}: {}", coinPair, e.getMessage(), e);
+      
+      // Check if this is an "insufficient funds" error during a sell operation
+      if (inTrade && e.getMessage() != null && e.getMessage().contains("Insufficient funds")) {
+        log.info("Detected insufficient funds error for {}. Attempting to resync balance with Kraken.", coinPair);
+        try {
+          resyncCoinBalance(coinPair, tradeState);
+        } catch (Exception resyncError) {
+          log.error("Failed to resync balance for {}: {}", coinPair, resyncError.getMessage(), resyncError);
+        }
+      }
+      
       // If there was an error during buy, make sure we're not left in an inconsistent state
       if (!inTrade && tradeState.isInTrade()) {
         tradeState.setInTrade(false);
@@ -292,4 +304,41 @@ public class TradeService {
     log.debug("Trade timestamp recorded for {}", coinPair);
   }
 
+  /**
+   * Resyncs the coin balance with Kraken API to ensure the TradeState has the correct position size.
+   * This is called when an "insufficient funds" error occurs during a sell operation.
+   *
+   * @param coinPair   The coin pair (e.g., "PEPE/USD")
+   * @param tradeState The current trade state for the coin pair
+   * @throws Exception If there's an error fetching the balance from Kraken
+   */
+  private void resyncCoinBalance(String coinPair, TradeState tradeState) throws Exception {
+    // Extract the base asset from the coin pair (e.g., "PEPE" from "PEPE/USD")
+    String baseAsset = coinPair.split("/")[0];
+    log.info("Resyncing balance for {} (base asset: {})", coinPair, baseAsset);
+    
+    // Get the actual balance from Kraken
+    try {
+      Double actualBalance = tradingApiService.getAssetBalance(baseAsset);
+      log.info("Actual balance from Kraken for {}: {}", baseAsset, actualBalance);
+      
+      // Update the trade state with the correct position size
+      double oldPositionSize = tradeState.getPositionSize();
+      tradeState.setPositionSize(actualBalance.doubleValue());
+      tradeStatePersistenceService.saveTradeState(tradeState);
+      
+      log.info("Updated position size for {} from {} to {}", 
+          coinPair, oldPositionSize, actualBalance);
+      
+      // If the actual balance is zero or very small, we might need to reset the trade state
+      if (actualBalance < 0.000001) {
+        log.warn("Balance for {} is effectively zero. Resetting trade state.", coinPair);
+        tradeState.setInTrade(false);
+        tradeStatePersistenceService.saveTradeState(tradeState);
+      }
+    } catch (Exception e) {
+      log.error("Error fetching balance from Kraken for {}: {}", baseAsset, e.getMessage());
+      throw e;
+    }
+  }
 }
