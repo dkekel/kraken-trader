@@ -49,6 +49,8 @@ optimization:
   use-multi-regime: false  # Set to true to use multi-regime optimization
 
 trading:
+  resync:
+    minutes: 30
   cooldown:
     minutes: 15
   circuit-breaker:

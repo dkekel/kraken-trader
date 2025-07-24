@@ -3,6 +3,7 @@ package ch.kekelidze.krakentrader.api.rest.service;
 import ch.kekelidze.krakentrader.api.HistoricalDataService;
 import ch.kekelidze.krakentrader.api.dto.OrderResult;
 import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
+import ch.kekelidze.krakentrader.trade.TradeOperationType;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -135,7 +136,7 @@ public class KrakenApiService implements TradingApiService {
    */
   @Override
   public OrderResult placeMarketBuyOrder(String coin, double amount) throws Exception {
-    return placeMarketOrder(coin, amount, "buy");
+    return placeMarketOrder(coin, amount, TradeOperationType.BUY);
   }
 
   /**
@@ -148,7 +149,7 @@ public class KrakenApiService implements TradingApiService {
    */
   @Override
   public OrderResult placeMarketSellOrder(String coin, double amount) throws Exception {
-    return placeMarketOrder(coin, amount, "sell");
+    return placeMarketOrder(coin, amount, TradeOperationType.SELL);
   }
 
   /**
@@ -156,14 +157,14 @@ public class KrakenApiService implements TradingApiService {
    * 
    * @param coin the trading pair (e.g., "XBTUSD")
    * @param amount the amount to trade
-   * @param type the order type ("buy" or "sell")
+   * @param operationType the order type (BUY or SELL)
    * @return OrderResult containing order details including fees
    * @throws Exception if the API call fails
    */
-  private OrderResult placeMarketOrder(String coin, double amount, String type) throws Exception {
+  private OrderResult placeMarketOrder(String coin, double amount, TradeOperationType operationType) throws Exception {
     String nonce = String.valueOf(System.currentTimeMillis());
     String postData =
-        "nonce=" + nonce + "&ordertype=market&pair=" + coin + "&type=" + type + "&volume=" + amount;
+        "nonce=" + nonce + "&ordertype=market&pair=" + coin + "&type=" + operationType.toLowerCase() + "&volume=" + amount;
 
     var path = "/0/private/AddOrder";
     var signature = getApiSignature(path, nonce, postData);
