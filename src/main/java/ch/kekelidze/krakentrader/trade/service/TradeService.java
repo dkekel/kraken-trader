@@ -204,13 +204,24 @@ public class TradeService {
     } catch (Exception e) {
       log.error("Error executing trade for {}: {}", coinPair, e.getMessage(), e);
       
-      // Check if this is an "insufficient funds" error during a sell operation
-      if (inTrade && e.getMessage() != null && e.getMessage().contains("Insufficient funds")) {
-        log.info("Detected insufficient funds error for {}. Attempting to resync balance with Kraken.", coinPair);
-        try {
-          resyncCoinBalance(coinPair, tradeState);
-        } catch (Exception resyncError) {
-          log.error("Failed to resync balance for {}: {}", coinPair, resyncError.getMessage(), resyncError);
+      // Check if this is an "insufficient funds" error
+      if (e.getMessage() != null && e.getMessage().contains("Insufficient funds")) {
+        if (inTrade) {
+          // Handle insufficient funds during sell operation (base asset)
+          log.info("Detected insufficient funds error during SELL for {}. Attempting to resync coin balance with Kraken.", coinPair);
+          try {
+            resyncCoinBalance(coinPair, tradeState);
+          } catch (Exception resyncError) {
+            log.error("Failed to resync coin balance for {}: {}", coinPair, resyncError.getMessage(), resyncError);
+          }
+        } else {
+          // Handle insufficient funds during buy operation (quote asset - USD)
+          log.info("Detected insufficient funds error during BUY for {}. Attempting to resync USD balance with Kraken.", coinPair);
+          try {
+            resyncQuoteAssetBalance(coinPair);
+          } catch (Exception resyncError) {
+            log.error("Failed to resync USD balance for {}: {}", coinPair, resyncError.getMessage(), resyncError);
+          }
         }
       }
       
@@ -338,6 +349,34 @@ public class TradeService {
       }
     } catch (Exception e) {
       log.error("Error fetching balance from Kraken for {}: {}", baseAsset, e.getMessage());
+      throw e;
+    }
+  }
+  
+  /**
+   * Resyncs the quote asset (USD) balance with Kraken API to ensure the Portfolio has the correct total capital.
+   * This is called when an "insufficient funds" error occurs during a buy operation.
+   *
+   * @param coinPair The coin pair (e.g., "PEPE/USD")
+   * @throws Exception If there's an error fetching the balance from Kraken
+   */
+  private void resyncQuoteAssetBalance(String coinPair) throws Exception {
+    // Extract the quote asset from the coin pair (e.g., "USD" from "PEPE/USD")
+    String quoteAsset = coinPair.split("/")[1];
+    log.info("Resyncing balance for {} (quote asset: {})", coinPair, quoteAsset);
+    
+    // Get the actual balance from Kraken
+    try {
+      Double actualBalance = tradingApiService.getAssetBalance(quoteAsset);
+      log.info("Actual balance from Kraken for {}: {}", quoteAsset, actualBalance);
+      
+      // Update the portfolio's total capital with the correct balance
+      double oldCapital = portfolio.getTotalCapital();
+      portfolio.setTotalCapital(actualBalance.doubleValue());
+      
+      log.info("Updated total capital from {} to {}", oldCapital, actualBalance);
+    } catch (Exception e) {
+      log.error("Error fetching balance from Kraken for {}: {}", quoteAsset, e.getMessage());
       throw e;
     }
   }
