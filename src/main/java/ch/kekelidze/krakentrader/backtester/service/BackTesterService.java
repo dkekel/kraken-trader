@@ -7,10 +7,13 @@ import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 import ch.kekelidze.krakentrader.optimize.util.StrategySelector;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.strategy.dto.EvaluationContext;
+import ch.kekelidze.krakentrader.trade.util.TradingCircuitBreaker;
+import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.ta4j.core.Bar;
 
@@ -23,6 +26,21 @@ public class BackTesterService {
 
   private final StrategySelector strategySelector;
   private final AtrAnalyser atrAnalyser;
+  private final TradingCircuitBreaker circuitBreaker;
+
+  @Value("${trading.cooldown.minutes:15}")
+  private int tradeCooldownMinutes;
+
+  @Value("${backtesting.trading-fee:0.0026}")
+  private double simulatedTradingFee;
+
+  @PostConstruct
+  public void logConfiguration() {
+    log.info("BackTester Configuration:");
+    log.info("  - Trade cooldown: {} minutes", tradeCooldownMinutes);
+    log.info("  - Simulated trading fee: {}%", simulatedTradingFee * 100);
+    log.info("  - Circuit breaker protection enabled");
+  }
 
   public BacktestResult runSimulation(EvaluationContext context, double initialCapital) {
     var coin = context.getSymbol();
@@ -51,35 +69,73 @@ public class BackTesterService {
     int trades = 0;
     double entryPrice = 0;
     double positionSize = 0;
+    long lastTradeTimestamp = 0;
+
+    String coinPair = context.getSymbol();
 
     // For drawdown calculation
     List<Double> equityCurve = new ArrayList<>();
-    log.debug("{} optimized parameters: {}", context.getSymbol(), params);
+    log.debug("{} optimized parameters: {}", coinPair, params);
     var adjustedParameters = TimeFrameAdjustmentUtils.adjustTimeFrame(params, context.getPeriod());
-    log.debug("{} adjusted parameters: {}", context.getSymbol(), adjustedParameters);
+    log.debug("{} adjusted parameters: {}", coinPair, adjustedParameters);
 
     var data = context.getBars();
     var minBars = adjustedParameters.minimumCandles();
     for (int i = minBars; i < data.size(); i++) {
+      long currentSimulatedTime = data.get(i).getEndTime().toInstant().toEpochMilli();
+      if (!circuitBreaker.canTrade(coinPair)) {
+        var circuitState = circuitBreaker.getDetailedState(coinPair);
+        log.debug(
+            "Trading halted for {} - Circuit breaker {} | Consecutive losses: {} | Total loss: {}%",
+            coinPair,
+            circuitState.getState(),
+            circuitState.getConsecutiveLosses(),
+            String.format("%.2f", circuitState.getTotalLossPercent()));
+
+        // Update equity curve even when not trading
+        updateEquityCurve(equityCurve, currentCapital, inPosition, positionSize, data.get(i));
+        continue;
+      }
+
+      if (!canTradeBasedOnCooldown(lastTradeTimestamp, currentSimulatedTime)) {
+        log.debug("Skipping trade for {} due to cooldown", coinPair);
+        updateEquityCurve(equityCurve, currentCapital, inPosition, positionSize, data.get(i));
+        continue;
+      }
+
       // Calculate indicators
       List<Bar> sublist = data.subList(i - minBars, i);
 
       // Current price for equity calculation
       double currentPrice = data.get(i).getClosePrice().doubleValue();
 
-      var evaluationContext = EvaluationContext.builder().symbol(context.getSymbol()).bars(sublist)
+      var evaluationContext = EvaluationContext.builder().symbol(coinPair).bars(sublist)
           .build();
+
+      var buySignal = strategy.shouldBuy(evaluationContext, adjustedParameters);
+      var sellSignal = false;
+      if (inPosition) {
+        sellSignal = strategy.shouldSell(evaluationContext, entryPrice, adjustedParameters);
+      }
+
+      if (buySignal && sellSignal) {
+        log.debug(
+            "Conflicting BUY and SELL signals detected for {} - skipping trade to avoid whipsaw",
+            coinPair);
+        updateEquityCurve(equityCurve, currentCapital, inPosition, positionSize, data.get(i));
+        continue;
+      }
+
       // Execute strategy logic
-      if (!inPosition && strategy.shouldBuy(evaluationContext, adjustedParameters)) {
+      if (!inPosition && buySignal) {
         trades++;
         entryPrice = currentPrice;
         inPosition = true;
-        positionSize = calculateAdaptivePositionSize(sublist, entryPrice, currentCapital,
+        positionSize = calculateAdaptivePositionSize(coinPair, sublist, entryPrice, currentCapital,
             adjustedParameters);
         currentCapital -= positionSize * entryPrice;
         log.debug("BUY {} at: {} on {}", positionSize, entryPrice, data.get(i).getEndTime());
-      } else if (inPosition && (strategy.shouldSell(evaluationContext, entryPrice,
-          adjustedParameters) || i == data.size() - 1)) {
+      } else if (inPosition && (sellSignal || i == data.size() - 1)) {
         trades++;
         inPosition = false;
         double profit = (currentPrice - entryPrice) / entryPrice * 100;
@@ -120,6 +176,35 @@ public class BackTesterService {
   }
 
   /**
+   * Simulates cooldown checking - aligned with TradeService logic
+   */
+  private boolean canTradeBasedOnCooldown(long lastTradeTimestamp, long currentTimestamp) {
+    if (lastTradeTimestamp == 0) {
+      return true;
+    }
+
+    long tradeCooldownMs = tradeCooldownMinutes * 60L * 1000L;
+    long timeSinceLastTrade = currentTimestamp - lastTradeTimestamp;
+    return timeSinceLastTrade >= tradeCooldownMs;
+  }
+
+  /**
+   * Updates equity curve - handles both in-position and out-of-position scenarios
+   */
+  private void updateEquityCurve(List<Double> equityCurve, double currentCapital,
+      boolean inPosition, double positionSize, Bar currentBar) {
+    if (inPosition) {
+      // If in position, equity is affected by current market price
+      double currentPrice = currentBar.getClosePrice().doubleValue();
+      double currentEquity = currentCapital + positionSize * currentPrice;
+      equityCurve.add(currentEquity);
+    } else {
+      // If not in position, equity remains the same as current capital
+      equityCurve.add(currentCapital);
+    }
+  }
+
+  /**
    * Calculates position size as a percentage of capital based on market volatility
    *
    * @param data             Recent price bars
@@ -127,7 +212,7 @@ public class BackTesterService {
    * @param params           Strategy parameters
    * @return Recommended position size as percentage of capital
    */
-  private double calculateAdaptivePositionSize(List<Bar> data, double entryPrice,
+  private double calculateAdaptivePositionSize(String coinPair, List<Bar> data, double entryPrice,
       double availableCapital, StrategyParameters params) {
     // Calculate ATR as percentage of price
     double atr = atrAnalyser.calculateATR(data, params.atrPeriod());
@@ -138,6 +223,11 @@ public class BackTesterService {
 
     // Base position size (percentage of capital)
     double basePositionSize = 0.5; // Default 60% of capital
+
+    // Reduce position size if circuit breaker is in test mode
+    var circuitState = circuitBreaker.getCircuitState(coinPair);
+    double circuitAdjustment =
+        (circuitState == TradingCircuitBreaker.CircuitState.HALF_OPEN) ? 0.5 : 1.0;
 
     double capitalPercentage;
     // Adjust position size based on volatility
@@ -151,7 +241,15 @@ public class BackTesterService {
       // Normal volatility - use base size
       capitalPercentage = basePositionSize;
     }
-    return availableCapital * capitalPercentage / entryPrice;
+
+    // Apply circuit breaker adjustment
+    capitalPercentage *= circuitAdjustment;
+
+    // Account for round-trip fees - using simulated fee
+    double roundTripFeeImpact = simulatedTradingFee * 2; // Both buy and sell
+    double feeAdjustedCapitalPercentage = capitalPercentage * (1 - roundTripFeeImpact);
+
+    return availableCapital * feeAdjustedCapitalPercentage / entryPrice;
   }
 
   /**
@@ -168,9 +266,11 @@ public class BackTesterService {
       // Simple return calculation: (current - previous) / previous
       double previousEquity = equityCurve.get(i - 1);
       double currentEquity = equityCurve.get(i);
-      double periodicReturn = (currentEquity - previousEquity) / previousEquity;
 
-      returns.add(periodicReturn);
+      if (previousEquity != 0) {
+        double periodicReturn = (currentEquity - previousEquity) / previousEquity;
+        returns.add(periodicReturn);
+      }
     }
 
     return returns;

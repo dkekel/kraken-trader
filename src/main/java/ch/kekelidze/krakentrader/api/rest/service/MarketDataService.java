@@ -12,12 +12,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.ta4j.core.Bar;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Profile("live-data")
@@ -38,26 +41,33 @@ public class MarketDataService implements HistoricalDataService {
     var historicalData = new HashMap<String, List<Bar>>();
     try (HttpClient client = HttpClient.newHttpClient()) {
       for (String coinPair : coin) {
-        String url =
-            "https://api.kraken.com/0/public/OHLC?pair=" + coinPair + "&interval=" + period;
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(url))
-            .build();
+        try {
+          String url =
+              "https://api.kraken.com/0/public/OHLC?pair=" + coinPair + "&interval=" + period;
+          HttpRequest request = HttpRequest.newBuilder()
+              .uri(URI.create(url))
+              .build();
 
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        JSONObject json = new JSONObject(response.body());
-        JSONObject result = json.getJSONObject("result");
-        JSONArray ohlcData = result.keySet().stream().filter(coinPair::equals)
-            .map(result::getJSONArray).findFirst().orElse(new JSONArray());
+          HttpResponse<String> response = client.send(request,
+              HttpResponse.BodyHandlers.ofString());
+          JSONObject json = new JSONObject(response.body());
+          JSONObject result = json.getJSONObject("result");
+          JSONArray ohlcData = result.keySet().stream().filter(coinPair::equals)
+              .map(result::getJSONArray).findFirst().orElse(new JSONArray());
 
-        // Extract closing prices (index 4 in Kraken's OHLC array)
-        var dataBars = new ArrayList<Bar>();
-        for (int i = 0; i < ohlcData.length(); i++) {
-          var ohlcCandle = ohlcData.getJSONArray(i);
-          var bar = responseConverterUtils.getPriceBar(ohlcCandle, period);
-          dataBars.add(bar);
+          // Extract closing prices (index 4 in Kraken's OHLC array)
+          var dataBars = new ArrayList<Bar>();
+          for (int i = 0; i < ohlcData.length(); i++) {
+            var ohlcCandle = ohlcData.getJSONArray(i);
+            var bar = responseConverterUtils.getPriceBar(ohlcCandle, period);
+            dataBars.add(bar);
+          }
+          historicalData.put(coinPair, dataBars);
+        } catch (JSONException e) {
+          log.error("Failed to parse market data for coin pair '{}'. JSONException: {}",
+              coinPair, e.getMessage(), e);
+          historicalData.put(coinPair, new ArrayList<>());
         }
-        historicalData.put(coinPair, dataBars);
       }
       return historicalData;
     } catch (IOException | InterruptedException e) {
