@@ -168,4 +168,21 @@ public class PaperTradeKrakenApiService implements TradingApiService {
   public String getApiSignature(String path, String nonce, String postData) {
     return "";
   }
+  
+  @Override
+  public double getMinimumOrderVolume(String pair) {
+    // For paper trading, use reasonable default minimum volumes based on common assets
+    if (pair.startsWith("XBT") || pair.startsWith("BTC")) {
+      return 0.001; // 0.001 BTC minimum
+    } else if (pair.startsWith("ETH")) {
+      return 0.01; // 0.01 ETH minimum
+    } else if (pair.startsWith("XDG")) {
+      return 100.0; // 100 DOGE minimum
+    } else if (pair.startsWith("SHIB")) {
+      return 500000.0; // 500,000 SHIB minimum
+    } else {
+      // Default minimum for other assets
+      return 0.01;
+    }
+  }
 }

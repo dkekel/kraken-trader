@@ -11,10 +11,6 @@ import ch.kekelidze.krakentrader.trade.TradeOperationType;
 import ch.kekelidze.krakentrader.trade.TradeState;
 import ch.kekelidze.krakentrader.trade.util.TradingCircuitBreaker;
 import jakarta.annotation.PostConstruct;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -22,11 +18,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.ta4j.core.Bar;
 
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+
 @Slf4j
 @Service
 public class TradeService {
-
-  private double portfolioAllocation = 1/8d;
 
   private final Map<String, Object> coinPairLocks = new ConcurrentHashMap<>();
   private final Map<String, Long> lastTradeTimestamps = new ConcurrentHashMap<>();
@@ -37,7 +36,6 @@ public class TradeService {
   
   @Value("${trading.resync.minutes:60}")
   private int usdResyncIntervalMinutes;
-
 
   private final AtrAnalyser atrAnalyser;
   private final Portfolio portfolio;
@@ -102,6 +100,23 @@ public class TradeService {
     lastUsdResyncTimestamps.put(coinPair, System.currentTimeMillis());
     log.debug("USD balance resync timestamp recorded for {}", coinPair);
   }
+  
+  /**
+   * Counts the number of coins not in trade.
+   * This uses the trade states from the portfolio to determine which coins are not in trade.
+   *
+   * @return The number of coins not in trade
+   */
+  private int countCoinsNotInTrade() {
+    int count = 0;
+    var tradeStates = portfolio.getTradeStates().values();
+    for (TradeState state : tradeStates) {
+      if (!state.isInTrade()) {
+        count++;
+      }
+    }
+    return count;
+  }
 
   public void executeStrategy(String coinPair, List<Bar> data) {
     Object lock = coinPairLocks.computeIfAbsent(coinPair, k -> new Object());
@@ -135,20 +150,54 @@ public class TradeService {
       executeSelectedStrategy(coinPair, data, strategy.getStrategyParameters(coinPair), strategy);
     }
   }
-
+  
   /**
-   * Sets the portfolio allocation based on the number of coin pairs.
-   * Each coin pair gets an equal portion of the total portfolio capital.
+   * Calculates the allocation for a coin pair based on a simplified approach.
+   * 1. Calculate even allocation based on coins not in trade
+   * 2. If even allocation is sufficient for minimum order volume, use it
+   * 3. If not, check if available capital can cover the minimum for the current coin
    *
-   * @param numberOfCoinPairs The number of coin pairs being traded
+   * @param coinPair The coin pair
+   * @param currentPrice The current price of the coin
+   * @param totalCapital The total available capital
+   * @return The allocated capital for this coin pair, or the minimum needed if even allocation is insufficient
    */
-  public void setPortfolioAllocation(int numberOfCoinPairs) {
-    if (numberOfCoinPairs <= 0) {
-      throw new IllegalArgumentException("Number of coin pairs must be greater than 0");
+  private double calculateActualAllocation(String coinPair, double currentPrice, double totalCapital) {
+    int coinsNotInTrade = countCoinsNotInTrade();
+    double evenAllocation = totalCapital / coinsNotInTrade;
+
+    try {
+      double minVolume = tradingApiService.getMinimumOrderVolume(coinPair);
+      // Calculate the minimum capital needed to meet the minimum order volume
+      double minCapitalNeeded = minVolume * currentPrice;
+
+      // If this is the only coin not in trade, use all available capital
+      if (coinsNotInTrade <= 1) {
+        log.info("This is the only coin not in trade, allocating all available capital: {} USD", totalCapital);
+
+        // Check if we have enough capital to meet the minimum requirement
+        if (totalCapital < minCapitalNeeded) {
+          log.warn("Insufficient capital ({} USD) to meet minimum order volume for {} ({} USD needed)",
+                  totalCapital, coinPair, minCapitalNeeded);
+        }
+
+        return totalCapital;
+      }
+
+      if (evenAllocation >= minCapitalNeeded) {
+        log.info("Using even allocation of {} USD for {} (minimum needed: {} USD)",
+                evenAllocation, coinPair, minCapitalNeeded);
+        return evenAllocation;
+      }
+
+      // Otherwise, use the minimum capital needed
+      log.info("Even allocation ({} USD) insufficient, using minimum needed ({} USD) for {}",
+              evenAllocation, minCapitalNeeded, coinPair);
+      return minCapitalNeeded;
+    } catch (Exception e) {
+      log.error("Failed to calculate allocation for {}: {}", coinPair, e.getMessage(), e);
+      return evenAllocation;
     }
-    this.portfolioAllocation = 1.0 / numberOfCoinPairs;
-    log.info("Portfolio allocation set to 1/{} = {} for each coin pair",
-        numberOfCoinPairs, this.portfolioAllocation);
   }
 
   private void executeSelectedStrategy(String coinPair, List<Bar> data, StrategyParameters params,
@@ -181,7 +230,7 @@ public class TradeService {
 
       if (!inTrade && buySignal) {
         // Calculate position size based on allocated capital
-        var allocatedCapital = portfolio.getTotalCapital() * portfolioAllocation;
+        double allocatedCapital = calculateActualAllocation(coinPair, currentPrice, currentCapital);
         var positionSize = calculateAdaptivePositionSize(coinPair, data, currentPrice,
             allocatedCapital, params);
 

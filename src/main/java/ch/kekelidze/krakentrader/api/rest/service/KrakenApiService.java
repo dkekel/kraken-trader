@@ -15,8 +15,13 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
@@ -40,11 +45,95 @@ public class KrakenApiService implements TradingApiService {
   private static final double FALLBACK_FEE_RATE = 0.4;
   private static final int MAX_RETRIES = 5;
   private static final long RETRY_DELAY_MS = 1000;
+  
+  private final ConcurrentHashMap<String, Double> minimumOrderVolumes = new ConcurrentHashMap<>();
+  private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+  
+  @Value("${kraken.minvolume.sync.minutes:60}")
+  private int minVolumeSyncIntervalMinutes;
 
   @Value("${kraken.api.key}")
   private String apiKey;
   @Value("${kraken.api.secret}")
   private String apiSecret;
+  
+  @PostConstruct
+  public void init() {
+    // Initialize minimum order volumes
+    syncMinimumOrderVolumes();
+    log.info("Initial minimum order volumes sync completed");
+
+    // Schedule periodic sync
+    scheduler.scheduleAtFixedRate(
+            this::syncMinimumOrderVolumes,
+            minVolumeSyncIntervalMinutes,
+            minVolumeSyncIntervalMinutes,
+            TimeUnit.MINUTES);
+    log.info("Scheduled minimum order volumes sync every {} minutes", minVolumeSyncIntervalMinutes);
+  }
+  
+  /**
+   * Synchronizes minimum order volumes from Kraken API
+   */
+  private void syncMinimumOrderVolumes() {
+      Map<String, Double> volumes = fetchMinimumOrderVolumes();
+      minimumOrderVolumes.putAll(volumes);
+      log.info("Synchronized minimum order volumes for {} pairs", volumes.size());
+  }
+  
+  /**
+   * Fetches minimum order volumes from Kraken API
+   * 
+   * @return Map of trading pairs to their minimum order volumes
+   */
+  private Map<String, Double> fetchMinimumOrderVolumes() {
+    String url = "https://api.kraken.com/0/public/AssetPairs";
+    Map<String, Double> result = new HashMap<>();
+    
+    try (HttpClient client = HttpClient.newHttpClient()) {
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(URI.create(url))
+          .build();
+      
+      HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+      JSONObject json = new JSONObject(response.body());
+      
+      if (json.has("error") && !json.getJSONArray("error").isEmpty()) {
+        throw new RuntimeException("Kraken API error: " + json.getJSONArray("error").toString());
+      }
+      
+      JSONObject pairs = json.getJSONObject("result");
+      for (String pairId : pairs.keySet()) {
+        JSONObject pairInfo = pairs.getJSONObject(pairId);
+        
+        // Extract minimum order volume
+        if (pairInfo.has("ordermin")) {
+          double minVolume = pairInfo.getDouble("ordermin");
+          
+          // Use wsname if available, otherwise use the pair ID
+          String pairName = pairInfo.has("wsname") ? pairInfo.getString("wsname") : pairId;
+          result.put(pairName, minVolume);
+        }
+      }
+    } catch (IOException | InterruptedException e) {
+        throw new RuntimeException("Failed to fetch minimum order volumes from Kraken API", e);
+    }
+
+    return result;
+  }
+  
+  @Override
+  public double getMinimumOrderVolume(String pair) {
+    // Try to get from the cache first
+    Double cachedVolume = minimumOrderVolumes.get(pair);
+    if (cachedVolume != null) {
+      return cachedVolume;
+    }
+    
+    // If not found, use a conservative default
+    log.warn("Could not determine minimum order volume for {}, using default value", pair);
+    return 0.01; // Conservative default minimum volume
+  }
 
   /**
    * Retrieves the current account balances from the Kraken API.
