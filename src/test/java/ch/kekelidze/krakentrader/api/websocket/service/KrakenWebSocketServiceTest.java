@@ -128,7 +128,7 @@ public class KrakenWebSocketServiceTest {
         verify(tradingApiService).getAssetBalance("USD");
         verify(portfolio).setTotalCapital(10000.0);
         verify(tradeService).setStrategy(strategy);
-        verify(tradeService).setPortfolioAllocation(2); // 2 coin pairs
+        // Portfolio allocation is now calculated dynamically based on coins not in trade
     }
 
     @Test
