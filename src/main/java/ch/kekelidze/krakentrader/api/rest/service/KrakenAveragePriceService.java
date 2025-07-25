@@ -3,6 +3,7 @@ package ch.kekelidze.krakentrader.api.rest.service;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import ch.kekelidze.krakentrader.trade.TradeOperationType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -49,16 +50,16 @@ public class KrakenAveragePriceService {
   private static class Transaction {
 
     Instant time;
-    String type; // buy or sell
+    TradeOperationType type; // BUY or SELL
     String asset;
     double quantity;
     double price;
     double fee;
 
-    Transaction(Instant time, String type, String asset, double quantity, double price,
+    Transaction(Instant time, String typeStr, String asset, double quantity, double price,
         double fee) {
       this.time = time;
-      this.type = type;
+      this.type = "buy".equalsIgnoreCase(typeStr) ? TradeOperationType.BUY : TradeOperationType.SELL;
       this.asset = asset;
       this.quantity = quantity;
       this.price = price;
@@ -112,7 +113,7 @@ public class KrakenAveragePriceService {
       currentAveragePrices.putIfAbsent(asset, 0.0);
       currentQuantities.putIfAbsent(asset, 0.0);
 
-      if ("buy".equals(tx.type)) {
+      if (TradeOperationType.BUY.equals(tx.type)) {
         // Buy transaction
         double currentQuantity = currentQuantities.get(asset);
         double currentAvgPrice = currentAveragePrices.get(asset);
@@ -130,9 +131,9 @@ public class KrakenAveragePriceService {
         // Add a new lot
         assetLots.get(asset).add(new Lot(tx.time, tx.quantity, tx.price, tx.fee));
 
-        log.debug("Buy {} {} at {}: New avg price={}, Total quantity={}",
-            tx.quantity, asset, tx.price, newAvgPrice, newTotalQuantity);
-      } else if ("sell".equals(tx.type)) {
+        log.debug("{} {} {} at {}: New avg price={}, Total quantity={}",
+            tx.type, tx.quantity, asset, tx.price, newAvgPrice, newTotalQuantity);
+      } else if (TradeOperationType.SELL.equals(tx.type)) {
         // Sell transaction - use FIFO to remove the appropriate lots
         double remainingToSell = tx.quantity;
         Queue<Lot> lots = assetLots.get(asset);
