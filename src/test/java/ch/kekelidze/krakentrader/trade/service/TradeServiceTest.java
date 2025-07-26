@@ -341,17 +341,25 @@ public class TradeServiceTest {
         // Create trade states for testing
         TradeState xbtState = new TradeState(coinPair);
         xbtState.setInTrade(false);
+        xbtState.setActivelyTraded(true); // This coin is actively traded
         
         TradeState ethState = new TradeState("ETH/USD");
         ethState.setInTrade(true);
+        ethState.setActivelyTraded(true); // This coin is actively traded but in trade
         
         TradeState dogeState = new TradeState("DOGE/USD");
         dogeState.setInTrade(false);
+        dogeState.setActivelyTraded(false); // This coin is not actively traded
+        
+        TradeState solState = new TradeState("SOL/USD");
+        solState.setInTrade(false);
+        solState.setActivelyTraded(true); // This coin is actively traded and not in trade
         
         // Add trade states to the map
         tradeStates.put(coinPair, xbtState);
         tradeStates.put("ETH/USD", ethState);
         tradeStates.put("DOGE/USD", dogeState);
+        tradeStates.put("SOL/USD", solState);
         
         // Mock the portfolio to return our trade states
         when(portfolio.getTradeStates()).thenReturn(tradeStates);
@@ -360,7 +368,7 @@ public class TradeServiceTest {
         int count = ReflectionTestUtils.invokeMethod(tradeService, "countCoinsNotInTrade");
         
         // Assert
-        // There are 2 coins not in trade (XBT/USD and DOGE/USD)
+        // There are 2 coins not in trade AND actively traded (XBT/USD and SOL/USD)
         assertEquals(2, count);
     }
     
@@ -372,22 +380,26 @@ public class TradeServiceTest {
         double minVolume = 0.001; // 0.001 BTC minimum (= 40 USD at current price)
         
         // Mock the minimum volume
-        when(tradingApiService.getMinimumOrderVolume(coinPair)).thenReturn(minVolume);
+        lenient().when(tradingApiService.getMinimumOrderVolume(coinPair)).thenReturn(minVolume);
         
         // Create trade states for testing
         ConcurrentHashMap<String, TradeState> tradeStates = new ConcurrentHashMap<>();
         
         TradeState xbtState = new TradeState(coinPair);
         xbtState.setInTrade(false);
+        xbtState.setActivelyTraded(true); // This coin is actively traded
         
         TradeState ethState = new TradeState("ETH/USD");
         ethState.setInTrade(false);
+        ethState.setActivelyTraded(true); // This coin is actively traded
         
         TradeState dogeState = new TradeState("DOGE/USD");
         dogeState.setInTrade(false);
+        dogeState.setActivelyTraded(true); // This coin is actively traded
         
         TradeState solState = new TradeState("SOL/USD");
         solState.setInTrade(false);
+        solState.setActivelyTraded(true); // This coin is actively traded
         
         // Add trade states to the map
         tradeStates.put(coinPair, xbtState);
@@ -403,7 +415,7 @@ public class TradeServiceTest {
             "calculateActualAllocation", coinPair, currentPrice, totalCapital);
         
         // Assert
-        // With 4 coins not in trade and 10000 USD, even allocation should be 2500 USD per coin
+        // With 4 coins not in trade and actively traded, and 10000 USD, even allocation should be 2500 USD per coin
         // This is well above the minimum of 40 USD, so it should use the even allocation
         assertEquals(2500.0, allocation, 0.01);
     }
@@ -416,19 +428,22 @@ public class TradeServiceTest {
         double minVolume = 0.001; // 0.001 BTC minimum (= 40 USD at current price)
         
         // Mock the minimum volume
-        when(tradingApiService.getMinimumOrderVolume(coinPair)).thenReturn(minVolume);
+        lenient().when(tradingApiService.getMinimumOrderVolume(coinPair)).thenReturn(minVolume);
         
         // Create trade states for testing
         ConcurrentHashMap<String, TradeState> tradeStates = new ConcurrentHashMap<>();
         
         TradeState xbtState = new TradeState(coinPair);
         xbtState.setInTrade(false);
+        xbtState.setActivelyTraded(true); // This coin is actively traded
         
         TradeState ethState = new TradeState("ETH/USD");
         ethState.setInTrade(false);
+        ethState.setActivelyTraded(true); // This coin is actively traded
         
         TradeState dogeState = new TradeState("DOGE/USD");
         dogeState.setInTrade(false);
+        dogeState.setActivelyTraded(true); // This coin is actively traded
         
         // Add trade states to the map
         tradeStates.put(coinPair, xbtState);
@@ -443,7 +458,7 @@ public class TradeServiceTest {
             "calculateActualAllocation", coinPair, currentPrice, totalCapital);
         
         // Assert
-        // With 3 coins not in trade and 100 USD, even allocation would be 33.33 USD per coin
+        // With 3 coins not in trade and actively traded, and 100 USD, even allocation would be 33.33 USD per coin
         // This is below the minimum of 40 USD, so it should use the minimum
         assertEquals(40.0, allocation, 0.01);
     }
@@ -463,6 +478,7 @@ public class TradeServiceTest {
         
         TradeState xbtState = new TradeState(coinPair);
         xbtState.setInTrade(false);
+        xbtState.setActivelyTraded(true); // This coin is actively traded
         
         // Add only one trade state to the map
         tradeStates.put(coinPair, xbtState);
@@ -475,7 +491,7 @@ public class TradeServiceTest {
             "calculateActualAllocation", coinPair, currentPrice, totalCapital);
         
         // Assert
-        // With only one coin not in trade, it should use all available capital
+        // With only one coin not in trade and actively traded, it should use all available capital
         assertEquals(100.0, allocation, 0.01);
     }
     
@@ -494,6 +510,7 @@ public class TradeServiceTest {
         
         TradeState xbtState = new TradeState(coinPair);
         xbtState.setInTrade(false);
+        xbtState.setActivelyTraded(true); // This coin is actively traded
         
         // Add only one trade state to the map
         tradeStates.put(coinPair, xbtState);
@@ -506,7 +523,7 @@ public class TradeServiceTest {
             "calculateActualAllocation", coinPair, currentPrice, totalCapital);
         
         // Assert
-        // With only one coin not in trade, it should use all available capital even if it's below minimum
+        // With only one coin not in trade and actively traded, it should use all available capital even if it's below minimum
         assertEquals(30.0, allocation, 0.01);
     }
     
@@ -514,6 +531,7 @@ public class TradeServiceTest {
     void executeStrategy_shouldNotSkipTrade_whenAllocationCalculationFails() throws Exception {
         // Arrange
         mockTradeState.setInTrade(false);
+        mockTradeState.setActivelyTraded(true); // This coin is actively traded
         StrategyParameters mockParams = mock(StrategyParameters.class);
         when(mockParams.atrPeriod()).thenReturn(14);
         when(strategy.getStrategyParameters(coinPair)).thenReturn(mockParams);

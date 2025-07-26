@@ -102,16 +102,16 @@ public class TradeService {
   }
   
   /**
-   * Counts the number of coins not in trade.
-   * This uses the trade states from the portfolio to determine which coins are not in trade.
+   * Counts the number of coins that are not in trade and are actively traded.
+   * This uses the trade states from the portfolio to determine which coins are eligible for trading.
    *
-   * @return The number of coins not in trade
+   * @return The number of coins not in trade and actively traded
    */
   private int countCoinsNotInTrade() {
     int count = 0;
     var tradeStates = portfolio.getTradeStates().values();
     for (TradeState state : tradeStates) {
-      if (!state.isInTrade()) {
+      if (!state.isInTrade() && state.isActivelyTraded()) {
         count++;
       }
     }
