@@ -14,6 +14,7 @@ public class TradeState {
   double entryPrice = 0;
   double positionSize = 0;
   double totalProfit = 0;
+  boolean activelyTraded = false;
 
   public synchronized boolean isInTrade() {
     return inTrade;
@@ -53,6 +54,14 @@ public class TradeState {
   public synchronized void setTotalProfit(double totalProfit) {
     this.totalProfit = totalProfit;
   }
+  
+  public synchronized boolean isActivelyTraded() {
+    return activelyTraded;
+  }
+  
+  public synchronized void setActivelyTraded(boolean activelyTraded) {
+    this.activelyTraded = activelyTraded;
+  }
 
   @Override
   public synchronized String toString() {
@@ -62,6 +71,7 @@ public class TradeState {
         ", entryPrice=" + entryPrice +
         ", positionSize=" + positionSize +
         ", totalProfit=" + totalProfit +
+        ", activelyTraded=" + activelyTraded +
         '}';
   }
 }
