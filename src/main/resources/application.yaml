@@ -55,7 +55,7 @@ trading:
   resync:
     minutes: 30
   cooldown:
-    minutes: 15
+    minutes: 60
   circuit-breaker:
     max-consecutive-losses: 3
     max-loss-percent-in-period: 10.0
