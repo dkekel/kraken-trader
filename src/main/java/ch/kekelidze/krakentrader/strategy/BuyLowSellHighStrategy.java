@@ -54,6 +54,8 @@ public class BuyLowSellHighStrategy implements Strategy {
     // Check volatility
     boolean volatilityOK = volatilityIndicator.isBuySignal(context, params);
 
+    boolean trendReversalConfirmed = !trendAnalyser.isDowntrend(data, context.getSymbol(), params);
+
     // Pre-check if all other signals are strong
     boolean otherSignalsStrong = wasInDowntrend &&
         ((bullishSignal && hasDivergence) ||
@@ -85,8 +87,8 @@ public class BuyLowSellHighStrategy implements Strategy {
         (bullishSignal || hasDivergence) &&
         (volatilityOK || overrideVolatility) &&
         macdConfirmed &&
-        movingTrend;
-
+        movingTrend &&
+        trendReversalConfirmed;
   }
 
   @Override
