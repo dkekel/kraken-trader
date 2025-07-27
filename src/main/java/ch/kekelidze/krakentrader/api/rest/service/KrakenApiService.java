@@ -45,6 +45,13 @@ public class KrakenApiService implements TradingApiService {
   private static final double FALLBACK_FEE_RATE = 0.4;
   private static final int MAX_RETRIES = 5;
   private static final long RETRY_DELAY_MS = 1000;
+
+  private static final Map<String, String> assetMappings = Map.of(
+          "XDG/USD", "DOGE/USD",
+          "XXDG", "DOGE",
+          "XBT/USD", "BTC/USD",
+          "XXBT", "BTC"
+  );
   
   private final ConcurrentHashMap<String, Double> minimumOrderVolumes = new ConcurrentHashMap<>();
   private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
@@ -110,11 +117,25 @@ public class KrakenApiService implements TradingApiService {
         if (pairInfo.has("ordermin")) {
           double minVolume = pairInfo.getDouble("ordermin");
           
-          // Use wsname if available, otherwise use the pair ID
           String pairName = pairInfo.has("wsname") ? pairInfo.getString("wsname") : pairId;
           result.put(pairName, minVolume);
+
+          // Also store any mapped versions
+          if (assetMappings.containsKey(pairName)) {
+            result.put(assetMappings.get(pairName), minVolume);
+          }
+
+          if (assetMappings.containsKey(pairId)) {
+            result.put(assetMappings.get(pairId), minVolume);
+          }
+
+          log.debug("Fetched minimum order volume for {} (wsname: {}, pairId: {}): {}",
+                  pairName, pairInfo.optString("wsname", "N/A"), pairId, minVolume);
         }
       }
+
+      log.info("Fetched minimum order volumes for pairs: {}", result.keySet());
+
     } catch (IOException | InterruptedException e) {
         throw new RuntimeException("Failed to fetch minimum order volumes from Kraken API", e);
     }
@@ -124,15 +145,25 @@ public class KrakenApiService implements TradingApiService {
   
   @Override
   public double getMinimumOrderVolume(String pair) {
-    // Try to get from the cache first
     Double cachedVolume = minimumOrderVolumes.get(pair);
     if (cachedVolume != null) {
       return cachedVolume;
     }
-    
-    // If not found, use a conservative default
-    log.warn("Could not determine minimum order volume for {}, using default value", pair);
-    return 0.01; // Conservative default minimum volume
+
+    log.debug("Could not find minimum order volume for '{}'. Available pairs: {}",
+            pair, minimumOrderVolumes.keySet());
+
+    if (pair.equals("DOGE/USD")) {
+      cachedVolume = minimumOrderVolumes.get("XDG/USD");
+      if (cachedVolume != null) {
+        log.info("Found minimum order volume for {} using XDG/USD mapping: {}", pair, cachedVolume);
+        return cachedVolume;
+      }
+    }
+
+    log.warn("Could not determine minimum order volume for {}, using default value. Available pairs: {}",
+            pair, minimumOrderVolumes.keySet());
+    return 0.01;
   }
 
   /**
