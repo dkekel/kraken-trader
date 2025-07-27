@@ -76,11 +76,11 @@ public class BuyLowSellHighStrategy implements Strategy {
       }
     }
 
-    log.debug(
-        "Buy '{}' signals at {} - Volatility: {}{}, MACD: {}, Downtrend: {}, Bullish: {}, MovingTrend: {}",
+    log.debug("Buy '{}' signals at {} - " +
+                    "Volatility: {}{}, MACD: {}, Downtrend: {}, Trend Reversal: {}, Bullish: {}, MovingTrend: {}",
         context.getSymbol(), context.getBars().getLast().getEndTime(),
         volatilityOK, overrideVolatility ? " (overridden)" : "",
-        macdConfirmed, wasInDowntrend, bullishSignal, movingTrend);
+        macdConfirmed, wasInDowntrend, trendReversalConfirmed, bullishSignal, movingTrend);
 
 
     return wasInDowntrend &&
