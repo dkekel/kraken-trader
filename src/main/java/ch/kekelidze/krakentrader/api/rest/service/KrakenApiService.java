@@ -43,7 +43,7 @@ import org.ta4j.core.Bar;
 public class KrakenApiService implements TradingApiService {
 
   private static final double FALLBACK_FEE_RATE = 0.4;
-  private static final int MAX_RETRIES = 5;
+  private static final int MAX_RETRIES = 10;
   private static final long RETRY_DELAY_MS = 1000;
 
   private static final Map<String, String> assetMappings = Map.of(
@@ -354,7 +354,7 @@ public class KrakenApiService implements TradingApiService {
         JSONObject result = responseJson.getJSONObject("result");
 
         // Check if order details are available
-        if (result.has(orderId)) {
+        if (result.has(orderId) && isOrderClosed(orderId, result)) {
           JSONObject order = result.getJSONObject(orderId);
 
           double fee = order.getDouble("fee");
@@ -401,6 +401,21 @@ public class KrakenApiService implements TradingApiService {
         MAX_RETRIES);
 
     return createFallbackOrderResult(orderId, coin, amount);
+  }
+
+  private boolean isOrderClosed(String orderId, JSONObject orderResult) {
+    JSONObject order = orderResult.getJSONObject(orderId);
+    if (!order.has("status")) {
+      log.warn("Order {} has no status field, assuming not ready", orderId);
+      return false;
+    }
+
+    String status = order.getString("status");
+    if (!"closed".equals(status)) {
+      log.info("Order {} not yet fully executed, status: {}", orderId, status);
+      return false;
+    }
+    return true;
   }
 
   /**
