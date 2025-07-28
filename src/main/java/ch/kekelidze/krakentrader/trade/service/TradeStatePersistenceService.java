@@ -37,6 +37,7 @@ public class TradeStatePersistenceService {
                 .entryPrice(tradeState.getEntryPrice())
                 .positionSize(tradeState.getPositionSize())
                 .totalProfit(tradeState.getTotalProfit())
+                .activelyTraded(tradeState.isActivelyTraded())
                 .build();
     }
 
@@ -46,6 +47,7 @@ public class TradeStatePersistenceService {
         tradeState.setEntryPrice(entity.getEntryPrice());
         tradeState.setPositionSize(entity.getPositionSize());
         tradeState.setTotalProfit(entity.getTotalProfit());
+        tradeState.setActivelyTraded(entity.isActivelyTraded());
         return tradeState;
     }
 }

@@ -6,7 +6,9 @@ import ch.kekelidze.krakentrader.api.util.ResponseConverterUtils;
 import ch.kekelidze.krakentrader.api.websocket.KrakenWebSocketClient;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.trade.Portfolio;
+import ch.kekelidze.krakentrader.trade.repository.TradeStateRepository;
 import ch.kekelidze.krakentrader.trade.service.TradeService;
+import ch.kekelidze.krakentrader.trade.service.TradeStatePersistenceService;
 import jakarta.websocket.Session;
 import jakarta.websocket.WebSocketContainer;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,6 +60,12 @@ public class KrakenWebSocketServiceTest {
 
     @Mock
     private WebSocketContainer webSocketContainer;
+    
+    @Mock
+    private TradeStatePersistenceService tradeStatePersistenceService;
+    
+    @Mock
+    private TradeStateRepository tradeStateRepository;
 
     @Mock
     private Session session;
@@ -76,7 +84,9 @@ public class KrakenWebSocketServiceTest {
             responseConverterUtils,
             tradingApiService,
             historicalDataService,
-            applicationContext
+            applicationContext,
+            tradeStatePersistenceService,
+            tradeStateRepository
         );
         
         // Use reflection to set up the test environment
@@ -128,7 +138,7 @@ public class KrakenWebSocketServiceTest {
         verify(tradingApiService).getAssetBalance("USD");
         verify(portfolio).setTotalCapital(10000.0);
         verify(tradeService).setStrategy(strategy);
-        verify(tradeService).setPortfolioAllocation(2); // 2 coin pairs
+        // Portfolio allocation is now calculated dynamically based on coins not in trade
     }
 
     @Test

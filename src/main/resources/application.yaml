@@ -34,6 +34,9 @@ spring:
       path: /h2-console
 
 kraken:
+  minvolume:
+    sync:
+      minutes: 60
   api:
     key: ${API_KEY}
     secret: ${API_SECRET}

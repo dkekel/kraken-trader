@@ -30,8 +30,16 @@ public class StrategyParametersService {
   public Optional<StrategyParameters> getStrategyParameters(String coinPair) {
     log.debug("Getting strategy parameters for coin pair: {}", coinPair);
     var validCoinPair = getValidCoinName(coinPair);
-    return repository.findByCoinPair(validCoinPair)
-        .map(StrategyParametersEntity::toStrategyParameters);
+    Optional<StrategyParametersEntity> entity = repository.findByCoinPair(validCoinPair);
+
+    if (entity.isPresent()) {
+      StrategyParameters parameters = entity.get().toStrategyParameters();
+      log.info("Loaded strategy parameters for coin pair '{}': {}", coinPair, parameters);
+      return Optional.of(parameters);
+    } else {
+      log.debug("No custom strategy parameters found for coin pair '{}', using default parameters", coinPair);
+      return Optional.empty();
+    }
   }
 
   /**

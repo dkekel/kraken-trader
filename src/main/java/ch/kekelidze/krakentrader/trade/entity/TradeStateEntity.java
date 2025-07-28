@@ -1,5 +1,6 @@
 package ch.kekelidze.krakentrader.trade.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -23,4 +24,6 @@ public class TradeStateEntity {
     private double entryPrice;
     private double positionSize;
     private double totalProfit;
+    @Column(name = "actively_traded", nullable = false, columnDefinition = "boolean default false")
+    private boolean activelyTraded;
 }

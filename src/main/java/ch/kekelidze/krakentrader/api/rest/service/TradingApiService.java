@@ -65,4 +65,13 @@ public interface TradingApiService {
    * @throws Exception if signature generation fails
    */
   String getApiSignature(String path, String nonce, String postData) throws Exception;
+  
+  /**
+   * Gets the minimum order volume for a specific trading pair.
+   * This is the minimum amount that can be traded on Kraken for this pair.
+   *
+   * @param pair Trading pair (e.g., "XBT/USD")
+   * @return The minimum order volume for the pair
+   */
+  double getMinimumOrderVolume(String pair);
 }

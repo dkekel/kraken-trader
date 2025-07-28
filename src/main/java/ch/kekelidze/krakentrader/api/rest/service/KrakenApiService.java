@@ -15,8 +15,13 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
@@ -38,13 +43,128 @@ import org.ta4j.core.Bar;
 public class KrakenApiService implements TradingApiService {
 
   private static final double FALLBACK_FEE_RATE = 0.4;
-  private static final int MAX_RETRIES = 5;
+  private static final int MAX_RETRIES = 10;
   private static final long RETRY_DELAY_MS = 1000;
+
+  private static final Map<String, String> assetMappings = Map.of(
+          "XDG/USD", "DOGE/USD",
+          "XXDG", "DOGE",
+          "XBT/USD", "BTC/USD",
+          "XXBT", "BTC"
+  );
+  
+  private final ConcurrentHashMap<String, Double> minimumOrderVolumes = new ConcurrentHashMap<>();
+  private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+  
+  @Value("${kraken.minvolume.sync.minutes:60}")
+  private int minVolumeSyncIntervalMinutes;
 
   @Value("${kraken.api.key}")
   private String apiKey;
   @Value("${kraken.api.secret}")
   private String apiSecret;
+  
+  @PostConstruct
+  public void init() {
+    // Initialize minimum order volumes
+    syncMinimumOrderVolumes();
+    log.info("Initial minimum order volumes sync completed");
+
+    // Schedule periodic sync
+    scheduler.scheduleAtFixedRate(
+            this::syncMinimumOrderVolumes,
+            minVolumeSyncIntervalMinutes,
+            minVolumeSyncIntervalMinutes,
+            TimeUnit.MINUTES);
+    log.info("Scheduled minimum order volumes sync every {} minutes", minVolumeSyncIntervalMinutes);
+  }
+  
+  /**
+   * Synchronizes minimum order volumes from Kraken API
+   */
+  private void syncMinimumOrderVolumes() {
+      Map<String, Double> volumes = fetchMinimumOrderVolumes();
+      minimumOrderVolumes.putAll(volumes);
+      log.info("Synchronized minimum order volumes for {} pairs", volumes.size());
+  }
+  
+  /**
+   * Fetches minimum order volumes from Kraken API
+   * 
+   * @return Map of trading pairs to their minimum order volumes
+   */
+  private Map<String, Double> fetchMinimumOrderVolumes() {
+    String url = "https://api.kraken.com/0/public/AssetPairs";
+    Map<String, Double> result = new HashMap<>();
+    
+    try (HttpClient client = HttpClient.newHttpClient()) {
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(URI.create(url))
+          .build();
+      
+      HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+      JSONObject json = new JSONObject(response.body());
+      
+      if (json.has("error") && !json.getJSONArray("error").isEmpty()) {
+        throw new RuntimeException("Kraken API error: " + json.getJSONArray("error").toString());
+      }
+      
+      JSONObject pairs = json.getJSONObject("result");
+      for (String pairId : pairs.keySet()) {
+        JSONObject pairInfo = pairs.getJSONObject(pairId);
+        
+        // Extract minimum order volume
+        if (pairInfo.has("ordermin")) {
+          double minVolume = pairInfo.getDouble("ordermin");
+          
+          String pairName = pairInfo.has("wsname") ? pairInfo.getString("wsname") : pairId;
+          result.put(pairName, minVolume);
+
+          // Also store any mapped versions
+          if (assetMappings.containsKey(pairName)) {
+            result.put(assetMappings.get(pairName), minVolume);
+          }
+
+          if (assetMappings.containsKey(pairId)) {
+            result.put(assetMappings.get(pairId), minVolume);
+          }
+
+          log.debug("Fetched minimum order volume for {} (wsname: {}, pairId: {}): {}",
+                  pairName, pairInfo.optString("wsname", "N/A"), pairId, minVolume);
+        }
+      }
+
+      log.info("Fetched minimum order volumes for pairs: {}", result.keySet());
+
+    } catch (IOException | InterruptedException e) {
+        throw new RuntimeException("Failed to fetch minimum order volumes from Kraken API", e);
+    }
+
+    return result;
+  }
+  
+  @Override
+  public double getMinimumOrderVolume(String pair) {
+    Double cachedVolume = minimumOrderVolumes.get(pair);
+    if (cachedVolume != null) {
+      return cachedVolume;
+    }
+
+    log.debug("Could not find minimum order volume for '{}'. Available pairs: {}",
+            pair, minimumOrderVolumes.keySet());
+
+    if (pair.equals("DOGE/USD")) {
+      cachedVolume = minimumOrderVolumes.get("XDG/USD");
+      if (cachedVolume != null) {
+        log.info("Found minimum order volume for {} using XDG/USD mapping: {}", pair, cachedVolume);
+        return cachedVolume;
+      }
+    }
+
+    log.warn("Could not determine minimum order volume for {}, using default value. Available pairs: {}",
+            pair, minimumOrderVolumes.keySet());
+    return 0.01;
+  }
 
   /**
    * Retrieves the current account balances from the Kraken API.
@@ -234,7 +354,7 @@ public class KrakenApiService implements TradingApiService {
         JSONObject result = responseJson.getJSONObject("result");
 
         // Check if order details are available
-        if (result.has(orderId)) {
+        if (result.has(orderId) && isOrderClosed(orderId, result)) {
           JSONObject order = result.getJSONObject(orderId);
 
           double fee = order.getDouble("fee");
@@ -281,6 +401,21 @@ public class KrakenApiService implements TradingApiService {
         MAX_RETRIES);
 
     return createFallbackOrderResult(orderId, coin, amount);
+  }
+
+  private boolean isOrderClosed(String orderId, JSONObject orderResult) {
+    JSONObject order = orderResult.getJSONObject(orderId);
+    if (!order.has("status")) {
+      log.warn("Order {} has no status field, assuming not ready", orderId);
+      return false;
+    }
+
+    String status = order.getString("status");
+    if (!"closed".equals(status)) {
+      log.info("Order {} not yet fully executed, status: {}", orderId, status);
+      return false;
+    }
+    return true;
   }
 
   /**

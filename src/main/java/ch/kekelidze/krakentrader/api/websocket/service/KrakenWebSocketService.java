@@ -7,17 +7,18 @@ import ch.kekelidze.krakentrader.api.websocket.KrakenWebSocketClient;
 import ch.kekelidze.krakentrader.api.websocket.SinglePairWebSocketClient;
 import ch.kekelidze.krakentrader.strategy.Strategy;
 import ch.kekelidze.krakentrader.trade.Portfolio;
+import ch.kekelidze.krakentrader.trade.TradeState;
+import ch.kekelidze.krakentrader.trade.entity.TradeStateEntity;
+import ch.kekelidze.krakentrader.trade.repository.TradeStateRepository;
 import ch.kekelidze.krakentrader.trade.service.TradeService;
+import ch.kekelidze.krakentrader.trade.service.TradeStatePersistenceService;
 import jakarta.websocket.ContainerProvider;
 import jakarta.websocket.DeploymentException;
 import jakarta.websocket.Session;
 import jakarta.websocket.WebSocketContainer;
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,8 @@ public class KrakenWebSocketService implements DisposableBean {
   private final TradingApiService krakenApiService;
   private final HistoricalDataService marketDataService;
   private final ApplicationContext applicationContext;
+  private final TradeStatePersistenceService tradeStatePersistenceService;
+  private final TradeStateRepository tradeStateRepository;
 
   private WebSocketContainer container;
 
@@ -51,6 +54,9 @@ public class KrakenWebSocketService implements DisposableBean {
       var strategy = applicationContext.getBean(args[0], Strategy.class);
       var coinPairs = args[1].split(",");
 
+      // Update actively traded status for all coins
+      updateActivelyTradedStatus(coinPairs);
+      
       initFeesCache(coinPairs);
 
       try {
@@ -65,9 +71,8 @@ public class KrakenWebSocketService implements DisposableBean {
       log.info("Starting WebSocket client for strategy: {}", strategy);
       tradeService.setStrategy(strategy);
 
-      // Set portfolio allocation based on the number of coin pairs
-      tradeService.setPortfolioAllocation(coinPairs.length);
-      log.info("Set portfolio allocation for {} coin pairs", coinPairs.length);
+      // Portfolio allocation is now calculated dynamically based on coins not in trade
+      log.info("Trading {} coin pairs", coinPairs.length);
 
       // Initialize the WebSocket client with Spring-managed dependencies
       KrakenWebSocketClient.initialize(tradeService, responseConverterUtils, marketDataService,
@@ -90,6 +95,50 @@ public class KrakenWebSocketService implements DisposableBean {
       var coinFees = krakenApiService.getCoinTradingFee(coinPair);
       log.info("Initialised trading fee cache for {}: {}", coinPair, coinFees);
     }
+  }
+  
+  /**
+   * Updates the activelyTraded status for all coins in the database.
+   * Sets activelyTraded=true for coins in the provided list and activelyTraded=false for all others.
+   *
+   * @param coinPairs Array of coin pairs that are actively traded
+   */
+  private void updateActivelyTradedStatus(String[] coinPairs) {
+    log.info("Updating actively traded status for all coins");
+    
+    // Create a set of coin pairs for faster lookup
+    Set<String> activeCoinPairs = new HashSet<>(Arrays.asList(coinPairs));
+    
+    // Get all trade states from the database
+    List<TradeStateEntity> allTradeStates = tradeStateRepository.findAll();
+    
+    // Update each trade state
+    for (TradeStateEntity entity : allTradeStates) {
+      boolean isActivelyTraded = activeCoinPairs.contains(entity.getCoinPair());
+      entity.setActivelyTraded(isActivelyTraded);
+      
+      // Log the status change
+      if (isActivelyTraded) {
+        log.info("Setting {} as actively traded", entity.getCoinPair());
+      } else {
+        log.info("Setting {} as not actively traded", entity.getCoinPair());
+      }
+    }
+    
+    // Save all updated entities
+    tradeStateRepository.saveAll(allTradeStates);
+    
+    // Create trade states for new coin pairs that don't exist in the database yet
+    for (String coinPair : coinPairs) {
+      if (allTradeStates.stream().noneMatch(e -> e.getCoinPair().equals(coinPair))) {
+        TradeState newTradeState = new TradeState(coinPair);
+        newTradeState.setActivelyTraded(true);
+        tradeStatePersistenceService.saveTradeState(newTradeState);
+        log.info("Created new trade state for {} and set as actively traded", coinPair);
+      }
+    }
+    
+    log.info("Finished updating actively traded status for all coins");
   }
 
   @Override
