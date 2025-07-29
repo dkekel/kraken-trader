@@ -381,7 +381,22 @@ public class TradeService {
     double roundTripFeeImpact = takerFeeRate * 2 / 100; // Both buy and sell
     double feeAdjustedCapitalPercentage = capitalPercentage * (1 - roundTripFeeImpact);
 
-    return availableCapital * feeAdjustedCapitalPercentage / entryPrice;
+    double calculatedPositionSize = availableCapital * feeAdjustedCapitalPercentage / entryPrice;
+
+    // Ensure the position size meets the minimum order volume requirement
+    try {
+      double minVolume = tradingApiService.getMinimumOrderVolume(coinPair);
+      if (calculatedPositionSize < minVolume) {
+        log.info("Calculated position size ({}) is below minimum order volume ({}), using minimum for {}",
+                calculatedPositionSize, minVolume, coinPair);
+        return minVolume;
+      }
+    } catch (Exception e) {
+      log.warn("Failed to check minimum order volume for {}: {}", coinPair, e.getMessage());
+      // Continue with the calculated position size if we can't get minimum volume
+    }
+
+    return calculatedPositionSize;
   }
 
   /**
