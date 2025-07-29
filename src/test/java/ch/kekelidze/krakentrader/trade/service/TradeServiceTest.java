@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.ta4j.core.Bar;
 import org.ta4j.core.BaseBar;
 import org.ta4j.core.num.DecimalNum;
@@ -76,8 +75,8 @@ public class TradeServiceTest {
         tradeService.setStrategy(strategy);
 
         // Set trade cooldown to a small value for testing
-        ReflectionTestUtils.setField(tradeService, "tradeCooldownMinutes", 1);
-        ReflectionTestUtils.setField(tradeService, "usdResyncIntervalMinutes", 60);
+        tradeService.tradeCooldownMinutes = 1;
+        tradeService.usdResyncIntervalMinutes = 60;
 
         // Create mock bars for testing
         mockBars = createMockBars();
@@ -312,7 +311,7 @@ public class TradeServiceTest {
     @Test
     void executeStrategy_shouldResyncUsdBalance_whenNeeded() throws Exception {
         // Arrange - force a resync by setting the field directly
-        ReflectionTestUtils.setField(tradeService, "lastUsdResyncTimestamps", new java.util.concurrent.ConcurrentHashMap<>());
+        tradeService.lastUsdResyncTimestamps.clear();
         
         mockTradeState.setInTrade(false);
         StrategyParameters mockParams = mock(StrategyParameters.class);
@@ -364,8 +363,8 @@ public class TradeServiceTest {
         // Mock the portfolio to return our trade states
         when(portfolio.getTradeStates()).thenReturn(tradeStates);
         
-        // Act - use reflection to invoke the private method
-        int count = ReflectionTestUtils.invokeMethod(tradeService, "countCoinsNotInTrade");
+        // Act - directly invoke the method
+        int count = tradeService.countCoinsNotInTrade();
         
         // Assert
         // There are 2 coins not in trade AND actively traded (XBT/USD and SOL/USD)
@@ -410,9 +409,8 @@ public class TradeServiceTest {
         // Mock the portfolio to return our trade states
         when(portfolio.getTradeStates()).thenReturn(tradeStates);
 
-        // Act - use reflection to invoke the private method
-        double allocation = ReflectionTestUtils.invokeMethod(tradeService,
-            "calculateActualAllocation", coinPair, currentPrice, totalCapital);
+        // Act - directly invoke the method
+        double allocation = tradeService.calculateActualAllocation(coinPair, currentPrice, totalCapital);
         
         // Assert
         // With 4 coins not in trade and actively traded, and 10000 USD, even allocation should be 2500 USD per coin
@@ -453,9 +451,8 @@ public class TradeServiceTest {
         // Mock the portfolio to return our trade states
         when(portfolio.getTradeStates()).thenReturn(tradeStates);
         
-        // Act - use reflection to invoke the private method
-        double allocation = ReflectionTestUtils.invokeMethod(tradeService,
-            "calculateActualAllocation", coinPair, currentPrice, totalCapital);
+        // Act - directly invoke the method
+        double allocation = tradeService.calculateActualAllocation(coinPair, currentPrice, totalCapital);
         
         // Assert
         // With 3 coins not in trade and actively traded, and 100 USD, even allocation would be 33.33 USD per coin
@@ -486,9 +483,8 @@ public class TradeServiceTest {
         // Mock the portfolio to return our trade states
         when(portfolio.getTradeStates()).thenReturn(tradeStates);
 
-        // Act - use reflection to invoke the private method
-        double allocation = (double) ReflectionTestUtils.invokeMethod(tradeService, 
-            "calculateActualAllocation", coinPair, currentPrice, totalCapital);
+        // Act - directly invoke the method
+        double allocation = tradeService.calculateActualAllocation(coinPair, currentPrice, totalCapital);
         
         // Assert
         // With only one coin not in trade and actively traded, it should use all available capital
@@ -518,9 +514,8 @@ public class TradeServiceTest {
         // Mock the portfolio to return our trade states
         when(portfolio.getTradeStates()).thenReturn(tradeStates);
 
-        // Act - use reflection to invoke the private method
-        double allocation = ReflectionTestUtils.invokeMethod(tradeService,
-            "calculateActualAllocation", coinPair, currentPrice, totalCapital);
+        // Act - directly invoke the method
+        double allocation = tradeService.calculateActualAllocation(coinPair, currentPrice, totalCapital);
         
         // Assert
         // With only one coin not in trade and actively traded, it should use all available capital even if it's below minimum
@@ -580,9 +575,8 @@ public class TradeServiceTest {
         // Mock trading fee
         when(tradingApiService.getCoinTradingFee(testCoinPair)).thenReturn(0.26);
         
-        // Act - use reflection to invoke the private method
-        double positionSize = ReflectionTestUtils.invokeMethod(tradeService,
-            "calculateAdaptivePositionSize", testCoinPair, mockBars, entryPrice, availableCapital, mockParams);
+        // Act - directly invoke the method
+        double positionSize = tradeService.calculateAdaptivePositionSize(testCoinPair, mockBars, entryPrice, availableCapital, mockParams);
         
         // Assert
         // The calculated position size would be very small (around 0.00025 BTC with 20 USD capital),
@@ -612,9 +606,8 @@ public class TradeServiceTest {
         // Mock trading fee
         when(tradingApiService.getCoinTradingFee(testCoinPair)).thenReturn(0.26);
         
-        // Act - use reflection to invoke the private method
-        double positionSize = ReflectionTestUtils.invokeMethod(tradeService,
-            "calculateAdaptivePositionSize", testCoinPair, mockBars, entryPrice, availableCapital, mockParams);
+        // Act - directly invoke the method
+        double positionSize = tradeService.calculateAdaptivePositionSize(testCoinPair, mockBars, entryPrice, availableCapital, mockParams);
         
         // Assert
         // With normal volatility, base position size is 0.5 (50% of capital)
@@ -646,9 +639,8 @@ public class TradeServiceTest {
         // Mock trading fee
         when(tradingApiService.getCoinTradingFee(testCoinPair)).thenReturn(0.26);
         
-        // Act - use reflection to invoke the private method
-        double positionSize = ReflectionTestUtils.invokeMethod(tradeService,
-            "calculateAdaptivePositionSize", testCoinPair, mockBars, entryPrice, availableCapital, mockParams);
+        // Act - directly invoke the method
+        double positionSize = tradeService.calculateAdaptivePositionSize(testCoinPair, mockBars, entryPrice, availableCapital, mockParams);
         
         // Assert
         // Should return the calculated position size without applying minimum volume check
