@@ -558,4 +558,101 @@ public class TradeServiceTest {
         verify(tradeStatePersistenceService).saveTradeState(mockTradeState);
         assertTrue(mockTradeState.isInTrade());
     }
+    
+    @Test
+    void calculateAdaptivePositionSize_shouldReturnMinimumVolume_whenCalculatedPositionSizeBelowMinimum() throws Exception {
+        // Arrange
+        String testCoinPair = "XBT/USD";
+        double entryPrice = 40000.0;
+        double availableCapital = 20.0; // Small capital to ensure calculated position is below minimum
+        double minVolume = 0.001; // 0.001 BTC minimum (= 40 USD at current price)
+        
+        // Mock strategy parameters
+        StrategyParameters mockParams = mock(StrategyParameters.class);
+        when(mockParams.atrPeriod()).thenReturn(14);
+        
+        // Mock the minimum volume
+        when(tradingApiService.getMinimumOrderVolume(testCoinPair)).thenReturn(minVolume);
+        
+        // Mock ATR calculation to return a value that will result in a small position size
+        when(atrAnalyser.calculateATR(anyList(), anyInt())).thenReturn(200.0);
+        
+        // Mock trading fee
+        when(tradingApiService.getCoinTradingFee(testCoinPair)).thenReturn(0.26);
+        
+        // Act - use reflection to invoke the private method
+        double positionSize = ReflectionTestUtils.invokeMethod(tradeService,
+            "calculateAdaptivePositionSize", testCoinPair, mockBars, entryPrice, availableCapital, mockParams);
+        
+        // Assert
+        // The calculated position size would be very small (around 0.00025 BTC with 20 USD capital),
+        // which is below the minimum of 0.001 BTC, so it should return the minimum volume
+        assertEquals(minVolume, positionSize, 0.00001);
+    }
+    
+    @Test
+    void calculateAdaptivePositionSize_shouldReturnCalculatedSize_whenAboveMinimumVolume() throws Exception {
+        // Arrange
+        String testCoinPair = "XBT/USD";
+        double entryPrice = 40000.0;
+        double availableCapital = 1000.0; // Larger capital to ensure calculated position is above minimum
+        double minVolume = 0.001; // 0.001 BTC minimum (= 40 USD at current price)
+        
+        // Mock strategy parameters
+        StrategyParameters mockParams = mock(StrategyParameters.class);
+        when(mockParams.atrPeriod()).thenReturn(14);
+        
+        // Mock the minimum volume
+        when(tradingApiService.getMinimumOrderVolume(testCoinPair)).thenReturn(minVolume);
+        
+        // Mock ATR calculation for normal volatility (base position size = 0.5)
+        when(atrAnalyser.calculateATR(anyList(), anyInt())).thenReturn(2000.0);
+        double atrPercent = (2000.0 / 41400.0) * 100; // Should be around 4.83%, which is normal volatility
+        
+        // Mock trading fee
+        when(tradingApiService.getCoinTradingFee(testCoinPair)).thenReturn(0.26);
+        
+        // Act - use reflection to invoke the private method
+        double positionSize = ReflectionTestUtils.invokeMethod(tradeService,
+            "calculateAdaptivePositionSize", testCoinPair, mockBars, entryPrice, availableCapital, mockParams);
+        
+        // Assert
+        // With normal volatility, base position size is 0.5 (50% of capital)
+        // With 1000 USD capital, 50% is 500 USD
+        // After fee adjustment (0.26% * 2 = 0.52% round trip), it's around 497.4 USD
+        // At 40000 USD per BTC, that's about 0.0124 BTC, which is above minimum
+        assertTrue(positionSize > minVolume);
+        // The exact calculation would be: 1000 * 0.5 * (1 - 0.0052) / 40000 = 0.01244
+        assertEquals(0.01244, positionSize, 0.0001);
+    }
+    
+    @Test
+    void calculateAdaptivePositionSize_shouldHandleException_whenGetMinimumOrderVolumeThrowsException() throws Exception {
+        // Arrange
+        String testCoinPair = "XBT/USD";
+        double entryPrice = 40000.0;
+        double availableCapital = 1000.0;
+        
+        // Mock strategy parameters
+        StrategyParameters mockParams = mock(StrategyParameters.class);
+        when(mockParams.atrPeriod()).thenReturn(14);
+        
+        // Mock the minimum volume to throw an exception
+        when(tradingApiService.getMinimumOrderVolume(testCoinPair)).thenThrow(new RuntimeException("API error"));
+        
+        // Mock ATR calculation for normal volatility
+        when(atrAnalyser.calculateATR(anyList(), anyInt())).thenReturn(2000.0);
+        
+        // Mock trading fee
+        when(tradingApiService.getCoinTradingFee(testCoinPair)).thenReturn(0.26);
+        
+        // Act - use reflection to invoke the private method
+        double positionSize = ReflectionTestUtils.invokeMethod(tradeService,
+            "calculateAdaptivePositionSize", testCoinPair, mockBars, entryPrice, availableCapital, mockParams);
+        
+        // Assert
+        // Should return the calculated position size without applying minimum volume check
+        // The exact calculation would be: 1000 * 0.5 * (1 - 0.0052) / 40000 = 0.01244
+        assertEquals(0.01244, positionSize, 0.0001);
+    }
 }
