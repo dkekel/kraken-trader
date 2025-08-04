@@ -29,13 +29,13 @@ public class TradeService {
 
   private final Map<String, Object> coinPairLocks = new ConcurrentHashMap<>();
   private final Map<String, Long> lastTradeTimestamps = new ConcurrentHashMap<>();
-  private final Map<String, Long> lastUsdResyncTimestamps = new ConcurrentHashMap<>();
+  final Map<String, Long> lastUsdResyncTimestamps = new ConcurrentHashMap<>();
 
   @Value("${trading.cooldown.minutes:15}")
-  private int tradeCooldownMinutes;
+  int tradeCooldownMinutes;
   
   @Value("${trading.resync.minutes:60}")
-  private int usdResyncIntervalMinutes;
+  int usdResyncIntervalMinutes;
 
   private final AtrAnalyser atrAnalyser;
   private final Portfolio portfolio;
@@ -107,7 +107,7 @@ public class TradeService {
    *
    * @return The number of coins not in trade and actively traded
    */
-  private int countCoinsNotInTrade() {
+  int countCoinsNotInTrade() {
     int count = 0;
     var tradeStates = portfolio.getTradeStates().values();
     for (TradeState state : tradeStates) {
@@ -162,7 +162,7 @@ public class TradeService {
    * @param totalCapital The total available capital
    * @return The allocated capital for this coin pair, or the minimum needed if even allocation is insufficient
    */
-  private double calculateActualAllocation(String coinPair, double currentPrice, double totalCapital) {
+  double calculateActualAllocation(String coinPair, double currentPrice, double totalCapital) {
     int coinsNotInTrade = countCoinsNotInTrade();
     double evenAllocation = totalCapital / coinsNotInTrade;
 
@@ -351,7 +351,7 @@ public class TradeService {
    * @param params           Strategy parameters
    * @return Recommended position size as percentage of capital
    */
-  private double calculateAdaptivePositionSize(String coinPair, List<Bar> data, double entryPrice,
+  double calculateAdaptivePositionSize(String coinPair, List<Bar> data, double entryPrice,
       double availableCapital, StrategyParameters params) {
     // Calculate ATR as percentage of price
     double atr = atrAnalyser.calculateATR(data, params.atrPeriod());
@@ -381,7 +381,22 @@ public class TradeService {
     double roundTripFeeImpact = takerFeeRate * 2 / 100; // Both buy and sell
     double feeAdjustedCapitalPercentage = capitalPercentage * (1 - roundTripFeeImpact);
 
-    return availableCapital * feeAdjustedCapitalPercentage / entryPrice;
+    double calculatedPositionSize = availableCapital * feeAdjustedCapitalPercentage / entryPrice;
+
+    // Ensure the position size meets the minimum order volume requirement
+    try {
+      double minVolume = tradingApiService.getMinimumOrderVolume(coinPair);
+      if (calculatedPositionSize < minVolume) {
+        log.info("Calculated position size ({}) is below minimum order volume ({}), using minimum for {}",
+                calculatedPositionSize, minVolume, coinPair);
+        return minVolume;
+      }
+    } catch (Exception e) {
+      log.warn("Failed to check minimum order volume for {}: {}", coinPair, e.getMessage());
+      // Continue with the calculated position size if we can't get minimum volume
+    }
+
+    return calculatedPositionSize;
   }
 
   /**
