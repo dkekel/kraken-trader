@@ -19,6 +19,10 @@ application {
 }
 
 bootJar {
+    layered {
+        enabled = true
+    }
+
     mainClass = 'ch.kekelidze.krakentrader.KrakenTraderApplication'
     archiveBaseName = 'kraken-trader'
     archiveFileName = "kraken-trader-${version}.jar"
