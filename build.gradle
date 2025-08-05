@@ -19,6 +19,10 @@ application {
 }
 
 bootJar {
+    layered {
+        enabled = true
+    }
+
     mainClass = 'ch.kekelidze.krakentrader.KrakenTraderApplication'
     archiveBaseName = 'kraken-trader'
     archiveFileName = "kraken-trader-${version}.jar"
@@ -102,9 +106,6 @@ dependencies {
     implementation 'org.json:json:20250107'
     implementation 'org.ta4j:ta4j-core:0.15'
     implementation 'io.jenetics:jenetics:7.1.0'
-
-    implementation 'org.deeplearning4j:deeplearning4j-core:1.0.0-M2.1'
-    implementation 'org.nd4j:nd4j-native-platform:1.0.0-M2.1'
 
     implementation 'org.apache.httpcomponents.client5:httpclient5'
 
