@@ -1,20 +1,10 @@
-name: Gradle Build
+name: Tests
 
 on:
-  workflow_dispatch:
-    # Only allow manual trigger on master
-    inputs:
-      dummy:
-        description: 'Manual trigger'
-        required: false
-  push:
-    branches: []  # disables on push
   pull_request:
-    branches: []  # disables on PR
 
 jobs:
-  build:
-    if: github.ref == 'refs/heads/master'
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -30,5 +20,5 @@ jobs:
       - name: Grant execute permission for Gradle wrapper
         run: chmod +x gradlew
 
-      - name: Build with Gradle
-        run: ./gradlew build
+      - name: Run tests
+        run: ./gradlew test
