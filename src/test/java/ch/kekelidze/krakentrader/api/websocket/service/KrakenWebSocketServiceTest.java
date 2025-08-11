@@ -118,7 +118,7 @@ public class KrakenWebSocketServiceTest {
     @Test
     void startWebSocketClient_shouldInitializeAndConnect() throws Exception {
         // Arrange
-        String[] args = {"testStrategy", "XBTUSD,ETHUSD"};
+        String[] args = {"testStrategy", "XBTUSD,ETHUSD", "60"};
         when(applicationContext.getBean("testStrategy", Strategy.class)).thenReturn(strategy);
         when(tradingApiService.getAssetBalance("USD")).thenReturn(10000.0);
         
