@@ -4,6 +4,8 @@ import ch.kekelidze.krakentrader.indicator.configuration.StrategyParameters;
 
 public class TimeFrameAdjustmentUtils {
 
+  private static final int BASE_PERIOD = 240;
+
   /**
    * Adjusts the time frame of the given StrategyParameters by recalculating the periods based on
    * the provided period value. The calculation is performed using a time frame multiplier derived
@@ -16,7 +18,7 @@ public class TimeFrameAdjustmentUtils {
    * non-period-related attributes unchanged
    */
   public static StrategyParameters adjustTimeFrame(StrategyParameters parameters, int period) {
-    var timeFrameMultiplier = 60 / period;
+    var timeFrameMultiplier = BASE_PERIOD / period;
     return StrategyParameters.builder()
         .movingAverageBuyShortPeriod(parameters.movingAverageBuyShortPeriod() * timeFrameMultiplier)
         .movingAverageBuyLongPeriod(parameters.movingAverageBuyLongPeriod() * timeFrameMultiplier)

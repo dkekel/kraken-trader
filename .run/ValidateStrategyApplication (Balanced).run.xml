@@ -1,0 +1,23 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="ValidateStrategyApplication (Balanced)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <option name="ACTIVE_PROFILES" value="live-data,paper-trading" />
+    <envs>
+      <env name="API_KEY" value="" />
+      <env name="API_SECRET" value="" />
+    </envs>
+    <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources" />
+    <module name="kraken-trader.main" />
+    <option name="PROGRAM_PARAMETERS" value="ETH/USD,AR/USD,ATOM/USD,RUNE/USD,KAS/USD 240" />
+    <option name="SHORTEN_COMMAND_LINE" value="ARGS_FILE" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="ch.kekelidze.krakentrader.ValidateStrategyApplication" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="ch.kekelidze.krakentrader.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

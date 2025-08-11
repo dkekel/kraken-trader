@@ -39,8 +39,8 @@ public class KrakenWebSocketClient {
 
   private static final int MAX_QUEUE_SIZE = 600;
   private static List<String> SYMBOLS;
-  //Default period is 1h, overridable from the strategy implementation
-  static int PERIOD = 60;
+  //Default period is 1h, overridable from the runtime arguments or strategy implementation
+  private static int PERIOD = 60;
 
   private static final Map<String, Deque<Bar>> priceQueue = new HashMap<>();
 
@@ -54,13 +54,21 @@ public class KrakenWebSocketClient {
   private boolean pingInProgress = false;
 
   // Method to set dependencies from Spring context
+  // Backward-compatible initializer (without explicit period): falls back to strategy's period
   public static void initialize(TradeService strategyService, ResponseConverterUtils converterUtils,
       HistoricalDataService marketDataService, String[] symbols, KrakenWebSocketService service) {
+    initialize(strategyService, converterUtils, marketDataService, symbols, service,
+        strategyService.getStrategy().getPeriod());
+  }
+
+  public static void initialize(TradeService strategyService, ResponseConverterUtils converterUtils,
+      HistoricalDataService marketDataService, String[] symbols, KrakenWebSocketService service,
+      int period) {
     tradeService = strategyService;
     responseConverterUtils = converterUtils;
     webSocketService = service;
     SYMBOLS = List.of(symbols);
-    PERIOD = tradeService.getStrategy().getPeriod();
+    PERIOD = period;
     initializePriceQueue(marketDataService);
   }
 

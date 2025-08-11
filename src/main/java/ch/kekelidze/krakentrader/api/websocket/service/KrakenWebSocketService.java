@@ -53,6 +53,7 @@ public class KrakenWebSocketService implements DisposableBean {
     try {
       var strategy = applicationContext.getBean(args[0], Strategy.class);
       var coinPairs = args[1].split(",");
+      var period = getCandlePeriod(args);
 
       // Update actively traded status for all coins
       updateActivelyTradedStatus(coinPairs);
@@ -73,10 +74,11 @@ public class KrakenWebSocketService implements DisposableBean {
 
       // Portfolio allocation is now calculated dynamically based on coins not in trade
       log.info("Trading {} coin pairs", coinPairs.length);
+      log.info("Using OHLC interval (minutes): {}", period);
 
       // Initialize the WebSocket client with Spring-managed dependencies
       KrakenWebSocketClient.initialize(tradeService, responseConverterUtils, marketDataService,
-          coinPairs, this);
+          coinPairs, this, period);
 
       // Connect to WebSocket server
       var container = getWebSocketContainer();
@@ -87,6 +89,23 @@ public class KrakenWebSocketService implements DisposableBean {
 
     } catch (Exception e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  private int getCandlePeriod(String[] args) {
+    try {
+      if (args.length > 2) {
+        var period = Integer.parseInt(args[args.length - 1]);
+        if (period <= 0) {
+          throw new NumberFormatException("Period must be positive");
+        }
+        return period;
+      } else {
+        throw new IllegalArgumentException("No period argument provided");
+      }
+    } catch (NumberFormatException nfe) {
+      throw new IllegalArgumentException("Invalid period argument provided: " + nfe.getMessage(),
+          nfe);
     }
   }
 
