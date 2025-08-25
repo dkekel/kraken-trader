@@ -10,16 +10,20 @@ import jakarta.websocket.OnMessage;
 import jakarta.websocket.OnOpen;
 import jakarta.websocket.Session;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -42,7 +46,9 @@ public class KrakenWebSocketClient {
   //Default period is 1h, overridable from the runtime arguments or strategy implementation
   private static int PERIOD = 60;
 
-  private static final Map<String, Deque<Bar>> priceQueue = new HashMap<>();
+  private static final Map<String, Deque<Bar>> priceQueue = new ConcurrentHashMap<>();
+  private static final Map<String, CandleState> candleStates = new ConcurrentHashMap<>();
+
 
   private static TradeService tradeService;
   private static ResponseConverterUtils responseConverterUtils;
@@ -204,23 +210,62 @@ public class KrakenWebSocketClient {
         var ohlcEntry = responseConverterUtils.convertJsonToOhlcEntry(ohlcObject);
         var bar = responseConverterUtils.getPriceBarFromOhlcEntry(ohlcEntry);
         var symbol = ohlcEntry.symbol();
-        var candleQueue = priceQueue.get(symbol);
-        if (isUpdatedCandle(symbol, bar)) {
-          var lastBar = candleQueue.peekLast();
-          lastBar.addPrice(bar.getClosePrice());
-        } else {
-          enqueueNewBar(bar, candleQueue);
-        }
 
-        if (candleQueue.size() < MAX_QUEUE_SIZE) {
-          log.debug("Candle queue size is too small for {}: {}", symbol, candleQueue.size());
+        CandleUpdateResult updateResult = processCandleUpdate(symbol, bar);
+        if (updateResult.candleQueue().size() < MAX_QUEUE_SIZE) {
+          log.debug("Candle queue size is too small for {}: {}", symbol,
+              updateResult.candleQueue().size());
           continue;
         }
 
-        log.debug("Triggering strategy evaluation for {} at {}", symbol, bar.getEndTime());
-        tradeService.executeStrategy(symbol, new ArrayList<>(candleQueue));
+        if (updateResult.candleClosed()) {
+          log.debug("Closed candle detected for {} at {} - executing full strategy",
+              symbol, bar.getEndTime());
+          tradeService.executeStrategy(symbol, new ArrayList<>(updateResult.candleQueue()));
+        } else {
+          log.debug("Candle forming for {} at {} - executing risk management only",
+              symbol, bar.getEndTime());
+          tradeService.executeRiskManagementOnly(symbol,
+              new ArrayList<>(updateResult.candleQueue()));
+        }
       }
     }
+  }
+
+  /**
+   * Processes candle updates and maintains candle state tracking.
+   *
+   * @param symbol The trading symbol
+   * @param bar The new bar data
+   * @return CandleUpdateResult containing updated queue and candle state
+   */
+  private CandleUpdateResult processCandleUpdate(String symbol, Bar bar) {
+    var candleQueue = priceQueue.get(symbol);
+    var candleState = candleStates.computeIfAbsent(symbol, k -> new CandleState());
+
+    boolean isUpdatedCandle = isUpdatedCandle(symbol, bar);
+    boolean isCandleClosed = false;
+
+    if (isUpdatedCandle) {
+      // Update existing candle
+      var lastBar = candleQueue.peekLast();
+      lastBar.addPrice(bar.getClosePrice());
+      candleState.setLastUpdateTime(Instant.now());
+      candleState.setFormingCandle(true);
+    } else {
+      // New candle - mark previous as closed if we had a forming candle
+      if (candleState.isFormingCandle()) {
+        isCandleClosed = true;
+        log.debug("Previous candle closed for {} - new candle starting at {}",
+            symbol, bar.getEndTime());
+      }
+      enqueueNewBar(bar, candleQueue);
+      candleState.setLastCandleTime(bar.getEndTime().toLocalDateTime());
+      candleState.setLastUpdateTime(Instant.now());
+      candleState.setFormingCandle(true);
+    }
+
+    return new CandleUpdateResult(candleQueue, isCandleClosed, candleState);
   }
 
   private String getChannel(JSONObject json) {
@@ -264,5 +309,24 @@ public class KrakenWebSocketClient {
         log.error("Error closing session: {}", e.getMessage(), e);
       }
     }
+  }
+
+  /**
+   * Tracks the state of candle formation for each symbol
+   */
+  @Setter
+  @Getter
+  private static class CandleState {
+    // Getters and setters
+    private boolean formingCandle = false;
+    private java.time.LocalDateTime lastCandleTime;
+    private Instant lastUpdateTime;
+  }
+
+  /**
+     * Result of processing a candle update
+     */
+    private record CandleUpdateResult(Deque<Bar> candleQueue, boolean candleClosed,
+                                      CandleState candleState) {
   }
 }

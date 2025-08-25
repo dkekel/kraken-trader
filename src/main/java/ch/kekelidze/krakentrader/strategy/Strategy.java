@@ -49,4 +49,14 @@ public interface Strategy {
   default int getPeriod() {
     return 60;
   }
+
+  /**
+   * Risk-only forced exit check to be used during a forming candle. Default behavior falls back to
+   * full sell decision; concrete strategies should override to only consider risk signals (stop
+   * loss / take profit) and ignore technical signals.
+   */
+  default boolean shouldForceExit(EvaluationContext context, double entryPrice,
+      StrategyParameters params) {
+    return shouldSell(context, entryPrice, params);
+  }
 }
