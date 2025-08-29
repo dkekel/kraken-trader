@@ -121,6 +121,9 @@ public class TradeService {
   public void executeStrategy(String coinPair, List<Bar> data) {
     Object lock = coinPairLocks.computeIfAbsent(coinPair, k -> new Object());
     synchronized (lock) {
+      log.debug("Executing FULL strategy for {} with closed candle at {}",
+          coinPair, data.getLast().getEndTime());
+
       if (isUsdResyncNeeded(coinPair)) {
         log.info("Performing regular USD balance resync for {}", coinPair);
         try {
@@ -150,7 +153,102 @@ public class TradeService {
       executeSelectedStrategy(coinPair, data, strategy.getStrategyParameters(coinPair), strategy);
     }
   }
-  
+
+  /**
+   * Executes risk management only for forming candles.
+   * This method runs continuously while candles are forming to handle forced exits.
+   */
+  public void executeRiskManagementOnly(String coinPair, List<Bar> data) {
+    Object lock = coinPairLocks.computeIfAbsent(coinPair, k -> new Object());
+    synchronized (lock) {
+      var tradeState = portfolio.getOrCreateTradeState(coinPair);
+      if (!tradeState.isInTrade()) {
+        log.trace("No position for {} - skipping risk management", coinPair);
+        return;
+      }
+
+      log.debug("Executing RISK MANAGEMENT ONLY for {} with forming candle at {}",
+          coinPair, data.getLast().getEndTime());
+
+      if (!circuitBreaker.canTrade(coinPair)) {
+        log.debug("Circuit breaker active for {} - skipping risk management", coinPair);
+        return;
+      }
+      if (!canTrade(coinPair)) {
+        log.warn("Skipping risk management for {} due to trade cooldown", coinPair);
+        return;
+      }
+
+      try {
+        var evaluationContext = EvaluationContext.builder().symbol(coinPair).bars(data).build();
+        var params = strategy.getStrategyParameters(coinPair);
+
+        // Only check for forced exit (risk management)
+        boolean shouldForceExit = strategy.shouldForceExit(evaluationContext,
+            tradeState.getEntryPrice(), params);
+
+        if (shouldForceExit) {
+          log.info("Risk management triggered FORCED EXIT for {} at {}",
+              coinPair, data.getLast().getEndTime());
+          executeForceExit(coinPair, tradeState, data.getLast().getClosePrice().doubleValue());
+        }
+      } catch (Exception e) {
+        log.error("Error during risk management for {}: {}", coinPair, e.getMessage(), e);
+      }
+    }
+  }
+
+  /**
+   * Executes a forced exit due to risk management triggers.
+   */
+  private void executeForceExit(String coinPair, TradeState tradeState, double currentPrice) {
+    try {
+      // Place market sell order
+      OrderResult orderResult = tradingApiService.placeMarketSellOrder(coinPair,
+          tradeState.getPositionSize());
+
+      // Calculate actual proceeds (after fees)
+      var executedPrice =
+          orderResult.executedPrice() == 0 ? currentPrice : orderResult.executedPrice();
+      double totalProceeds = executedPrice * orderResult.volume() - orderResult.fee();
+
+      // Calculate profit
+      var entryPrice = tradeState.getEntryPrice();
+      double entryValue = entryPrice * tradeState.getPositionSize();
+      double profit = ((totalProceeds - entryValue) / entryValue) * 100;
+
+      // Update trade state
+      tradeState.setInTrade(false);
+      var totalProfit = tradeState.getTotalProfit();
+      tradeState.setTotalProfit(totalProfit + profit);
+      tradeStatePersistenceService.saveTradeState(tradeState);
+
+      // Update capital
+      portfolio.addToTotalCapital(totalProceeds);
+
+      // Record trade timestamp
+      recordTradeTimestamp(coinPair);
+
+      // Record with circuit breaker
+      circuitBreaker.recordTradeResult(coinPair, profit);
+      var circuitState = circuitBreaker.getCircuitState(coinPair);
+
+      log.warn("FORCED EXIT executed for {} {} at: {} | Fee: {} | Proceeds: {} | Profit: {}% | Circuit: {} | Reason: Risk Management",
+          TradeOperationType.SELL,
+          coinPair,
+          executedPrice,
+          orderResult.fee(),
+          totalProceeds,
+          profit,
+          circuitState);
+      log.info("{} total Profit: {}%", coinPair, tradeState.getTotalProfit());
+
+    } catch (Exception e) {
+      log.error("Failed to execute forced exit for {}: {}", coinPair, e.getMessage(), e);
+      handleTradingError(coinPair, e, TradeOperationType.SELL);
+    }
+  }
+
   /**
    * Calculates the allocation for a coin pair based on a simplified approach.
    * 1. Calculate even allocation based on coins not in trade
