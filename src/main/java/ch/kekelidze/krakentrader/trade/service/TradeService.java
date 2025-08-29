@@ -174,6 +174,10 @@ public class TradeService {
         log.debug("Circuit breaker active for {} - skipping risk management", coinPair);
         return;
       }
+      if (!canTrade(coinPair)) {
+        log.warn("Skipping risk management for {} due to trade cooldown", coinPair);
+        return;
+      }
 
       try {
         var evaluationContext = EvaluationContext.builder().symbol(coinPair).bars(data).build();
