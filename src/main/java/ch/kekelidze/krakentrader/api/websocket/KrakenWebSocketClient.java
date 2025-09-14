@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -223,10 +222,7 @@ public class KrakenWebSocketClient {
               symbol, bar.getEndTime());
           tradeService.executeStrategy(symbol, new ArrayList<>(updateResult.candleQueue()));
         } else {
-          log.debug("Candle forming for {} at {} - executing risk management only",
-              symbol, bar.getEndTime());
-          tradeService.executeRiskManagementOnly(symbol,
-              new ArrayList<>(updateResult.candleQueue()));
+          log.debug("Candle forming for {} at {}", symbol, bar.getEndTime());
         }
       }
     }
