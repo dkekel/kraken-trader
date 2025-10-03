@@ -172,4 +172,27 @@ public class BuyLowSellHighStrategy implements Strategy {
     return strategyParametersService.getStrategyParameters(coinPair)
         .orElseGet(this::getStrategyParameters);
   }
+
+  /**
+   * Evaluates whether a forced exit should be performed based on risk management signals.
+   * The decision is made considering sell signals from the risk management indicator
+   * and excludes standard technical indicators like trends or patterns.
+   *
+   * @param context    the evaluation context containing market data (e.g., symbol, price bars)
+   * @param entryPrice the trade's entry price
+   * @param params     the strategy parameters used for decision-making, such as stop-loss and
+   *                   profit thresholds
+   * @return true if a risk-based forced exit signal is generated, false otherwise
+   */
+  @Override
+  public boolean shouldForceExit(EvaluationContext context, double entryPrice,
+      StrategyParameters params) {
+    boolean riskExit = riskManagementIndicator.isSellSignal(context, entryPrice, params);
+    if (riskExit) {
+      log.debug("[Risk-Only] Forced exit signal for {} at {}", context.getSymbol(),
+          context.getBars().getLast().getEndTime());
+    }
+    return riskExit;
+
+  }
 }

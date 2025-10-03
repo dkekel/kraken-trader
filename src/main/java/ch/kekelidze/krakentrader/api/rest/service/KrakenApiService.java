@@ -129,13 +129,10 @@ public class KrakenApiService implements TradingApiService {
             result.put(assetMappings.get(pairId), minVolume);
           }
 
-          log.debug("Fetched minimum order volume for {} (wsname: {}, pairId: {}): {}",
+          log.trace("Fetched minimum order volume for {} (wsname: {}, pairId: {}): {}",
                   pairName, pairInfo.optString("wsname", "N/A"), pairId, minVolume);
         }
       }
-
-      log.info("Fetched minimum order volumes for pairs: {}", result.keySet());
-
     } catch (IOException | InterruptedException e) {
         throw new RuntimeException("Failed to fetch minimum order volumes from Kraken API", e);
     }

@@ -121,6 +121,9 @@ public class TradeService {
   public void executeStrategy(String coinPair, List<Bar> data) {
     Object lock = coinPairLocks.computeIfAbsent(coinPair, k -> new Object());
     synchronized (lock) {
+      log.debug("Executing FULL strategy for {} with closed candle at {}",
+          coinPair, data.getLast().getEndTime());
+
       if (isUsdResyncNeeded(coinPair)) {
         log.info("Performing regular USD balance resync for {}", coinPair);
         try {
@@ -150,7 +153,7 @@ public class TradeService {
       executeSelectedStrategy(coinPair, data, strategy.getStrategyParameters(coinPair), strategy);
     }
   }
-  
+
   /**
    * Calculates the allocation for a coin pair based on a simplified approach.
    * 1. Calculate even allocation based on coins not in trade
